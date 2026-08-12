@@ -1,0 +1,27 @@
+comment "greyhawk"; 
+_mothership = this; 
+
+[_mothership, ["Killed", { 
+	params ["_mothership"]; 
+
+	[_mothership] spawn { 
+		params ["_mothership"]; 
+
+		{ 
+			[_x, "Hit"] remoteExec ["removeAllEventHandlers", 0, true]; 
+			_x deleteVehicleCrew driver _x; 
+			sleep 1; 
+			detach _x;  
+			_x setDamage 1; 
+		} forEach (attachedObjects _mothership); 
+	}; 
+	 
+	[_mothership] spawn { 
+		params ["_mothership"]; 
+		sleep 300; 
+		deleteVehicle _mothership; 
+	}; 
+
+}]] remoteExec ["addEventHandler", 0, true];  
+
+[_mothership, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _mothership, true]; 
