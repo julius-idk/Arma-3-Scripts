@@ -1,3 +1,5 @@
+"INCOMPATIBLE WITH v3.0.8";
+
 if (!isNil "this") then { deleteVehicle this };
 
 _MainToggleScreen = {
@@ -80,14 +82,14 @@ _MainToggleScreen = {
 
 _EnableScript = {
 
-	if (missionNamespace getVariable ["AdvancedUCAVs_ScriptRunning", false]) exitWith {
+	if (missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to enable: Advanced UCAVs is already running";
 		playSoundUI ["addItemFailed"];
 	};
 
 	playSoundUI ["addItemOK"];
 
-	missionNamespace setVariable ["AdvancedUCAVs_ScriptRunning", true, true];
+	missionNamespace setVariable ["AdvancedUCAVs_ScriptEnabled", true, true];
 
 
 	{
@@ -188,7 +190,7 @@ _EnableScript = {
 
 _DisableScript = {
 	
-	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptRunning", false]) exitWith {
+	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to disable: Advanced UCAVs isn't even running";	
 		playSoundUI ["addItemFailed"];
 	};		
@@ -205,7 +207,7 @@ _DisableScript = {
 	
 	["[UCAV_LOG] Advanced UCAVs has been disabled"] remoteExec ["diag_log"];
 			
-	missionNamespace setVariable ["AdvancedUCAVs_ScriptRunning", false, true];
+	missionNamespace setVariable ["AdvancedUCAVs_ScriptEnabled", false, true];
 
 	remoteExec ["", "AdvancedUCAVs_InitOnPlayer_JIPID"]; 
 	remoteExec ["", "AdvancedUCAVs_DroneHackingJIPID"];
@@ -274,7 +276,7 @@ _ConfigureScript = {
 	
 	if (_isReadOnly && { visibleMap && { !(forcedMap select 1) }}) then { openMap false };
 	
-	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptRunning", false]) exitWith {
+	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to configure: Advanced UCAVs isn't even running";
 		playSoundUI ["addItemFailed"];
 	};	
