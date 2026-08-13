@@ -909,7 +909,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"<font size='17'>-> Using Spectrum Device Radar</font><br/>" +
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
 		"2. Aim with the Spectrum Device (right click).<br/>" +
-		"3. If you look at a drone you'll notice that its name is visible next to it, it will do so for all drones in a 1km radius.<br/>" +
+		"3. If you look at a drone you'll notice that its name is visible next to it. This works for all drones visible to the player within a 1km radius.<br/>" +
 		"4. Addtional controls are shown at the bottom of the screen right after aiming.<br/><br/>" +
 				
 		"<font size='17'>-> Using Drone Renaming</font><br/>" +	
