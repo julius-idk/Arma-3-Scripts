@@ -688,12 +688,25 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	};
 	
 	
+	AdvancedUCAVs_openGithub = {
+		_IDD = if (visibleMap) then {12} else { if (!isNull findDisplay -1) then {-1} else { if (!isNull findDisplay 312) then {312} else {46}} };
+		_display = (findDisplay _IDD) createDisplay "RscDisplayEmpty";
+		_linkToCopy = _display ctrlCreate ["RscEdit", -1];
+		_linkToCopy ctrlSetPosition [0.11, 0.87, 0.76, 0.06];
+		_linkToCopy ctrlSetBackgroundColor [0.2, 0.2, 0.2, 1];
+		_linkToCopy ctrlSetFontHeight 0.048;
+		_linkToCopy ctrlSetText "https://github.com/julius-idk/Arma-3-Scripts/blob/main/Advanced%20UCAVs/%5BWIP%5D%20Advanced%20UCAVs%204.0.0%20Overhaul.sqf";
+		_linkToCopy ctrlCommit 0;	
+	};
+	
+	
 	AdvancedUCAVs_Diary_ScriptInfo = player createDiaryRecord ["Advanced_UCAVs", 
 	[
 		"Script Info",
 		"<br/>" +
 		"<font size='20'>Script Info</font><br/><br/>" +
-		"<font size='17'>On Workshop: [Still WIP, Update Soon] Advanced UCAVs 4.0.0</font><br/><br/>" +	
+		"<font size='17'>On Workshop: [Still WIP, Update Soon]</font><br/><br/>" +
+		"[<execute expression='[] call AdvancedUCAVs_openGithub'>Click here to open Advanced UCAVs 4.0.0 Github</execute>]<br/><br/><br/><br/>" +
 		"- script by julius"	
 	]];	
 		
@@ -1309,7 +1322,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			};
 			case "Log_Killed": {
 				_secondParams params ["_droneName", "_droneType", "_instigator", "_driverName"];
-				format ["< %1 %3> was killed by < %2 >.%4", _droneName, _instigator, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}, if (!isNil "_driverName") then {" Driver at that time: " + _driverName} else {""}]
+				format ["< %1 %3> was killed by < %2 >.%4", _droneName, _instigator, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}, if (!isNil "_driverName") then {" Driver at that time: < "+_driverName+" >"} else {""}]
 			};			
 			case "Log_DebugFiredAR2": {
 				_secondParams params ["_droneType", "_clientOwner"];
@@ -1412,7 +1425,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};		
 		if !(AdvancedUCAVs_wasHintShown) then {
 			AdvancedUCAVs_wasHintShown = true;
-			"UCAVs_CtrlHint" cutText ["<t size='1.5'>Keybinds: <br/>[R] Toggle drone radar<br/>[Scroll] Change text size</t>", "PLAIN DOWN", 0.3, false, true, true];		
+			"UCAVs_SpectrumTxt" cutText ["<t size='1.5'>Keybinds: <br/>[R] Toggle drone radar<br/>[Scroll] Change text size</t>", "PLAIN DOWN", 0.3, false, true, true];		
 		};
 		if !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) exitWith {};
 		
@@ -1480,18 +1493,19 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		showCommandingMenu "RscMainMenu";
 		showCommandingMenu "";
 
+		_bottom = (safeZoneY + safeZoneH) - (safeZoneH * 0.2);
 		_backgroundBar = _display ctrlCreate ["RscText", 69691];
-		_backgroundBar ctrlSetPosition [0, 1, 1, 0.05];
+		_backgroundBar ctrlSetPosition [0, _bottom, 1, 0.05];
 		_backgroundBar ctrlSetBackgroundColor [0.2, 0.2, 0.2, 1];
 		_backgroundBar ctrlCommit 0;
 		
 		_progressBar = _display ctrlCreate ["RscText", 69692];
-		_progressBar ctrlSetPosition [0, 1, 0, 0.05];
+		_progressBar ctrlSetPosition [0, _bottom, 0, 0.05];
 		_progressBar ctrlSetBackgroundColor [0.8, 0.5, 0.2, 1];
 		_progressBar ctrlCommit 0;	
 	
 		_infoText = _display ctrlCreate ["RscText", 69693];
-		_infoText ctrlSetPosition [0, 1, 1, 0.05];
+		_infoText ctrlSetPosition [0, _bottom, 1, 0.05];
 		_infoText ctrlSetFontHeight 0.04;
 		_infoText ctrlSetFont "EtelkaMonospacePro";
 		_infoText ctrlSetText (format ["Crafting %1, please have patience...", _droneTypeName]);
@@ -1603,7 +1617,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};
 			missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumRadar", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true])];		
 			_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) then { "Enabled" } else { "Disabled" };
-			"UCAVs_CtrlHint" cutText [format ["<t size='1.5'>Radar: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];
+			"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Radar: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];
 		}];			
 	
 		if(!isNil "AdvancedUCAVs_SpectrumRadar_ScrolledEH") then {
@@ -1625,7 +1639,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			};
 			if (AdvancedUCAVs_SpectrumRadar_TextSize < 0) then { AdvancedUCAVs_SpectrumRadar_TextSize = 0 };
 			
-			"UCAVs_CtrlHint" cutText [format ["<t size='1.5'>Textsize: %1</t>", AdvancedUCAVs_SpectrumRadar_TextSize], "PLAIN DOWN", 0.3, false, true, true];
+			"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Textsize: %1</t>", AdvancedUCAVs_SpectrumRadar_TextSize], "PLAIN DOWN", 0.3, false, true, true];
 								
 		}];				
 	};
@@ -1663,6 +1677,45 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_corpse setVariable ["JammingOn", false];
 	}];
 	
+
+
+	AdvancedUCAVs_SpectrumCoolDownUI_fnc = {
+		if (!isNil "AdvancedUCAVs_SpectrumCoolDownUI" && { !(scriptDone AdvancedUCAVs_SpectrumCoolDownUI) }) exitWith {};
+		AdvancedUCAVs_SpectrumCoolDownUI = [] spawn {		
+			_display = (findDisplay 46);				
+			
+			_bottom = (safeZoneY + safeZoneH) - (safeZoneH * 0.13);
+			_backgroundBar = _display ctrlCreate ["RscText", -1];
+			_backgroundBar ctrlSetPosition [0.3, _bottom, 0.4, 0.045];
+			_backgroundBar ctrlSetBackgroundColor [0.1, 0.1, 0.1, 1];
+			_backgroundBar ctrlCommit 0;
+			
+			_progressBar = _display ctrlCreate ["RscText", -1];
+			_progressBar ctrlSetPosition [0.3, _bottom, 0, 0.045];
+			_progressBar ctrlSetBackgroundColor [0.7, 0, 0, 1];
+			_progressBar ctrlCommit 0;	
+
+			_infoText = _display ctrlCreate ["RscText", -1];
+			_infoText ctrlSetPosition [0.3, _bottom, 0.4, 0.045];
+			_infoText ctrlSetFontHeight 0.04;
+			_infoText ctrlSetFont "EtelkaMonospacePro";
+			_infoText ctrlSetText (format ["Jammer Recharging...%1s", 3]);
+			_infoText ctrlCommit 0;		
+						
+			_duration = 3;
+			_controlPos = ctrlPosition _progressBar;
+			_controlPos set [2, 0.4];
+			_progressBar ctrlSetPosition _controlPos;
+			_progressBar ctrlCommit _duration;
+				
+			_endTime = uiTime + _duration;
+			waitUntil {
+				_infoText ctrlSetText (format ["Jammer Recharging...%1s", (_endTime - uiTime) toFixed 2]);
+				ctrlCommitted _progressBar
+			};
+			{ ctrlDelete _x } forEach [_backgroundBar, _progressBar, _infoText];
+		};
+	};
 
 
 
@@ -1765,15 +1818,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_drone = if ((["UAV_01_base_F","UAV_06_base_F","UGV_02_Base_F"] findIf { cursorObject isKindOf _x }) != -1) then { cursorObject } else { objNull };	
 		_droneName = [_drone] call AdvancedUCAVs_getName_fnc;	
 
-		if (time <= AdvancedUCAVs_SpectrumCoolDown) exitWith { titleText [format ["<t color='#FF0000' size='1.5'>Jammer Recharging: %1s", (AdvancedUCAVs_SpectrumCoolDown - time) toFixed 2], "PLAIN DOWN", 0.5, true, true] };
+		if (time <= AdvancedUCAVs_SpectrumCoolDown) exitWith { [] call AdvancedUCAVs_SpectrumCoolDownUI_fnc };
 		AdvancedUCAVs_SpectrumCoolDown = time + 3;
-		if (isNull _drone) exitWith { titleText ["<t color='#FF0000' size='1.5'>No drone found", "PLAIN DOWN", 0.5, true, true] };
-		if (!alive _drone) exitWith { titleText ["<t color='#FF0000' size='1.5'>No drone found", "PLAIN DOWN", 0.5, true, true] };
-		if ((player distance _drone) > _maxRange) exitWith { titleText [format ["<t color='#FF0000' size='1.5'>%1 is out of range (1km)", _droneName], "PLAIN DOWN", 0.5, true, true] };
-		if ((count crew _drone) <= 0) exitWith { titleText [format ["<t color='#FF0000' size='1.5'>%1 is already jammed", _droneName], "PLAIN DOWN", 0.5, true, true] };							
+		if (isNull _drone) exitWith { [] call AdvancedUCAVs_SpectrumCoolDownUI_fnc; "UCAVs_SpectrumTxt" cutText ["<t color='#FF0000' size='1.5'>No drone found", "PLAIN DOWN", 0.5, true, true] };
+		if (!alive _drone) exitWith { [] call AdvancedUCAVs_SpectrumCoolDownUI_fnc; "UCAVs_SpectrumTxt" cutText ["<t color='#FF0000' size='1.5'>No drone found", "PLAIN DOWN", 0.5, true, true] };
+		if ((player distance _drone) > _maxRange) exitWith { [] call AdvancedUCAVs_SpectrumCoolDownUI_fnc; "UCAVs_SpectrumTxt" cutText [format ["<t color='#FF0000' size='1.5'>%1 is out of range (1km)", _droneName], "PLAIN DOWN", 0.5, true, true] };
+		if ((count crew _drone) <= 0) exitWith { [] call AdvancedUCAVs_SpectrumCoolDownUI_fnc; "UCAVs_SpectrumTxt" cutText [format ["<t color='#FF0000' size='1.5'>%1 is already jammed", _droneName], "PLAIN DOWN", 0.5, true, true] };							
 				
-		
-		
+			
 		_drone deleteVehicleCrew (driver _drone);
 		_drone deleteVehicleCrew (gunner _drone);
 		
@@ -1781,7 +1833,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_distance = round (player distance _drone);
 		
 		systemChat format ["[Jammer] Jammed Drone: %1 [%2] - (distance %3m)", _droneName, _side, _distance];
-		titleText ["<t color='#00FF0C' size='1.5'>Jammed Drone", "PLAIN DOWN", 0.5, true, true];
+		"UCAVs_SpectrumTxt" cutText ["<t color='#00FF0C' size='1.5'>Jammed Drone", "PLAIN DOWN", 0.5, true, true];
 
 		["Log_JammedSpectrum", [name player, _droneName, _side, _distance]] call AdvancedUCAVs_LogMsg;
 	};
