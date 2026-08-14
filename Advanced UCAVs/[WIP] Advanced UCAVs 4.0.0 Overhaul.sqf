@@ -170,8 +170,8 @@ _EnableScript = {
 
 		AdvancedUCAVs_sendLogVarToClient_fnc = {
 			params ["_caller", "_clientVarCount"];
-			if (_clientVarCount == (count AdvancedUCAVs_TrollLogVarServer)) exitWith {};
-			if ((count AdvancedUCAVs_TrollLogVarServer) > 500) then { AdvancedUCAVs_TrollLogVarServer deleteAt 0 };
+			_serverVarCount = count AdvancedUCAVs_TrollLogVarServer;
+			if (_clientVarCount == _serverVarCount) exitWith {};		
 			missionNamespace setVariable ["AdvancedUCAVs_TrollLogVarClient", AdvancedUCAVs_TrollLogVarServer, _caller];
 		};
 
@@ -181,6 +181,9 @@ _EnableScript = {
 			([time] call AdvancedUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
 			_time = [_h,_m,_s, false] call AdvancedUCAVs_timeToFormat_fnc;		
 			AdvancedUCAVs_TrollLogVarServer pushBack (format ["[%1] %2", _time, _msg]);
+			
+			_serverVarCount = count AdvancedUCAVs_TrollLogVarServer;
+			if (_serverVarCount > 500) then { AdvancedUCAVs_TrollLogVarServer deleteRange [500, (_serverVarCount - 1)] };		
 		};
 
 	} remoteExec ["call", 2];			
@@ -607,6 +610,44 @@ _OpenLog = {
 		_xButton ctrlCommit 0;
 		_xButton ctrlAddEventHandler ["ButtonClick", { (ctrlParent (_this select 0)) closeDisplay 0 }];
 
+		_autoRefreshButton = _display ctrlCreate ["RscButton", -1];
+		_autoRefreshButton ctrlSetPosition [0.28, 0.015, 0.16, 0.04];
+		_autoRefreshButton ctrlSetBackgroundColor [0.3, 0.6, 0.3, 0.8];
+		_autoRefreshButton ctrlSetText "Auto-Refresh: ON";
+		_autoRefreshButton ctrlSetFontHeight 0.04;
+		_autoRefreshButton ctrlAddEventHandler ["ButtonClick", {
+			params ["_autoRefreshButton"];
+			_display = ctrlParent _autoRefreshButton;
+			_display setVariable ["autoRefreshEnabled", !(_display getVariable ["autoRefreshEnabled", true])];
+			_autoRefreshButton ctrlSetText (if (_display getVariable ["autoRefreshEnabled", true]) then {"Auto-Refresh: ON"} else {"Auto-Refresh: OFF"});
+			_autoRefreshButton ctrlSetBackgroundColor (if (_display getVariable ["autoRefreshEnabled", true]) then {[0.3, 0.6, 0.3, 0.8]} else {[0.8, 0.3, 0.3, 0.8]});	
+		}];
+		_autoRefreshButton ctrlCommit 0;
+
+		_refreshButton = _display ctrlCreate ["RscButton", -1];
+		_refreshButton ctrlSetPosition [0.47, 0.015, 0.107, 0.04];
+		_refreshButton ctrlSetBackgroundColor [0.8, 0.8, 0.3, 0.8];
+		_refreshButton ctrlSetText "Refresh";	
+		_refreshButton ctrlSetFontHeight 0.04;
+		_refreshButton ctrlAddEventHandler ["ButtonClick", {
+			params ["_refreshButton"];
+			_display = ctrlParent _refreshButton;									
+			
+			_clientVarCount = count (missionNamespace getVariable ["AdvancedUCAVs_TrollLogVarClient", []]);
+			[clientOwner, _clientVarCount] remoteExecCall ["AdvancedUCAVs_sendLogVarToClient_fnc", 2];	
+			[_display] call (_display getVariable "refreshFnc");			
+			
+			[_refreshButton] spawn {
+				params ["_refreshButton"];
+				_refreshButton ctrlEnable false;
+				_refreshButton ctrlSetToolTip "You can only refresh once per second";				
+				sleep 1;
+				_refreshButton ctrlEnable true;
+				_refreshButton ctrlSetToolTip "";					
+			};
+		}];
+		_refreshButton ctrlCommit 0;
+
 		_logListbox = _display ctrlCreate ["RscListbox", 5001];
 		_logListbox ctrlSetPosition [-0.15, 0.07, 1.3, 0.91];
 		_logListbox ctrlSetBackgroundColor [0.1, 0.1, 0.1, 0.8];
@@ -615,7 +656,7 @@ _OpenLog = {
 		_logListbox ctrlCommit 0;
 
 		_searchBox = _display ctrlCreate ["RscEdit", 5002];
-		_searchBox ctrlSetPosition [0.525, 0.015, 0.56, 0.04];
+		_searchBox ctrlSetPosition [0.6, 0.015, 0.49, 0.04];
 		_searchBox ctrlSetBackgroundColor [0.2, 0.2, 0.2, 0.8];
 		_searchBox ctrlSetText "Search...";
 		_searchBox ctrlSetFontHeight 0.04;
@@ -668,9 +709,11 @@ _OpenLog = {
 		
 		
 		while { !isNull _display } do {
-			_clientVarCount = count (missionNamespace getVariable ["AdvancedUCAVs_TrollLogVarClient", []]);
-			[clientOwner, _clientVarCount] remoteExecCall ["AdvancedUCAVs_sendLogVarToClient_fnc", 2];	
-			[_display] call (_display getVariable "refreshFnc");
+			if (_display getVariable ["autoRefreshEnabled", true]) then {
+				_clientVarCount = count (missionNamespace getVariable ["AdvancedUCAVs_TrollLogVarClient", []]);
+				[clientOwner, _clientVarCount] remoteExecCall ["AdvancedUCAVs_sendLogVarToClient_fnc", 2];	
+				[_display] call (_display getVariable "refreshFnc");
+			};
 			sleep 1;
 		};	
 	};
@@ -724,6 +767,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Fixed a bug where drone crashes would sometimes not show up in log.<br/>" +
 		"- Fixed a bug where drone connections would sometimes not show up in log.<br/>" +
 		"- Fixed a bug where the log showed zeuses remote controlling any vehicle. It is now only limited to drones.<br/>" + 		
+		"- Fixed wrong amount of grenades showing under an AL-6 Bomb Carrier when spamming the rearm button.<br/>" +
 		"</font><font color='#38BC00'>" +
 		"- Added 'Kamikaze FPV [Light HE]' AR-2 variant. (Replaced Anti-Personell FPV)<br/>" +
 		"- Added 'Kamikaze FPV [Light AT]' AR-2 variant.<br/>" +
@@ -2604,12 +2648,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasRGO = [_caller, "HandGrenade"] call BIS_fnc_hasItem;
 			if (!_hasRGO) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RGO Grenade", "PLAIN DOWN", 0.5, true, true] };
 			
-				_ammo6 = _AL6_BombCarrier magazinesTurret [-1];
-				if (count _ammo6 >= 4) exitWith { titleText ["<t color='#FF0000' size='1.7'>Drone already has 4 RGOs", "PLAIN DOWN", 0.5, true, true] };
+				_ammo = _AL6_BombCarrier magazinesTurret [-1];
+				if (count _ammo >= 4) exitWith { titleText ["<t color='#FF0000' size='1.7'>Drone already has 4 RGOs", "PLAIN DOWN", 0.5, true, true] };
 				
 				_caller removeItem "HandGrenade";
 				[_AL6_BombCarrier, ["PylonRack_4Rnd_BombDemine_01_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_BombCarrier];
-				
+				_ammo2 = _AL6_BombCarrier magazinesTurret [-1];
 				[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
 				
 				sleep 1;
@@ -2619,11 +2663,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_RGO_simpleObj_3 = _AL6_BombCarrier getVariable ["RGO_simpleObj_3", objNull];
 				_RGO_simpleObj_4 = _AL6_BombCarrier getVariable ["RGO_simpleObj_4", objNull];
 				
-				_ammo = magazinesAmmo _AL6_BombCarrier;
-				if (count _ammo == 1) then { [_RGO_simpleObj_1, false] remoteExec ["hideObjectGlobal", 2] };										
-				if (count _ammo == 2) then { [_RGO_simpleObj_2, false] remoteExec ["hideObjectGlobal", 2] };										
-				if (count _ammo == 3) then { [_RGO_simpleObj_3, false] remoteExec ["hideObjectGlobal", 2] };
-				if (count _ammo == 4) then { [_RGO_simpleObj_4, false] remoteExec ["hideObjectGlobal", 2] };
+				if (count _ammo2 == 1) then { [_RGO_simpleObj_1, false] remoteExec ["hideObjectGlobal", 2] };										
+				if (count _ammo2 == 2) then { [_RGO_simpleObj_2, false] remoteExec ["hideObjectGlobal", 2] };										
+				if (count _ammo2 == 3) then { [_RGO_simpleObj_3, false] remoteExec ["hideObjectGlobal", 2] };
+				if (count _ammo2 == 4) then { [_RGO_simpleObj_4, false] remoteExec ["hideObjectGlobal", 2] };
 
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'BombCarrier' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
