@@ -1062,6 +1062,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_inputField ctrlSetBackgroundColor [0.2, 0.2, 0.2, 1];
 				_inputField ctrlSetFontHeight 0.05;		
 				_inputField ctrlCommit 0;
+				ctrlSetFocus _inputField;
 					
 				_feedBackCtrl = _display ctrlCreate ["RscText", 2003];
 				_feedBackCtrl ctrlSetPosition [0.25, 0.6, 0.5, 0.1];
@@ -1130,10 +1131,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						_timeplus5 = time + 5;						
 						waitUntil { (groupID (group (getConnectedUAV player))) == _input || time > _timeplus5 };
 						if ((groupID (group (getConnectedUAV player))) == _input) then {
-							["AV callsign updated. Re-open terminal to refresh", false] call _feedBackFnc;
-							["Log_Renamed", [name player, getConnectedUAV player]] call AdvancedUCAVs_LogMsg;
+							["AV callsign updated. Re-open terminal to refresh", false] call _feedBackFnc;						
+							["Log_Renamed", [name player, getConnectedUAV player, groupID (group (getConnectedUAV player))]] call AdvancedUCAVs_LogMsg;
 						} else {
-							["Callsign change timed out. Waited 5 seconds"] call _feedBackFnc;
+							["Callsign change timed out. Waited for 5 seconds"] call _feedBackFnc;
 						};			
 					};
 						
@@ -1524,11 +1525,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_playerPos = getPosATL player;
 		_dronePos = getPosATL _drone;
 		waitUntil {
-			uiSleep 0.0001;
 			if (animationState player != "acts_carfixingwheel") then { player switchMove "acts_carfixingwheel"; } else { player playMoveNow "acts_carfixingwheel"; };
 			_failed = !alive player || vehicle player != player || lifeState player == "INCAPACITATED" || !alive _drone || (_drone getVariable ["DroneType", ""]) != "" || (_drone distance _dronePos) >= 5;		
 			_unloaded = isNull _progressBar;
-			player setPosATL _playerPos;
+			if (_playerPos select 2 < (getUnitFreefallInfo player) select 2) then { player setPosATL _playerPos };
 			_infoText ctrlSetText (format ["Crafting %1, %2 seconds remaining...", _droneTypeName, (_endTime - uiTime) toFixed 0]);
 			ctrlCommitted _progressBar || _failed || _unloaded
 		};
@@ -2064,7 +2064,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			{
 				_x params ["_droneAttachPos", "_ugvAttachPos"];
 				_rope = ropeCreate [_AL6, _droneAttachPos, _UGV, _ugvAttachPos, 5];
-				[_AL6, _rope] remoteExec [" disableCollisionWith", [_AL6, _rope]];
+				[_AL6, _rope] remoteExec ["disableCollisionWith", [_AL6, _rope]];
 				_ropeArray pushBack _rope;
 			} forEach [
 				[[-0.277,0.235,-0.23], [-0.18, 0.1, -0.08]],
