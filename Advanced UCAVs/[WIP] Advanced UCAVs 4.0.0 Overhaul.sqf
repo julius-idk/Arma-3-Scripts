@@ -547,6 +547,8 @@ _ConfigureScript = {
 ["TOGGLE", ["AL-6 RPG-7", "AUCAVs_AL6Rpg7ON", "Allows for the drone to be armed so it can fire an RPG-7"]],
 ["TOGGLE", ["AL-6 RPG-42", "AUCAVs_AL6Rpg42ON", "Allows for the drone to be armed so it can fire an RPG-42 (HE and AT)"]],
 ["TOGGLE", ["AL-6 Allow UGV Slingloading", "AUCAVs_AL6SlingloadON", "Allows only unarmed AL-6s to slingload a UGV (Roller and Pelter)"]],	
+["TITLE", ["ED-1 Options"]],
+["TOGGLE", ["Allow ED-1 Smoke Deployment", "AUCAVs_ED1SmokeON", "Gives ED-1s 'Deploy Smoke' and 'Rearm Smoke' options, allowing them to deploy smoke grenades and players to rearm them"]],
 ["TITLE", ["Jamming Options"]],
 ["TOGGLE", ["Spectrum Device Jamming", "AUCAVs_SpectrumJammingON", "Allows players to jamm AL-6, AR-2, ED-1E and ED-1D drones by leftclicking with a spectrum device while looking at one"]],
 ["TOGGLE", ["Radio Backpack Jamming", "AUCAVs_BackpackJammingON" ,"Allows players to jamm AL-6, AR-2, ED-1E and ED-1D drones by wearing a radio backpack and having jamming active ('J' to toggle)"]],
@@ -738,7 +740,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Added a chat command '!ucav_log' so any player can look at the Anti-Troll log.<br/>" +			
 		"- Added a 'Rename AV Callsign' button in the UAV terminal so players can rename the drone they are currently connected to.<br/>" + 
 		"- Added a drone radar to the Spectrum Device: While aming with the spectrum device, players can see all drones in a 1km radius.<br/>" + 		
-		"- Added a 3 second cooldown to Spectrum Device Jamming<br/>" + 
+		"- Added a 3 second jamming cooldown to Spectrum Device Jamming.<br/>" + 
 		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
 		"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
 		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
@@ -2990,7 +2992,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_UGV setVariable ["AUCAV_UGVSmokeCount", (_UGV getVariable ["AUCAV_UGVSmokeCount", 3]) - 1, true];
 			titleText [("<t color='#00FF0C' size='1.7'>Smoke Counter: " + str (_UGV getVariable ["AUCAV_UGVSmokeCount", 3]) ) , "PLAIN DOWN", 0.5, true, true] 
 			
-		}, nil, 1.5, false, true, "", "(_this distance _target) < 0.01 && { ((getPos _target) select 2) < 3 }"];
+		}, nil, 1.5, false, true, "", "(_this distance _target) < 0.01 && { (missionNamespace getVariable ['AUCAVs_ED1SmokeON', true]) && { ((getPos _target) select 2) < 2 }}"];
 		
 		_UGV setUserActionText [_actionID_DeploySmoke, "-> Deploy Smoke", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_start_on_ca.paa'/><br/>Deploy Smoke"];			
 
@@ -3010,7 +3012,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_UGV setVariable ["AUCAV_UGVSmokeCount", (_UGV getVariable ["AUCAV_UGVSmokeCount", 0]) + 1, true];
 			_caller removeItem "SmokeShell"; 	  				
 
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
+		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (missionNamespace getVariable ['AUCAVs_ED1SmokeON', true]) && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 		
 		_UGV setUserActionText [_actionID_RearmSmoke, "-> Rearm Smoke", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_start_on_ca.paa'/><br/>Rearm Smoke"];			
 
@@ -3044,6 +3046,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 			}, nil, 1.4, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
 
+			_ArmedUGV setUserActionText [_actionID_RearmSlug, "-> Rearm Slug", "<img size='2.3' image='a3\ui_f\data\igui\cfg\simpletasks\types\rearm_ca.paa'/><br/>Rearm Slug"];
+
 
 
 			_actionID_RearmPellets = _ArmedUGV addAction ["-> Rearm Pellets", {
@@ -3065,6 +3069,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;					
 			
 			}, nil, 1.4, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];													
+			
+			_ArmedUGV setUserActionText [_actionID_RearmPellets, "-> Rearm Pellets", "<img size='2.3' image='a3\ui_f\data\igui\cfg\simpletasks\types\rearm_ca.paa'/><br/>Rearm Pellets"];
+			
+			
 				
 			[_UGV, _actionID_RearmSlug] call AdvancedUCAVs_saveAction_fnc;
 			[_UGV, _actionID_RearmPellets] call AdvancedUCAVs_saveAction_fnc;
