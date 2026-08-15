@@ -786,6 +786,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Fixed a bug where drone connections would sometimes not show up in log.<br/>" +
 		"- Fixed a bug where the log showed zeuses remote controlling any vehicle. It is now only limited to drones.<br/>" + 		
 		"- Fixed wrong amount of grenades showing under an AL-6 Bomb Carrier when spamming the rearm button.<br/>" +
+		"- Fixed AL-6 ATRQ getting randomly damaged when slingloading a pelter.<br/>" +
 		"</font><font color='#38BC00'>" +
 		"- Added 'Kamikaze FPV [Light HE]' AR-2 variant. (Replaced Anti-Personell FPV)<br/>" +
 		"- Added 'Kamikaze FPV [Light AT]' AR-2 variant.<br/>" +
@@ -1410,6 +1411,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_secondParams params ["_droneName", "_clientOwner", "_droneType"];
 				format ["[UCAV_LOG {DEBUG}] %1%3 killed eventhandler triggered at clientOwner: %2", _droneName, _clientOwner, if (!isNil "_droneType") then {" ("+_droneType+")"} else {""}]
 			};
+			case "Log_DebugHandleDamage": {
+				_secondParams params ["_droneName", "_clientOwner"];
+				format ["[UCAV_LOG {DEBUG}] %1 handledamage eventhandler triggered at clientOwner: %2. Caused by 'Rope'. Repaired ATRQ", _droneName, _clientOwner];
+			};			
 			default { "{Error} : Unknown Parameter was used" };
 		};
 		if !("[UCAV_LOG {DEBUG}]" in _msg) then {
@@ -1419,6 +1424,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		};
 	};
 			
+	
 	
 	if (!isNil "AdvancedUCAVs_ChatCommandMissionEH") then { removeMissionEventHandler ["HandleChatMessage", AdvancedUCAVs_ChatCommandMissionEH] };
 	AdvancedUCAVs_ChatCommandMissionEH = addMissionEventHandler ["HandleChatMessage", {
@@ -1927,6 +1933,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			"Greyhawk"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_02_base_F") then {_duration = AUCAVs_SDJamTime_Greyhawk };	
 			"Fenghung"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_04_base_F") then {_duration = AUCAVs_SDJamTime_Fenghung };	
 			"Sentinel"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_05_Base_F") then {_duration = AUCAVs_SDJamTime_Sentinel };	
+			'_duration = _duration + (_duration * (1000 / 1000))';		
 			
 			_display = (findDisplay 46);				
 			
@@ -2231,6 +2238,24 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		}];
 		_drone setVariable ["AdvancedUCAVs_MainHitEH", _hitEH];	
 
+		if (_drone isKindOf "UAV_06_base_F") then {
+			_drone removeEventHandler ["HandleDamage", (_drone getVariable ["AdvancedUCAVs_MainHandleDamageEH", -100])];
+			_handleDmgEH = _drone addEventHandler ["HandleDamage", {
+				params ["_drone", "_selection", "_damage", "_source"];
+				if (!local _drone) exitWith { nil };
+				if (!alive _drone) exitWith { nil };			
+				if (typeOf _source != "Rope") exitWith { nil };
+				["Log_DebugHandleDamage", [_drone, clientOwner]] call AdvancedUCAVs_LogMsg;	
+
+				[_drone] spawn {
+					params ["_drone"];
+					sleep 1;
+					[_drone, ["hitvrotor", 0]] remoteExec ["setHitPointDamage", _drone];
+				};
+				nil
+			}];
+			_drone setVariable ["AdvancedUCAVs_MainHandleDamageEH", _handleDmgEH];
+		};
 	};
 
 
