@@ -125,11 +125,11 @@ _EnableScript = {
 
 	if (isNil "AUCAVs_SDJamTime_AR2") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AR2", 2, true] };	
 	if (isNil "AUCAVs_SDJamTime_AL6") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AL6", 3, true] };	
-	if (isNil "AUCAVs_SDJamTime_ED1") then { missionNamespace setVariable ["AUCAVs_SDJamTime_ED1", 4, true] };	
-	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 10, true] };	
-	if (isNil "AUCAVs_SDJamTime_Greyhawk") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Greyhawk", 15, true] };	
-	if (isNil "AUCAVs_SDJamTime_Fenghung") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Fenghung", 15, true] };	
-	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 20, true] };	
+	if (isNil "AUCAVs_SDJamTime_ED1") then { missionNamespace setVariable ["AUCAVs_SDJamTime_ED1", 5, true] };	
+	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 15, true] };	
+	if (isNil "AUCAVs_SDJamTime_Greyhawk") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Greyhawk", 20, true] };	
+	if (isNil "AUCAVs_SDJamTime_Fenghung") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Fenghung", 20, true] };	
+	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 30, true] };	
 	
 	
 
@@ -589,11 +589,11 @@ _ConfigureScript = {
 ["TITLE", ["Spectrum Device Jamming Options"]],
 ["SLIDER", ["AR-2s", "AUCAVs_SDJamTime_AR2", "Set how long players have to aim a Spectrum Device at an AR-2 to jam it (seconds).\n Default: 2s", [1,30]]],	
 ["SLIDER", ["AL-6s", "AUCAVs_SDJamTime_AL6", "Set how long players have to aim a Spectrum Device at an AL-6 to jam it (seconds).\n Default: 3s", [1,30]]],	
-["SLIDER", ["ED-1s", "AUCAVs_SDJamTime_ED1", "Set how long players have to aim a Spectrum Device at an ED-1 to jam it (seconds).\n Default: 4s", [1,30]]],	
-["SLIDER", ["Stompers", "AUCAVs_SDJamTime_Stomper", "Set how long players have to aim a Spectrum Device at a Stomper to jam it (seconds).\n Default: 10s", [1,30]]],	
-["SLIDER", ["Greyhawks", "AUCAVs_SDJamTime_Greyhawk", "Set how long players have to aim a Spectrum Device at a Greyhawk to jam it (seconds).\n Default: 15s", [1,30]]],	
-["SLIDER", ["Fenghungs", "AUCAVs_SDJamTime_Fenghung", "Set how long players have to aim a Spectrum Device at a Fenghung to jam it (seconds).\n Default: 15s", [1,30]]],	
-["SLIDER", ["Sentinels", "AUCAVs_SDJamTime_Sentinel", "Set how long players have to aim a Spectrum Device at a Sentinel to jam it (seconds).\n Default: 20s", [1,30]]]
+["SLIDER", ["ED-1s", "AUCAVs_SDJamTime_ED1", "Set how long players have to aim a Spectrum Device at an ED-1 to jam it (seconds).\n Default: 5s", [1,30]]],	
+["SLIDER", ["Stompers", "AUCAVs_SDJamTime_Stomper", "Set how long players have to aim a Spectrum Device at a Stomper to jam it (seconds).\n Default: 15s", [1,30]]],	
+["SLIDER", ["Greyhawks", "AUCAVs_SDJamTime_Greyhawk", "Set how long players have to aim a Spectrum Device at a Greyhawk to jam it (seconds).\n Default: 20s", [1,30]]],	
+["SLIDER", ["Fenghungs", "AUCAVs_SDJamTime_Fenghung", "Set how long players have to aim a Spectrum Device at a Fenghung to jam it (seconds).\n Default: 20s", [1,30]]],	
+["SLIDER", ["Sentinels", "AUCAVs_SDJamTime_Sentinel", "Set how long players have to aim a Spectrum Device at a Sentinel to jam it (seconds).\n Default: 30s", [1,30]]]
 	];
 };
 
@@ -1491,7 +1491,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};		
 		if !(AdvancedUCAVs_wasHintShown) then {
 			AdvancedUCAVs_wasHintShown = true;
-			"UCAVs_SpectrumTxt" cutText ["<t size='1.5'>Keybinds: <br/>[R] Toggle drone radar<br/>[Scroll] Change text size<br/>[T] Toggle X on drones (jamming only)<br/>[CTRL + T] Toggle crosshair X (jamming only)</t>", "PLAIN DOWN", 0.3, false, true, true];		
+			_txt = "<t size='1.5'>Keybinds:<br/>[R] Toggle drone radar<br/>[Scroll] Change text size";
+			if ("muzzle_antenna_03_f" in handgunItems player) then {
+				_txt = _txt + "<br/>[Left Click] Jamming<br/>[F] Toggle X on drones (Jamming)<br/>[CTRL + F] Toggle crosshair X (Jamming)";
+			};
+			"UCAVs_SpectrumTxt" cutText [_txt, "PLAIN DOWN", 0.3, false, true, true];		
 		};
 		if !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) exitWith {};
 		
@@ -1705,13 +1709,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Radar: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			}; 
 			
-			if (_ctrl && { _key == 20 }) exitWith { "CTRL + T";
+			if (_ctrl && { _key == 33 }) exitWith { "CTRL + F";
 				missionNamespace setVariable ["AdvancedUCAVs_WantsXforCrosshair", !(missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true])];
 				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]) then { "Enabled" } else { "Disabled" };
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Crosshair X: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			};			
 			
-			if (_key == 20) exitWith { "T";
+			if (!_ctrl && { _key == 33 }) exitWith { "F";
 				missionNamespace setVariable ["AdvancedUCAVs_WantsXforJamming", !(missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true])];
 				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]) then { "Enabled" } else { "Disabled" };
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>X On Drones: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
@@ -1817,14 +1821,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_droneBox ctrlSetTextColor [1,1,1,1];
 			_droneBox ctrlSetFontHeight 0.05;
 			_droneBox ctrlCommit 0;
+			_droneBox ctrlShow false;
 
-			_centerBox = _display ctrlCreate ["RscButton", 169070];
-			_centerBox ctrlSetPosition [_centerX - 0.015, _centerY - 0.015, 0.03, 0.03];		
-			_centerBox ctrlSetBackgroundColor [0, 0, 0, 0];
-			_centerBox ctrlSetText "X";
-			_centerBox ctrlSetTextColor [1,0,0,1];
-			_centerBox ctrlSetFontHeight 0.05;
-			_centerBox ctrlCommit 0;
+			_crosshair = _display ctrlCreate ["RscButton", 169070];
+			_crosshair ctrlSetPosition [_centerX - 0.015, _centerY - 0.015, 0.03, 0.03];		
+			_crosshair ctrlSetBackgroundColor [0, 0, 0, 0];
+			_crosshair ctrlSetText "X";
+			_crosshair ctrlSetTextColor [1,0,0,1];
+			_crosshair ctrlSetFontHeight 0.05;
+			_crosshair ctrlCommit 0;
 			
 			while { ACUAVs_SDJam_LMBHeld } do {
 				if (
@@ -1835,9 +1840,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					|| (!alive player || lifeState player == "INCAPACITATED")
 					|| weaponLowered player	
 				) exitWith {};						
-				
-				_droneBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]);	
-				_centerBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
+								
+				_crosshair ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
 				
 				"find suitable drone and draw icon" call {
 					_suitableDrones = (allUnitsUAV select { 
@@ -1871,7 +1875,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					_droneBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]);
 					_droneBox ctrlSetPosition [(_dronePosScreen select 0) - 0.015, (_dronePosScreen select 1) - 0.015, 0.03, 0.03];
 					_droneBox ctrlSetBackgroundColor ([side AUCAVs_SDJam_targetDrone] call BIS_fnc_sideColor);
-					_droneBox ctrlCommit 0;								
+					_droneBox ctrlCommit 0;	
 				};
 				
 				if !(AUCAVs_SDJam_barCalled) then {		
@@ -1883,7 +1887,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				};
 				AUCAVs_SDJam_timeHeld = uiTime - AUCAVs_SDJam_startTime;	
 				
-				if (freeLook) then { { _x ctrlShow false } forEach [_droneBox, _centerBox] };
+				if (freeLook) then { { _x ctrlShow false } forEach [_droneBox, _crosshair] };
 				
 				uiSleep 0.001;
 			};	
@@ -1957,8 +1961,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_infoText ctrlSetText (format ["Jamming Drone...%1s", (_duration - (uiTime - AUCAVs_SDJam_startTime)) toFixed 2]);
 				([AUCAVs_SDJam_targetDrone] call AdvancedUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
 				if (count _controllingPlayers > 0 && { _nextREtick < uiTime }) then {
-					["jamWarn", ["<br/><br/><t font='EtelkaMonospacePro' shadow='0' size='2.5'>JAMMER WARNING", "PLAIN", 0.05, false, true, true]] remoteExec ["cutText", _controllingPlayers];
-					_nextREtick = uiTime + 1;
+					["jamWarn", ["<br/><br/><t font='EtelkaMonospacePro' shadow='0' size='2.5'>JAMMER WARNING", "PLAIN", 0.025, false, true, true]] remoteExec ["cutText", _controllingPlayers];
+					_nextREtick = uiTime + 0.5;
 				};			
 				if (isNull AUCAVs_SDJam_targetDrone) exitWith { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };	
 				uiSleep 0.00001;
