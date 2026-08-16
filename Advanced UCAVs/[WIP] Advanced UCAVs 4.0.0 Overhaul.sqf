@@ -1196,7 +1196,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						waitUntil { (groupID (group (getConnectedUAV player))) == _input || time > _timeplus5 };
 						if ((groupID (group (getConnectedUAV player))) == _input) then {
 							["AV callsign updated. Re-open terminal to refresh", false] call _feedBackFnc;						
-							["Log_Renamed", [name player, getConnectedUAV player, groupID (group (getConnectedUAV player))]] call AdvancedUCAVs_LogMsg;
+							["Log_Renamed", [name player, [getConnectedUAV player] call AdvancedUCAVs_getName_fnc, groupID (group (getConnectedUAV player))]] call AdvancedUCAVs_LogMsg;
 						} else {
 							["Callsign change timed out. Waited for 5 seconds"] call _feedBackFnc;
 						};			
