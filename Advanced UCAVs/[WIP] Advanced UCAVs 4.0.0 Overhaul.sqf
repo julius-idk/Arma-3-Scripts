@@ -827,6 +827,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Fixed AL-6 ATRQ getting randomly damaged when slingloading a pelter.<br/>" +
 		"- Fixed a bug on the AL-6 Bomb Carrier and regular Demining Drone that allowed them to carry 12 Charges when rearming at a bobcat.<br/>" +
 		"- Fixed a bug on the AR-2 Bomb Drop that allowed it to carry 4 Charges when rearming at a bobcat.<br/>" +
+		"- Fixed radio backpack spamming the jammed log message (due to remoteExec delay)<br/>" +
 		"</font><font color='#38BC00'>" +
 		"- Added 'Kamikaze FPV [Light HE]' AR-2 variant. (Replaced Anti-Personell FPV)<br/>" +
 		"- Added 'Kamikaze FPV [Light AT]' AR-2 variant.<br/>" +
@@ -2146,6 +2147,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					{
 						_uav = _x;
 						if ((count crew _uav) > 0) then {
+							if (_uav getVariable ["UCAV_Jammed", false]) exitWith {};
+							_uav setVariable ["UCAV_Jammed", true];						 
+							
 							[_uav] remoteExec ["deleteVehicleCrew", _uav];
 							
 							_displayName = [_uav] call AdvancedUCAVs_getName_fnc;		
@@ -2155,6 +2159,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 							systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
 													
 							["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;						
+						
+							waitUntil [{ (count crew _uav) <= 0 }, 30, 0];
+							_uav setVariable ["UCAV_Jammed", false];
 						};
 					} forEach _nearSmallUAVs;
 					
@@ -2162,6 +2169,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					{
 						_ugv = _x;
 						if ((count crew _ugv) > 0) then {
+							if (_ugv getVariable ["UCAV_Jammed", false]) exitWith {};
+							_ugv setVariable ["UCAV_Jammed", true];							
+							
 							[_ugv] remoteExec ["deleteVehicleCrew", _ugv];
 							
 							_displayName = [_ugv] call AdvancedUCAVs_getName_fnc;							
@@ -2171,6 +2181,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 							systemChat format ["[Jammer] Jammed UGV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
 						
 							["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;
+							
+							waitUntil [{ (count crew _ugv) <= 0 }, 30, 0];
+							_ugv setVariable ["UCAV_Jammed", false];										
 						};
 					} forEach _nearSmallUGVs;							
 				
