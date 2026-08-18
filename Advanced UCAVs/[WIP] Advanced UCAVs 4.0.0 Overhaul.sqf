@@ -267,7 +267,7 @@ _DisableScript = {
 		
 		player removeDiarySubject "Advanced_UCAVs";			
 		
-		player setVariable ["JammingOn", false];	
+		player setVariable ["UCAV_JammingOn", false, true];	
 		player setUnitTrait ["UAVHacker", false];
 		
 		missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumScreen", true];	
@@ -837,15 +837,17 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Added: Reduced Battery Lifetime of all AR-2 and AL-6 drones. Also depends on wich weapons they carry.<br/>" +
 		"- Added a 'Swap Drone Battery' option to all drones to refuel them.<br/>" +
 		"- Added a 'Rearm Smoke' option to all ED-1s.<br/>" +
+		"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
+		"- Added 'Toggle Options' option to ED-1s and Non-Armable drones.<br/>" +
 		"- Added a 'Configure' button for zeus to toggle all features.<br/>" +
 		"- Added a button to the 'Description' tab on the map that allows players so wich see options are enabled/disabled.<br/>" +		
 		"- Added a dialog for the anti-troll log wich can be opened via chat command mentioned below or in the enable/disable window.<br/>" +
 		"- Added a chat command '!ucav_config' so any zeus, even ones without the comp, can enable/disable and configure the script.<br/>" +
 		"- Added a chat command '!ucav_log' so any player can look at the Anti-Troll log.<br/>" +			
 		"- Added a 'Rename AV Callsign' button in the UAV terminal so players can rename the drone they are currently connected to.<br/>" + 
+		"- Added jammer radius marker on map for Radio Backpack Jamming.<br/>" + 
 		"- Added a drone radar to the Spectrum Device: While aming with the spectrum device, players can see all drones in a 1km radius.<br/>" + 		
 		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
-		"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
 		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
 		"</font><font color='#FFD800'>" +	
 		"- Change: Also fully overworked the drone making. The option no longer has to be held manually, and a custom progress bar will pop up.<br/>" +
@@ -859,6 +861,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Change: Also fully worked where and how every action and eventhandler is added and executed, getting rid of remoteExec duplication.<br/>" + 	
 		"- Change: Also edited a lot in the diary (Features, Changelog) section to make it more readable and visually better.<br/>" +
 		"- Changed it so the option toggling is no longer global, meaning if one player makes them shown, only that player will see the sub-options.<br/>" +
+		"- Changed it so Backpack Jamming only jamms drones visible to the player, no longer drones behind walls/montains...<br/>" +
 		"</font><font color='#FF0000'>" +	
 		"- Removed AI slop code.<br/>" +
 		"- Removed 'Anti-Structure' FPV AR-2 variant (Replaced by Heavy HE).<br/>" + 
@@ -1010,17 +1013,21 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		"<font size='20' color='#0094FF'>Jamming</font><br/><br/>" +	
 		
-		"<font size='17'>-> How to use jamming (backpack):</font><br/>" +
+		"<font size='17'>-> How to use jamming (Radio Backpack):</font><br/>" +
 		"1. Grab any Radio Backpack from an arsenal.<br/>" +
 		"2. Press 'J' to toggle jamming on and off.<br/>" +			
 		"The Backpack will jam small UAVs like AR-2 and AL-6 in a 200m radius.<br/>" +
 		"Small UGVs like the ED-1D and ED-1E will be jammed in a 100m radius.<br/><br/>" +
 						
-		"<font size='17'>-> How to use jamming (spectrum device):</font><br/>" +
+		"<font size='17'>-> How to use jamming (Spectrum Device):</font><br/>" +
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
 		"2. Make sure you have the 'SD Jammer Antenna' attachment.<br/>" +				
-		"3. Aim at a drone and press 'left click'<br/>" +
-		"The maximum range is 1000m, though its hard to spot drones at 300m already.<br/><br/>" +
+		"3. Aim at a drone and hold Left Click.<br/>" +
+		"4. An 'X' will apear as crosshair in the middle of your screen 5.<br/>" + 
+		"5. If the drone is jammable a box with an 'X' will apear on it.<br/>" + 
+		"6. Allign both X's (crosshair and drone) while holding Left Click.<br/>" + 
+		"7. A progress bar will show up. Drone is jammed once that finishes.<br/>" + 
+		"The maximum range is 1000m<br/><br/>" +
 									
 		"<font color='#FF0000'>! Keep in mind that this can also jam friendly drones. Be especially careful with the backpack !</font><br/><br/><br/><br/>" +
 		
@@ -1129,7 +1136,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 	if (!isNil "AdvancedUCAVs_EachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_EachFrameEH] };
 	AdvancedUCAVs_EachFrameEH = addMissionEventHandler ["EachFrame", {	
-		if (diag_frameNo < AdvancedUCAVs_timePlusTime) exitWith {};
+		if (time < AdvancedUCAVs_timePlusTime) exitWith {};
 		AdvancedUCAVs_timePlusTime = time + 0.01;
 		
 		
@@ -1429,8 +1436,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				format ["< %1 %4> was killed by {NULL-object}, it could have been crashed. Last registered driver: < %2 >. Though it was hit before by: < %3 >", _droneName, _lastDriver, _playerWhoHitDrone, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
 			};
 			case "Log_Killed": {
-				_secondParams params ["_droneName", "_droneType", "_instigator", "_driverName", "_gunnerName"];
-				format ["< %1 %3> was killed by < %2 >.%4%5", _droneName, _instigator, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}, if (!isNil "_driverName") then {" Driver at that time: < "+_driverName+" >."} else {""}, if (!isNil "_gunnerName") then {" Gunner at that time: < "+_gunnerName+" >"} else {""}]
+				_secondParams params ["_droneName", "_droneType", "_instigator", ["_driverName",""], ["_gunnerName",""]];
+				format ["< %1 %3> was killed by < %2 >.%4%5", _droneName, _instigator, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}, if (_driverName != "") then {" Driver in that moment: < "+_driverName+" >."} else {""}, if (_gunnerName != "") then {" Gunner in that moment: < "+_gunnerName+" >"} else {""}]
 			};			
 			case "Log_DebugFiredAR2": {
 				_secondParams params ["_droneType", "_clientOwner"];
@@ -1551,21 +1558,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if (cameraView != "GUNNER") exitWith { 
 			if !(AdvancedUCAVs_wasHintShown) exitWith {}; 
 			AdvancedUCAVs_wasHintShown = false;
-				
+							
 			if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true]) exitWith {};
-			"SD Screen shown > then hiding it (while aiming) caused mouse options to be invisible simulate SD Screen closing to make options visible again.
-			I did not immidetly do this when hiding it because then scrollwheel options where visible while hiding with SD wich interfered with chaning text size.
-			Only do when screen is disabled since it works perfectly fine when its enabled.";
-			_display = uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull];
-			_handleHiddenActions = _display getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
-			if ((_handleHiddenActions select 0) == true) then {
-				hideActions ["UnhideAllButSelected", (_handleHiddenActions select 1)];
-				_display setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
-				[missionNamespace, "SpectrumAnalyzerClosed", [_display]] call BIS_fnc_callScriptedEventHandler;
-				
-				"make sure crosshair renders correctly";
-				((uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull]) displayctrl 1996) ctrlshow (cameraView == "GUNNER" && { difficultyOption "weaponCrosshair" > 0 });		
-			};
+			["close"] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;
 		};
 		if (!alive player || lifeState player == "INCAPACITATED") exitWith {};	
 				
@@ -1582,17 +1577,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			"UCAVs_SpectrumTxt" cutText [_txt, "PLAIN DOWN", 0.3, false, true, true];		
 				
 			if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true]) exitWith {};
-			"Manually simulate SD screen opening to hide actions, only if screen is disabled since it works perfectly fine if its enabled";			
-			_display = uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull];
-			_handleHiddenActions = _display getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
-			if ((_handleHiddenActions select 0) == false) then {
-				_display setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [true, hiddenActions []]];
-				hideActions ["HideAllButSelected", []];
-				[missionNamespace, "SpectrumAnalyzerOpened", [_display]] call BIS_fnc_callScriptedEventHandler;
-			};
-			
-			"make sure crosshair renders correctly";
-			((uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull]) displayctrl 1996) ctrlshow (cameraView == "GUNNER" && { difficultyOption "weaponCrosshair" > 0 });
+			["open"] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;		
 		};
 		if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};
 		if !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) exitWith {};
@@ -1624,6 +1609,25 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	}];
 
 
+	
+	_map = (findDisplay 12) displayCtrl 51;
+	if (!isNil "AdvancedUCAVs_BackpackJamming_DrawRadiusEH") then { _map ctrlRemoveEventHandler ["Draw", AdvancedUCAVs_BackpackJamming_DrawRadiusEH] };
+	AdvancedUCAVs_BackpackJamming_DrawRadiusEH = _map ctrlAddEventHandler ["Draw", {
+		params ["_map"];
+		{
+			_radius = _x getVariable ["UCAV_JammingRadius", 100];
+			_c = [side _x] call BIS_fnc_sideColor;
+			_map drawEllipse [_x, _radius, _radius, 0, [1,0,0,1], format ["#(rgb,8,8,3)color(%1,%2,%3,0.2)", _c # 0, _c # 1, _c # 2], false];
+			
+			_txt = if (ctrlMapScale _map <= 0.02) then { format ["  Backpack Jammer (%1)", name _x] } else {""};
+			_map drawIcon ["#(rgb,1,1,1)color(1,1,1,1)", _c, _x, 0, 0, 0, _txt, 2, 0.05, "TahomaB"];
+		} forEach (allPlayers select { 
+			(_x getVariable ["UCAV_JammingOn", false]) 
+			&& { str (side _x) == str (side player) 
+		}});
+	}];
+
+
 
 	AdvancedUCAVs_saveAction_fnc = {
 		params ["_drone", "_actionID"];
@@ -1652,35 +1656,42 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 	AdvancedUCAVs_startDroneCrafting_fnc = {
 		params [["_drone", objNull], ["_droneTypeName", "<Drone Name>"], ["_duration", 10], ["_params", []], ["_code", {}]];
-
-		_display = (findDisplay 46) createDisplay "RscDisplayEmpty";
-			
-		setMousePosition [0.2,0.2];	
+	
+		_centerX = safeZoneX + (safeZoneW / 2);
+		_centerY = safeZoneY + (safeZoneH / 2);		
+		setMousePosition [_centerX, _centerY];	
 			
 		{ inGameUISetEventHandler [_x, "true"] } forEach ["PrevAction", "Action", "NextAction"];
 		showCommandingMenu "RscMainMenu";
 		showCommandingMenu "";
 
-		_bottom = (safeZoneY + safeZoneH) - (safeZoneH * 0.2);
+		_display = (findDisplay 46) createDisplay "RscDisplayEmpty";
+
+		_posX = safeZoneX + (safeZoneW * 0.29375);
+		_posY = safeZoneY + (safeZoneH * 0.775);
+		_width = safeZoneW * 0.4125;
+		_height = safeZoneH * 0.0275;
+		_txtHeight = safeZoneH * 0.022;
+		
 		_backgroundBar = _display ctrlCreate ["RscText", 69691];
-		_backgroundBar ctrlSetPosition [0, _bottom, 1, 0.05];
+		_backgroundBar ctrlSetPosition [_posX, _posY, _width, _height];
 		_backgroundBar ctrlSetBackgroundColor [0.2, 0.2, 0.2, 1];
 		_backgroundBar ctrlCommit 0;
 		
 		_progressBar = _display ctrlCreate ["RscText", 69692];
-		_progressBar ctrlSetPosition [0, _bottom, 0, 0.05];
+		_progressBar ctrlSetPosition [_posX, _posY, 0, _height];
 		_progressBar ctrlSetBackgroundColor [0.8, 0.5, 0.2, 1];
 		_progressBar ctrlCommit 0;	
 	
 		_infoText = _display ctrlCreate ["RscText", 69693];
-		_infoText ctrlSetPosition [0, _bottom, 1, 0.05];
-		_infoText ctrlSetFontHeight 0.04;
+		_infoText ctrlSetPosition [_posX, _posY, _width, _height];
 		_infoText ctrlSetFont "EtelkaMonospacePro";
 		_infoText ctrlSetText (format ["Crafting %1, please have patience...", _droneTypeName]);
-		_infoText ctrlCommit 0;		
+		_infoText ctrlSetFontHeight _txtHeight;
+		_infoText ctrlCommit 0;					
 		
 		_controlPos = ctrlPosition _progressBar;
-		_controlPos set [2, 1];
+		_controlPos set [2, _width];
 		_progressBar ctrlSetPosition _controlPos;
 		_progressBar ctrlCommit _duration;
 			
@@ -1691,7 +1702,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_dronePos = getPosATL _drone;
 		waitUntil {
 			if (animationState player != "acts_carfixingwheel") then { player switchMove "acts_carfixingwheel"; } else { player playMoveNow "acts_carfixingwheel"; };
-			_failed = !alive player || vehicle player != player || lifeState player == "INCAPACITATED" || !alive _drone || (_drone getVariable ["DroneType", ""]) != "" || (_drone distance _dronePos) >= 5;		
+			_failed = !alive player || vehicle player != player || lifeState player == "INCAPACITATED" || !alive _drone || (_drone getVariable ["DroneType", ""]) != "" || (getPosATL _drone distance _dronePos) >= 5;		
 			_unloaded = isNull _progressBar;
 			if (_playerPos select 2 < (getUnitFreefallInfo player) select 2) then { player setPosATL _playerPos };
 			_infoText ctrlSetText (format ["Crafting %1, %2 seconds remaining...", _droneTypeName, (_endTime - uiTime) toFixed 0]);
@@ -1705,7 +1716,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				ctrlDelete _infoText;
 				ctrlDelete _backgroundBar;			
 				_controlPos = ctrlPosition _progressBar;
-				_controlPos set [2, 1];	
+				_controlPos set [2, _width];	
 				_progressBar ctrlSetPosition _controlPos;
 				_progressBar ctrlCommit 0;
 				_progressBar ctrlSetBackgroundColor [0.5, 0, 0, 1];		
@@ -1729,6 +1740,47 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 		sleep 1;
 		_display closeDisplay 0;		
+	};
+
+
+
+	AdvancedUCAVs_ToggleSpectrumScreen_fnc = {
+		params [["_openOrClose",""], ["_needsTextOutput", false]];
+				
+		_spectrumDisplay = uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull];
+		_showScreen = missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true];
+		
+		"toggle screen (visual only";
+		_spectrumCrosshair = _spectrumDisplay displayCtrl 1996;	
+		_spectrumControlsToToggle = (allControls _spectrumDisplay);	
+		{ _x ctrlShow _showScreen } forEach _spectrumControlsToToggle;	
+				
+		"make sure crosshair renders properly";
+		_spectrumCrosshair ctrlshow (cameraView == "GUNNER" && { difficultyOption "weaponCrosshair" > 0 });
+		
+		
+		if (_openOrClose == "open") then {
+			"Manually simulate SD screen opening to hide scrollwheel menu (only if screen is disabled since it works perfectly fine if its enabled)";			
+
+			_handleHiddenActions = _spectrumDisplay getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
+			if ((_handleHiddenActions select 0) == false) then {
+				_spectrumDisplay setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [true, hiddenActions []]];
+				hideActions ["HideAllButSelected", []];
+				[missionNamespace, "SpectrumAnalyzerOpened", [_spectrumDisplay]] call BIS_fnc_callScriptedEventHandler;
+			};
+		};	
+		if (_openOrClose == "close") then {
+			"Manually Simulate spectrum screen closing to show scrollwheel menu (only if screen is disabled since it works perfectly fine if its enabled)";
+
+			_handleHiddenActions = _spectrumDisplay getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
+			if ((_handleHiddenActions select 0) == true) then {
+				hideActions ["UnhideAllButSelected", (_handleHiddenActions select 1)];
+				_spectrumDisplay setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
+				[missionNamespace, "SpectrumAnalyzerClosed", [_spectrumDisplay]] call BIS_fnc_callScriptedEventHandler;
+			};	
+		};
+		if (!_needsTextOutput) exitWith {};
+		if (_showScreen) then { "Enabled" } else { "Disabled" }
 	};
 
 
@@ -1769,7 +1821,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if !("muzzle_antenna_03_f" in handgunItems player) exitWith {};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};		
 			if (weaponLowered player) exitWith {};
-			if (cameraView != "GUNNER") exitWith {};
 			
 			ACUAVs_SDJam_LMBHeld = true;
 			[] call AdvancedUCAVs_SpectrumJamming_fnc;
@@ -1799,27 +1850,19 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (cameraOn != player) exitWith {};
 			if (currentMuzzle player != "hgun_esd_01_F") exitWith {};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};
-			if (cameraView != "GUNNER") exitWith {};
+			if (weaponLowered player) exitWith {};
+			
 					
 			if (_ctrl && { _key == 19 }) exitWith { "CTRL + R";
-				missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumScreen", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true])];				
-				
-				"dont hide crosshair";
-				_spectrumDisplay = uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull];
-				_spectrumCrosshair = _spectrumDisplay displayCtrl 1996;
-				_spectrumControlsToHide = (allControls _spectrumDisplay) - [_spectrumCrosshair];
-				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true]) then { 
-					{ _x ctrlShow true } forEach _spectrumControlsToHide;		
-					"Enabled" 		
-				} else { 
-					{ _x ctrlShow false } forEach _spectrumControlsToHide;
-					"Disabled" 
-				};
+				if (cameraView != "GUNNER") exitWith {};
+				missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumScreen", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true])];									
+				_txt = ["", true] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;		
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Screen: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			}; 			
 					
 			if (_key == 19) exitWith { "R";
-				if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};
+				if (cameraView != "GUNNER") exitWith {};
+				if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};		
 				missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumRadar", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true])];		
 				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) then { "Enabled" } else { "Disabled" };
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Radar: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
@@ -1893,8 +1936,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_RespawnEH = player addEventHandler ["Respawn", {
 		params ["_unit", "_corpse"];		
 		[] spawn AdvancedUCAVs_AddKeybinds_fnc;
-		_unit setVariable ["JammingOn", false];
-		_corpse setVariable ["JammingOn", false];
+		_unit setVariable ["UCAV_JammingOn", false, true];
+		_corpse setVariable ["UCAV_JammingOn", false, true];
 	}];
 	
 
@@ -1957,7 +2000,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					|| !("muzzle_antenna_03_f" in handgunItems player)
 					|| (!alive player || lifeState player == "INCAPACITATED")
 					|| weaponLowered player	
-					|| cameraView != "GUNNER"
+					|| !isNull (findDisplay 49)
+					|| !isGameFocused
 				) exitWith {};						
 								
 				_crosshair ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
@@ -1992,7 +2036,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					_dronePosScreen = worldToScreen (getPosATL AUCAVs_SDJam_targetDrone);				
 					if (str _dronePosScreen == "[]") exitWith {};
 					if ((_center distance2D _dronePosScreen) > 0.05) then { AUCAVs_SDJam_targetDrone = objNull };
-					if ((_center distance2D _dronePosScreen) > 0.3) exitWith { _droneBox ctrlShow false };
+					if ((_center distance2D _dronePosScreen) > 0.2) exitWith { _droneBox ctrlShow false };
 					
 					_droneBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]);
 					_droneBox ctrlSetPosition [(_dronePosScreen select 0) - 0.015, (_dronePosScreen select 1) - 0.015, 0.03, 0.03];
@@ -2011,9 +2055,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				if (freeLook) then { { _x ctrlShow false } forEach [_droneBox, _crosshair] };
 				
-				uiSleep 0.0001;
+				uiSleep 0.001;
 			};	
 			
+			ACUAVs_SDJam_LMBHeld = false;
 			AUCAVs_SDJam_timeHeld = 0;
 			if (AUCAVs_SDJam_barCalled) then { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };
 			ctrlDelete (_display displayCtrl 169069);
@@ -2054,21 +2099,26 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			'_duration = _duration + (_duration * (1000 / 1000))';		
 			
 			_display = (findDisplay 46);				
+						
+			_posX = safeZoneX + (safeZoneW * 0.4175);
+			_posY = safeZoneY + (safeZoneH * 0.775);
+			_width = safeZoneW * 0.165;
+			_height = safeZoneH * 0.02475;
+			_txtHeight = safeZoneH * 0.022;			
 			
-			_bottom = (safeZoneY + safeZoneH) - (safeZoneH * 0.22);
 			_backgroundBar = _display ctrlCreate ["RscText", -1];
-			_backgroundBar ctrlSetPosition [0.3, _bottom, 0.4, 0.045];
+			_backgroundBar ctrlSetPosition [_posX, _posY, _width, _height];
 			_backgroundBar ctrlSetBackgroundColor [0.1, 0.1, 0.1, 1];
 			_backgroundBar ctrlCommit 0;
 			
 			_progressBar = _display ctrlCreate ["RscText", -1];
-			_progressBar ctrlSetPosition [0.3, _bottom, 0, 0.045];
+			_progressBar ctrlSetPosition [_posX, _posY, 0, _height];
 			_progressBar ctrlSetBackgroundColor [0.7, 0, 0, 1];
 			_progressBar ctrlCommit 0;	
 
 			_infoText = _display ctrlCreate ["RscText", -1];
-			_infoText ctrlSetPosition [0.3, _bottom, 0.4, 0.045];
-			_infoText ctrlSetFontHeight 0.04;
+			_infoText ctrlSetPosition [_posX, _posY, _width, _height];
+			_infoText ctrlSetFontHeight _txtHeight;
 			_infoText ctrlSetFont "EtelkaMonospacePro";
 			_infoText ctrlSetText (format ["Jamming Drone...%1s", _duration]);
 			_infoText ctrlCommit 0;		
@@ -2076,7 +2126,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			uiNamespace setVariable ["UCAV_SDJamBarCtrls", [_backgroundBar, _progressBar, _infoText]];			
 
 			_controlPos = ctrlPosition _progressBar;
-			_controlPos set [2, 0.4];
+			_controlPos set [2, _width];
 			_progressBar ctrlSetPosition _controlPos;
 			_progressBar ctrlCommit _duration;
 			_nextREtick = uiTime - 1;
@@ -2090,7 +2140,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					_nextREtick = uiTime + 0.5;
 				};			
 				if (isNull AUCAVs_SDJam_targetDrone) exitWith { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };	
-				uiSleep 0.0001;
+				uiSleep 0.001;
 			};
 			
 			if (!isNull _progressBar) then {	
@@ -2116,81 +2166,59 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 	AdvancedUCAVs_BackpackJamming_fnc = {
 	
-		_isJamming = player getVariable ["JammingOn", false];		
+		_isJamming = player getVariable ["UCAV_JammingOn", false];
 		if (_isJamming) then {	
 			
-			player setVariable ["JammingOn", false];
+			player setVariable ["UCAV_JammingOn", false, true];
 			titleText ["<t color='#FF0000' size='1.5'>Jamming: Off", "PLAIN DOWN", 0.5, true, true];
 		
 		} else {
 				
-			player setVariable ["JammingOn", true];
+			player setVariable ["UCAV_JammingOn", true, true];
 			
-			while { player getVariable ["JammingOn", false] } do {
+			while { player getVariable ["UCAV_JammingOn", false] } do {
 			
 			
 				if (alive player) then {
 				
 					if !("radiobag" in (toLower (backpack player))) exitWith {
 						titleText ["<t color='#FF0000' size='1.5'>Backpack dropped. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
-						player setVariable ["JammingOn", false];
+						player setVariable ["UCAV_JammingOn", false, true];
 					};
 				
 						
 					titleText ["<t color='#00FF0C' size='1.0'>Jamming: On", "PLAIN DOWN", 0.01, true, true];
 
-
-					_nearSmallUAVs = (getPos player) nearEntities [["UAV_01_base_F", "UAV_06_base_F"], 200];						
-					_nearSmallUGVs = (getPos player) nearEntities [["UGV_02_Base_F"], 100];
+					_radius = player getVariable ["UCAV_JammingRadius", 100];
+					_nearDrones = (getPos player) nearEntities [["UAV_01_base_F", "UAV_06_base_F", "UGV_02_Base_F"], _radius];
 			
 
 					{
-						_uav = _x;
-						if ((count crew _uav) > 0) then {
-							if (_uav getVariable ["UCAV_Jammed", false]) exitWith {};
-							_uav setVariable ["UCAV_Jammed", true];						 
+						_drone = _x;
+						if ((count crew _drone) > 0) then {
+							if (_drone getVariable ["UCAV_Jammed", false]) exitWith {};
+							if ((count (lineIntersectsSurfaces [eyePos player, (_drone modelToWorldWorld [0,0,0.1]), _drone, player])) > 0) exitWith {};
+							_drone setVariable ["UCAV_Jammed", true];						 
 							
-							[_uav] remoteExec ["deleteVehicleCrew", _uav];
+							[_drone] remoteExec ["deleteVehicleCrew", _drone];
 							
-							_displayName = [_uav] call AdvancedUCAVs_getName_fnc;		
-							_side = [_uav] call AdvancedUCAVs_getDroneSide_fnc;			
-							_distance = round (player distance _uav);
+							_displayName = [_drone] call AdvancedUCAVs_getName_fnc;		
+							_side = [_drone] call AdvancedUCAVs_getDroneSide_fnc;			
+							_distance = round (player distance _drone);
 							
 							systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
 													
 							["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;						
 						
-							waitUntil [{ (count crew _uav) <= 0 }, 30, 0];
-							_uav setVariable ["UCAV_Jammed", false];
+							waitUntil [{ (count crew _drone) <= 0 }, 30, 0];
+							_drone setVariable ["UCAV_Jammed", false];
 						};
-					} forEach _nearSmallUAVs;
-					
-										
-					{
-						_ugv = _x;
-						if ((count crew _ugv) > 0) then {
-							if (_ugv getVariable ["UCAV_Jammed", false]) exitWith {};
-							_ugv setVariable ["UCAV_Jammed", true];							
-							
-							[_ugv] remoteExec ["deleteVehicleCrew", _ugv];
-							
-							_displayName = [_ugv] call AdvancedUCAVs_getName_fnc;							
-							_side = [_ugv] call AdvancedUCAVs_getDroneSide_fnc;				
-							_distance = round (player distance _ugv);
-							
-							systemChat format ["[Jammer] Jammed UGV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
-						
-							["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;
-							
-							waitUntil [{ (count crew _ugv) <= 0 }, 30, 0];
-							_ugv setVariable ["UCAV_Jammed", false];										
-						};
-					} forEach _nearSmallUGVs;							
-				
+					} forEach _nearDrones;
+								
 								
 				} else {
 					titleText ["<t color='#FF0000' size='1.5'>You died. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
-					player setVariable ["JammingOn", false];						
+					player setVariable ["UCAV_JammingOn", false, true];						
 				};
 			
 				sleep 0.1;
@@ -2240,15 +2268,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				if ((_drone getVariable ["DroneType", ""]) in ["KamikazeLightHE","KamikazeLightAT","KamikazeHeavyHE","KamikazeHeavyAT"]) exitWith {};
 				
 				_instigatorName = if (isPlayer _instigator) then { name _instigator } else { "[AI] " + name _instigator };			
-				([_drone, true, true] call AdvancedUCAVs_getOperators_fnc) params ["_connectedPlayers", "_controllingPlayers"];
-				_driverName = nil;
-				_gunnerName = nil;
+				([_drone, true, true] call AdvancedUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
+				_driverName = "";
+				_gunnerName = "";		
 				
-				_controllingPlayers findIf { 
-					if (_x select 1 == "DRIVER") then { _driverName = _x select 0 }; 
-					if (_x select 1 == "GUNNER") then { _gunnerName = _x select 0 };
-				};
-							
+				{
+					if ((_x select 1) == "DRIVER") then { _driverName = (_x select 0) };
+					if ((_x select 1) == "GUNNER") then { _gunnerName = (_x select 0) };
+				} forEach _controllingPlayers;
+
 				["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName, _gunnerName]] call AdvancedUCAVs_LogMsg;	
 			};		
 					
@@ -2289,14 +2317,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (_drone isKindOf "UGV_02_Base_F") exitWith {};
 			[_drone, _instigator] spawn {
 				params ["_drone", "_instigator"];
-				
-				_instigatorName = if (isPlayer _instigator) then { name _instigator } else { "[AI] " + name _instigator };			
+							
 				_droneName = [_drone] call AdvancedUCAVs_getName_fnc;
 				_droneType = _drone getVariable ["DroneType", ""];
-				([_drone, true, true] call AdvancedUCAVs_getOperators_fnc) params ["_connectedPlayers", "_controllingPlayers"];
-				_driverName = nil;
-				_controllingPlayers findIf { if (_x select 1 == "DRIVER") then { _driverName = _x select 0 } };
-							
+				_instigatorName = if (isPlayer _instigator) then { name _instigator } else { "[AI] " + name _instigator };
+				([_drone, true, true] call AdvancedUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
+				_driverName = "";
+				_controllingPlayers findIf { if (_x select 1 == "DRIVER") then { _driverName = _x select 0 } };							
+					
 				switch (_droneType) do {
 					case "KamikazeLightHE": {
 						sleep 0.0001;
@@ -2327,22 +2355,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						_rpg7 = createVehicle ["R_PG7_F", _pos, [], 0, "CAN_COLLIDE"];				
 						_rpg7 setVectorDirAndUp _dirAndUp; 
 						triggerAmmo _rpg7;							
-					};
-					case "KamikazeHeavyAT": {
-						sleep 0.0001;
-						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;	
-						if (!isNull _instigator && { isNil {_drone getVariable "killedMsgSent"} }) then { 
-							_drone setVariable ["killedMsgSent", 0];
-							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AdvancedUCAVs_LogMsg;
-						};
-						
-						_dirAndUp = [vectorDir _drone, vectorUp _drone];
-						_pos = getPosATL _drone;
-						deleteVehicle _drone;
-						_titan = createVehicle ["M_Titan_AT", _pos, [], 0, "CAN_COLLIDE"];				
-						_titan setVectorDirAndUp _dirAndUp; 
-						triggerAmmo _titan;							
-					};					
+					};				
 					case "KamikazeHeavyHE": {
 						sleep 0.0001;				
 						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;
@@ -2358,6 +2371,21 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						_maaws setVectorDirAndUp _dirAndUp; 
 						triggerAmmo _maaws;									
 					};
+					case "KamikazeHeavyAT": {
+						sleep 0.0001;
+						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;	
+						if (!isNull _instigator && { isNil {_drone getVariable "killedMsgSent"} }) then { 
+							_drone setVariable ["killedMsgSent", 0];
+							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AdvancedUCAVs_LogMsg;
+						};
+						
+						_dirAndUp = [vectorDir _drone, vectorUp _drone];
+						_pos = getPosATL _drone;
+						deleteVehicle _drone;
+						_titan = createVehicle ["M_Titan_AT", _pos, [], 0, "CAN_COLLIDE"];				
+						_titan setVectorDirAndUp _dirAndUp; 
+						triggerAmmo _titan;							
+					};						
 					default {
 						["Log_DebugHit", ["UNARMED", clientOwner]] call AdvancedUCAVs_LogMsg;
 					};
@@ -2372,6 +2400,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		}];
 		_drone setVariable ["AdvancedUCAVs_MainHitEH", _hitEH];	
 
+
+		"repair AL6 ATRQ when it gets damaged by rope";
 		if (_drone isKindOf "UAV_06_base_F") then {
 			_drone removeEventHandler ["HandleDamage", (_drone getVariable ["AdvancedUCAVs_MainHandleDamageEH", -100])];
 			_handleDmgEH = _drone addEventHandler ["HandleDamage", {
@@ -2389,6 +2419,20 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				nil
 			}];
 			_drone setVariable ["AdvancedUCAVs_MainHandleDamageEH", _handleDmgEH];
+		};
+		
+		
+		"Prevent gunner creation for armed AR2s";
+		if (_drone isKindOf "UAV_01_base_F") then {
+			_drone removeEventHandler ["GetIn", (_drone getVariable ["AdvancedUCAVs_MainGetInEH", -100])];
+			_getInEH = _drone addEventHandler ["GetIn", {
+				params ["_drone", "_role", "_unit", "_turret"];
+				if (!local _drone) exitWith {};
+				if !((_drone getVariable ["DroneType", ""]) in ["BombDrop","RPG7Launch","KamikazeLightHE","KamikazeLightAT","KamikazeHeavyHE","KamikazeHeavyAT"]) exitWith {};
+				if (_role != "gunner") exitWith {};
+				deleteVehicle _unit;
+			}];
+			_drone setVariable ["AdvancedUCAVs_MainGetInEH", _getInEH];
 		};
 	};
 
@@ -2591,6 +2635,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 			_RGO_simpleObj = _AR2_BombDrop getVariable ["RGO_simpleObj", objNull];  
 			[_RGO_simpleObj, false] remoteExec ["hideObjectGlobal", 2];
+			
+			reload _AR2_BombDrop;
 				
 		}, nil, 1.5, false, true, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'BombDrop' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
@@ -2665,6 +2711,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 			_rocket7_simpleObj = _AR2_Rpg7 getVariable ["rocket7_simpleObj", objNull];
 			[_rocket7_simpleObj, false] remoteExec ["hideObjectGlobal", 2];  
+			
+			reload _AR2_Rpg7;
 	  
 		}, nil, 1.5, false, true, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'RPG7Launch' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
@@ -2999,7 +3047,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_varName = format ["RGO_simpleObj_%1", _ammo2];
 			_RGO_simpleObj = _AL6_BombCarrier getVariable [_varName, objNull];
 			
-			[_RGO_simpleObj, false] remoteExec ["hideObjectGlobal", 2];									
+			[_RGO_simpleObj, false] remoteExec ["hideObjectGlobal", 2];	
+
+			reload _AL6_BombCarrier;
 
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'BombCarrier' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
@@ -3078,7 +3128,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			sleep 1;    
 
 			_rocket7_simpleObj = _AL6_RPG7Launch getVariable ["rocket7_simpleObj", objNull]; 
-			[_rocket7_simpleObj, false] remoteExec ["hideObjectGlobal", 2];  
+			[_rocket7_simpleObj, false] remoteExec ["hideObjectGlobal", 2]; 
+
+			reload _AL6_RPG7Launch;
 
 		}, nil, 1.5, false, true, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'RPG7Launch' && {  !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
@@ -3143,7 +3195,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
 			
 			[_AL6_RPG42Launch, ["RPG32_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG42Launch];		
-			_caller removeItem "RPG32_F";        
+			_caller removeItem "RPG32_F";  
+
+			sleep 1;
+
+			reload _AL6_RPG42Launch;
 	 
 		}, nil, 1.5, false, true, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'RPG42Launch' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
@@ -3163,7 +3219,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
 			
 			[_AL6_RPG42Launch, ["RPG32_HE_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG42Launch];		
-			_caller removeItem "RPG32_HE_F";        
+			_caller removeItem "RPG32_HE_F"; 
+
+			sleep 1;
+			
+			reload _AL6_RPG42Launch;
 	  
 		}, nil, 1.5, false, true, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { (_target getVariable ['DroneType', '']) == 'RPG42Launch' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}"];
 
@@ -3278,7 +3338,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_addToDrone_UnarmedAL6Options_fnc = {
 		params ["_NonCombatDrone"];
 
-		
+		_actionID_Toggle = _NonCombatDrone addAction ["<t color='#0094FF'>Toggle Options", {
+			params ["_NonCombatDrone", "_caller", "_actionId", "_arguments"];	
+			_newState = !(_NonCombatDrone getVariable ["optionsVisible", false]);
+			_NonCombatDrone setVariable ["optionsVisible", _newState];
+		}, nil, 1.6, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
+	
+	
+	
 		_actionID_Repair = _NonCombatDrone addAction ["-> Repair Drone", {
 			params ["_NonCombatDrone", "_caller", "_actionId", "_arguments"];
 			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
@@ -3287,7 +3354,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;				
 			sleep 1;
 			_NonCombatDrone setDamage 0;
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
+		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
 		
 		_NonCombatDrone setUserActionText [_actionID_Repair, "-> Repair Drone", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>Repair Drone"];
 		
@@ -3301,7 +3368,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_caller removeItem "Laserbatteries";
 			sleep 1;
 			[_NonCombatDrone, 1] remoteExec ["setFuel", _NonCombatDrone];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
+		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
 		
 		_NonCombatDrone setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
 
