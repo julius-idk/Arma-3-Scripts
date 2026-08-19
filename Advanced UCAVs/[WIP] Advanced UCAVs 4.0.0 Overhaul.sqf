@@ -839,6 +839,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Added a 'Rearm Smoke' option to all ED-1s.<br/>" +
 		"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
 		"- Added 'Toggle Options' option to ED-1s and Non-Armable drones.<br/>" +
+		"- Added 'Quick Repair' option to all AR-2s, AL-6s and ED-1s. Allowing for a slight repair without needing a toolkit.<br/>" +		
 		"- Added a 'Configure' button for zeus to toggle all features.<br/>" +
 		"- Added a button to the 'Description' tab on the map that allows players so wich see options are enabled/disabled.<br/>" +		
 		"- Added a dialog for the anti-troll log wich can be opened via chat command mentioned below or in the enable/disable window.<br/>" +
@@ -1053,6 +1054,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	AdvancedUCAVs_PlayerAnimations_fnc = {
 		params ["_caller"];
 				
@@ -1121,12 +1123,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	};
 
 
-	
+
+
 	AdvancedUCAVs_getName_fnc = {
 		params ["_drone"];
 		_droneName = getText (configFile >> "CfgVehicles" >> (typeOf _drone) >> "displayName");
 		_droneName
 	};
+	
 	
 	
 	
@@ -1306,6 +1310,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	AdvancedUCAVs_ToggleConfigValues_fnc = {
 		params ["_mode", "_coef", "_droneTypes"];
 		switch (_mode) do {
@@ -1378,6 +1383,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		};
 	};
 	["HACKING"] call AdvancedUCAVs_ToggleConfigValues_fnc;
+
+
 
 
 	AdvancedUCAVs_LogMsg = {
@@ -1474,6 +1481,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 	
 	
+	
 	if (!isNil "AdvancedUCAVs_ChatCommandMissionEH") then { removeMissionEventHandler ["HandleChatMessage", AdvancedUCAVs_ChatCommandMissionEH] };
 	AdvancedUCAVs_ChatCommandMissionEH = addMissionEventHandler ["HandleChatMessage", {
 		params ["_channel", "_owner", "_from", "_message", "_person", "_name", "_strID", "_forcedDisplay", "_isPlayerMessage", "_sentenceType", "_chatMessageType", "_params"];
@@ -1502,6 +1510,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	if (!isNil "AdvancedUCAVs_ResetBombDropAmmoEH") then { removeMissionEventHandler ["Service", AdvancedUCAVs_ResetBombDropAmmoEH] };
 	AdvancedUCAVs_ResetBombDropAmmoEH = addMissionEventHandler ["Service", {
 		params ["_serviceVehicle", "_servicedVehicle", "_serviceType", "_needsService", "_autoSupply"];
@@ -1514,6 +1523,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			}] remoteExec ["call"];
 		};
 	}];
+
 
 
 
@@ -1543,6 +1553,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 		[_connectedPlayers, _controllingPlayers]
 	};	
+
 
 
 
@@ -1610,6 +1621,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	
+	
 	_map = (findDisplay 12) displayCtrl 51;
 	if (!isNil "AdvancedUCAVs_BackpackJamming_DrawRadiusEH") then { _map ctrlRemoveEventHandler ["Draw", AdvancedUCAVs_BackpackJamming_DrawRadiusEH] };
 	AdvancedUCAVs_BackpackJamming_DrawRadiusEH = _map ctrlAddEventHandler ["Draw", {
@@ -1629,10 +1641,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	AdvancedUCAVs_saveAction_fnc = {
 		params ["_drone", "_actionID"];
 		(_drone getVariable ["AdvancedUCAVs_allActionIDs", []]) pushBack _actionID;
 	};
+
 
 
 
@@ -1651,6 +1665,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_drone setVariable ["slingload_slingloadedUGV", objNull, true];
 		_drone setVariable ["slingload_ropesArray", [], true];	
 	};
+
 
 
 
@@ -1744,6 +1759,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	AdvancedUCAVs_ToggleSpectrumScreen_fnc = {
 		params [["_openOrClose",""], ["_needsTextOutput", false]];
 				
@@ -1782,6 +1798,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if (!_needsTextOutput) exitWith {};
 		if (_showScreen) then { "Enabled" } else { "Disabled" }
 	};
+
 
 
 
@@ -1930,6 +1947,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	if (!isNil "AdvancedUCAVs_RespawnEH") then { 
 		player removeEventHandler ["Respawn", AdvancedUCAVs_RespawnEH] 
 	};
@@ -1940,6 +1958,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_corpse setVariable ["UCAV_JammingOn", false, true];
 	}];
 	
+
 
 
 	AdvancedUCAVs_getDroneSide_fnc = {
@@ -1957,6 +1976,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		};
 		_side
 	};
+
 
 
 
@@ -1992,6 +2012,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_crosshair ctrlSetFontHeight 0.05;
 			_crosshair ctrlCommit 0;
 			
+			_frame = diag_frameno;
 			while { ACUAVs_SDJam_LMBHeld } do {
 				if (
 					!(missionNamespace getVariable ["AUCAVs_SpectrumJammingON", true])
@@ -2055,7 +2076,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				if (freeLook) then { { _x ctrlShow false } forEach [_droneBox, _crosshair] };
 				
-				uiSleep 0.001;
+				waitUntil { diag_frameno > _frame };
+				_frame = diag_frameno;
 			};	
 			
 			ACUAVs_SDJam_LMBHeld = false;
@@ -2069,6 +2091,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+
 	AdvancedUCAVs_SDJam_killUIBar_fnc = { 
 		if (!isNil "AdvancedUCAVs_SDJam_UIBar_spawn" && { !(scriptDone AdvancedUCAVs_SDJam_UIBar_spawn) }) then { 
 			terminate AdvancedUCAVs_SDJam_UIBar_spawn; 
@@ -2076,6 +2099,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		{ ctrlDelete _x } forEach (uiNamespace getVariable ["UCAV_SDJamBarCtrls", []]);
 		AUCAVs_SDJam_barCalled = false;
 	};
+
 
 
 
@@ -2131,6 +2155,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_progressBar ctrlCommit _duration;
 			_nextREtick = uiTime - 1;
 			
+			_frame = diag_frameno;
 			while { !ctrlCommitted _progressBar } do {
 			
 				_infoText ctrlSetText (format ["Jamming Drone...%1s", (_duration - (uiTime - AUCAVs_SDJam_startTime)) toFixed 2]);
@@ -2140,7 +2165,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					_nextREtick = uiTime + 0.5;
 				};			
 				if (isNull AUCAVs_SDJam_targetDrone) exitWith { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };	
-				uiSleep 0.001;
+				
+				waitUntil { diag_frameno > _frame };
+				_frame = diag_frameno;
 			};
 			
 			if (!isNull _progressBar) then {	
@@ -2161,6 +2188,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[] call AdvancedUCAVs_SDJam_killUIBar_fnc;		
 		};
 	};
+
 
 
 
@@ -2439,6 +2467,104 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+	AdvancedUCAVs_addToDrone_BasicOptions_fnc = {
+		params ["_drone"];
+	
+		_isUGV = _drone isKindOf "UGV_02_Base_F";
+		
+				
+		_actionID_Toggle = _drone addAction ["<t color='#0094FF'>Toggle Options", {
+			params ["_drone", "_caller", "_actionId", "_arguments"];	
+			_newState = !(_drone getVariable ["optionsVisible", false]);
+			_drone setVariable ["optionsVisible", _newState];
+		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
+		
+		[_drone, _actionID_Toggle] call AdvancedUCAVs_saveAction_fnc;
+			
+			
+			
+		_repairActionName = if (_isUGV) then { "-> Full Repair UGV [100%]" } else { "-> Full Repair UAV [100%]" };
+		_repairActionName2 = _repairActionName select [3];
+	
+		_actionID_Repair = _drone addAction [_repairActionName, {
+			params ["_drone", "_caller", "_actionId", "_arguments"];
+			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
+			if (!_hasToolkit) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Toolkit", "PLAIN DOWN", 0.5, true, true] };
+			
+			_caller playMoveNow "AinvPknlMstpSlayWrflDnon_medic";			
+			sleep 1;
+			waitUntil [{ animationState _caller != "AinvPknlMstpSlayWrflDnon_medic" }, 30];
+			
+			_drone setDamage 0;
+		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
+		
+		_drone setUserActionText [_actionID_Repair, _repairActionName, "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>"+_repairActionName2];
+		
+		[_drone, _actionID_Repair] call AdvancedUCAVs_saveAction_fnc;
+
+
+
+		_quickRepairActionName = if (_isUGV) then { "-> Quick Repair UGV [40%]" } else { "-> Quick Repair UAV [40%]" };
+		_quickRepairActionName2 = _quickRepairActionName select [3];
+
+		_actionID_HalfRepair = _drone addAction [_quickRepairActionName, {
+			params ["_drone", "_caller", "_actionId", "_arguments"];
+
+			_caller playMoveNow "AinvPknlMstpSlayWrflDnon_medic";			
+			sleep 1;
+			waitUntil [{ animationState _caller != "AinvPknlMstpSlayWrflDnon_medic" }, 30];
+
+			(getAllHitPointsDamage _drone) params [["_hitpointNames",[]], ["_selectionNames",[]], ["_damageValues",[]]];
+			if (str _damageValues != "[]") then {
+				{
+					_hitPointDamage = _x;
+					_hitPointIndex = _forEachIndex;
+					if (_hitPointDamage > 0.6) then {
+						[_drone, [_hitPointIndex, 0.6]] remoteExec ["setHitIndex", _drone];
+					};		
+				} forEach _damageValues;					
+			} else {			
+				"getAllHitPointsDamage _drone returns [] for AR-2";
+				{
+					_hitPointName = configName _x;
+					_hitPointDamage = _drone getHitPointDamage _hitPointName;
+
+					if (_hitPointDamage > 0.6) then {
+						[_drone, [_hitPointName, 0.6]] remoteExec ["setHitPointDamage", _drone];
+					};					
+				} forEach (configProperties [configFile >> "CfgVehicles" >> typeOf cursorObject >> "HitPoints"]);				
+				
+			};
+
+		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
+		
+		_drone setUserActionText [_actionID_HalfRepair, _quickRepairActionName, "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>"+_quickRepairActionName2];
+		
+		[_drone, _actionID_HalfRepair] call AdvancedUCAVs_saveAction_fnc;
+
+
+
+		if (!_isUGV) then {
+			_actionID_Battery = _drone addAction ["-> Swap Drone Battery", {
+				params ["_drone", "_caller", "_actionId", "_arguments"];
+				_hasBattery = "Laserbatteries" in magazines _caller;											
+				if (!_hasBattery) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Designator Battery", "PLAIN DOWN", 0.5, true, true] };	
+				
+				[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+				_caller removeItem "Laserbatteries";
+				sleep 1;
+				[_drone, 1] remoteExec ["setFuel", _drone];
+			}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
+			
+			_drone setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
+
+			[_drone, _actionID_Battery] call AdvancedUCAVs_saveAction_fnc;
+		};	
+	};
+	
+	
+	
+
 	AdvancedUCAVs_addToDrone_CargoAndSlingload_fnc = {
 		params ["_AL6"];
 		
@@ -2527,40 +2653,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 	AdvancedUCAVs_addToDrone_AR2ArmOptions_fnc = {
 		params ["_AR2"];
-
-
-		_actionID_Toggle = _AR2 addAction ["<t color='#0094FF'>Toggle Options", {
-			params ["_AR2", "_caller", "_actionId", "_arguments"];	
-			_newState = !(_AR2 getVariable ["optionsVisible", false]);
-			_AR2 setVariable ["optionsVisible", _newState];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
-
-
-		_actionID_Repair = _AR2 addAction ["-> Repair Drone", {
-			params ["_AR2", "_caller", "_actionId", "_arguments"];
-			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
-			if (!_hasToolkit) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Toolkit", "PLAIN DOWN", 0.5, true, true] };
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
-			sleep 1;
-			_AR2 setDamage 0;
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_AR2 setUserActionText [_actionID_Repair, "-> Repair Drone", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>Repair Drone"];
-
-
-		
-		_actionID_Battery = _AR2 addAction ["-> Swap Drone Battery", {
-			params ["_AR2", "_caller", "_actionId", "_arguments"];
-			_hasBattery = "Laserbatteries" in magazines _caller;											
-			if (!_hasBattery) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Designator Battery", "PLAIN DOWN", 0.5, true, true] };	
-			
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
-			_caller removeItem "Laserbatteries";
-			sleep 1;
-			[_AR2, 1] remoteExec ["setFuel", _AR2];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_AR2 setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
 
 
 
@@ -2885,7 +2977,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 		{
 			[_AR2, _x] call AdvancedUCAVs_saveAction_fnc;
-		} forEach [_actionID_Toggle, _actionID_Repair, _actionID_Battery,_actionID_BombDrop,_actionID_RearmGrenade,_actionID_Rpg7Launch,
+		} forEach [_actionID_BombDrop,_actionID_RearmGrenade,_actionID_Rpg7Launch,
 		_actionID_RearmRocket,_actionID_KamikazeLightHE,_actionID_KamikazeLightAT,_actionID_KamikazeHeavyAT,_actionID_KamikazeHeavyHE];
 
 
@@ -2918,47 +3010,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_addToDrone_AL6ArmOptions_fnc = {
 		params ["_AL6"];
 			
-
-	
-		_actionID_Toggle = _AL6 addAction ["<t color='#0094FF'>Toggle Options", {
-			params ["_AL6", "_caller", "_actionId", "_arguments"];	
 			
-			_newState = !(_AL6 getVariable ["optionsVisible", false]);
-			_AL6 setVariable ["optionsVisible", _newState];
-		
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
-		
-		
-														
-		_actionID_Repair = _AL6 addAction ["-> Repair Drone", {
-			params ["_AL6", "_caller", "_actionId", "_arguments"];
-			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
-			if (!_hasToolkit) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Toolkit", "PLAIN DOWN", 0.5, true, true] };		
-			
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;						
-			sleep 1;
-			_AL6 setDamage 0;				
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { (_target getVariable ['optionsVisible', false]) && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_AL6 setUserActionText [_actionID_Repair, "-> Repair Drone", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>Repair Drone"];
-		
-		
-		_actionID_Battery = _AL6 addAction ["-> Swap Drone Battery", {
-			params ["_AL6", "_caller", "_actionId", "_arguments"];
-			_hasBattery = "Laserbatteries" in magazines _caller;
-			if (!_hasBattery) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Designator Battery", "PLAIN DOWN", 0.5, true, true] };
-				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
-			_caller removeItem "Laserbatteries";
-			sleep 1;
-			_AL6 setFuel 1;
-			[_AL6, 1] remoteExec ["setFuel", _AL6];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { (_target getVariable ['optionsVisible', false]) && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_AL6 setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
-		
-		
-				
 		_actionID_BombCarrier = _AL6 addAction ["-> Make Bomb Carrier Drone (20s)", { 
 			params ["_AL6_BombCarrier", "_caller", "_actionId", "_arguments"];
 				
@@ -3233,7 +3285,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		{
 			[_AL6, _x] call AdvancedUCAVs_saveAction_fnc;
-		} forEach [_actionID_Toggle, _actionID_Repair, _actionID_Battery,_actionID_BombCarrier,_actionID_RearmGrenade,
+		} forEach [_actionID_BombCarrier,_actionID_RearmGrenade,
 		_actionID_Rpg7Launch, _actionID_RearmRocket, _actionID_RPG42Launch,_actionID_RearmRocketAT,_actionID_RearmRocketHE];
 			
 	
@@ -3268,42 +3320,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 	AdvancedUCAVs_addToDrone_DeminingDroneOptions_fnc = {
 		params ["_DeminingDrone"];
-				
-		
-		_actionID_Toggle = _DeminingDrone addAction ["<t color='#0094FF'>Toggle Options", {
-			params ["_DeminingDrone", "_caller", "_actionId", "_arguments"];	
-			_newState = !(_DeminingDrone getVariable ["optionsVisible", false]);
-			_DeminingDrone setVariable ["optionsVisible", _newState];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
-		
-								
-		_actionID_Repair = _DeminingDrone addAction ["-> Repair Drone", {
-			params ["_DeminingDrone", "_caller", "_actionId", "_arguments"];
-			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
-			if (!_hasToolkit) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Toolkit", "PLAIN DOWN", 0.5, true, true] };			
-			
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;		
-			sleep 1;
-			_DeminingDrone setDamage 0;
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_DeminingDrone setUserActionText [_actionID_Repair, "-> Repair Drone", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>Repair Drone"];
-		
-		
-		
-		_actionID_Battery = _DeminingDrone addAction ["-> Swap Drone Battery", {
-			params ["_DeminingDrone", "_caller", "_actionId", "_arguments"];
-			_hasBattery = "Laserbatteries" in magazines _caller;
-			if (!_hasBattery) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Designator Battery", "PLAIN DOWN", 0.5, true, true] };
-				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
-			_caller removeItem "Laserbatteries";
-			sleep 1;
-			[_DeminingDrone, 1] remoteExec ["setFuel", _DeminingDrone];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_DeminingDrone setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
-		
 		
 			
 		_actionID_RearmGrenade = _DeminingDrone addAction ["-> Rearm Demine Charges", {
@@ -3324,57 +3340,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_DeminingDrone setUserActionText [_actionID_RearmGrenade, "-> Rearm Demine Charges", "<img size='2.3' image='a3\ui_f\data\igui\cfg\simpletasks\types\rearm_ca.paa'/><br/>Rearm Demine Charges"];
 
 		
-		
-		[_DeminingDrone, _actionID_Toggle] call AdvancedUCAVs_saveAction_fnc;
-		[_DeminingDrone, _actionID_Repair] call AdvancedUCAVs_saveAction_fnc;
-		[_DeminingDrone, _actionID_Battery] call AdvancedUCAVs_saveAction_fnc;
-		[_DeminingDrone, _actionID_RearmGrenade] call AdvancedUCAVs_saveAction_fnc;
-				
-	};
 
-
-
-
-	AdvancedUCAVs_addToDrone_UnarmedAL6Options_fnc = {
-		params ["_NonCombatDrone"];
-
-		_actionID_Toggle = _NonCombatDrone addAction ["<t color='#0094FF'>Toggle Options", {
-			params ["_NonCombatDrone", "_caller", "_actionId", "_arguments"];	
-			_newState = !(_NonCombatDrone getVariable ["optionsVisible", false]);
-			_NonCombatDrone setVariable ["optionsVisible", _newState];
-		}, nil, 1.6, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
-	
-	
-	
-		_actionID_Repair = _NonCombatDrone addAction ["-> Repair Drone", {
-			params ["_NonCombatDrone", "_caller", "_actionId", "_arguments"];
-			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
-			if (!_hasToolkit) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Toolkit", "PLAIN DOWN", 0.5, true, true] };
-				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;				
-			sleep 1;
-			_NonCombatDrone setDamage 0;
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_NonCombatDrone setUserActionText [_actionID_Repair, "-> Repair Drone", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>Repair Drone"];
-		
-
-		_actionID_Battery = _NonCombatDrone addAction ["-> Swap Drone Battery", {
-			params ["_NonCombatDrone", "_caller", "_actionId", "_arguments"];
-			_hasBattery = "Laserbatteries" in magazines _caller;
-			if (!_hasBattery) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Designator Battery", "PLAIN DOWN", 0.5, true, true] };
-				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
-			_caller removeItem "Laserbatteries";
-			sleep 1;
-			[_NonCombatDrone, 1] remoteExec ["setFuel", _NonCombatDrone];
-		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_NonCombatDrone setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
-
-		[_NonCombatDrone, _actionID_Repair] call AdvancedUCAVs_saveAction_fnc;
-		[_NonCombatDrone, _actionID_Battery] call AdvancedUCAVs_saveAction_fnc;
-
+		[_DeminingDrone, _actionID_RearmGrenade] call AdvancedUCAVs_saveAction_fnc;			
 	};
 
 
@@ -3382,28 +3349,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 	AdvancedUCAVs_addToDrone_UGVAllOptions_fnc = {
 		params ["_UGV"];
-					
-		_actionID_Toggle = _UGV addAction ["<t color='#0094FF'>Toggle Options", {
-			params ["_UGV", "_caller", "_actionId", "_arguments"];	
-			_newState = !(_UGV getVariable ["optionsVisible", false]);
-			_UGV setVariable ["optionsVisible", _newState];
-		}, nil, 1.6, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { !(unitIsUAV _this) && { vehicle _this == _this }}"];
-			
-			
-			
-		_actionID_Repair = _UGV addAction ["-> Repair UGV", {
-			params ["_UGV", "_caller", "_actionId", "_arguments"];
-			_hasToolkit = [_caller, "ToolKit"] call BIS_fnc_hasItem;
-			if (!_hasToolkit) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Toolkit", "PLAIN DOWN", 0.5, true, true] };
-				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;					
-			sleep 1;
-			_UGV setDamage 0;
-		}, nil, 1.5, false, true, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 3 && { _target getVariable ['optionsVisible', false] && { !(unitIsUAV _this) && { vehicle _this == _this }}}"];
-		
-		_UGV setUserActionText [_actionID_Repair, "-> Repair UGV", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>Repair UGV"];
-		
-						
+									
 						
 		_actionID_DeploySmoke = _UGV addAction ["-> Deploy Smoke", {
 			params ["_UGV", "_caller", "_actionId", "_arguments"];
@@ -3450,8 +3396,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_UGV setUserActionText [_actionID_RearmSmoke, "-> Rearm Smoke", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_start_on_ca.paa'/><br/>Rearm Smoke"];			
 
 
-		[_UGV, _actionID_Toggle] call AdvancedUCAVs_saveAction_fnc;
-		[_UGV, _actionID_Repair] call AdvancedUCAVs_saveAction_fnc;
 		[_UGV, _actionID_DeploySmoke] call AdvancedUCAVs_saveAction_fnc;
 		[_UGV, _actionID_RearmSmoke] call AdvancedUCAVs_saveAction_fnc;
 
@@ -3556,6 +3500,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 				
 		[_drone] call AdvancedUCAVs_addToDrone_EventHandlers_fnc;
+		[_drone] call AdvancedUCAVs_addToDrone_BasicOptions_fnc; "Toggle, Repair, Battery";
 				
 		
 		if (_drone isKindOf "UAV_01_base_F" || _drone isKindOf "UAV_06_base_F") then { 
@@ -3587,12 +3532,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[_DeminingDrone] call AdvancedUCAVs_addToDrone_DeminingDroneOptions_fnc;
 		};			
 
-
-		if (_drone isKindOf "UAV_06_medical_base_F" || (typeOf _drone) in ["C_UAV_06_F", "C_IDAP_UAV_06_F", "C_IDAP_UAV_01_F"]) then {
-			params ["_NonCombatDrone"];
-			[_NonCombatDrone] call AdvancedUCAVs_addToDrone_UnarmedAL6Options_fnc; "Repair & Swap Battery";
-		};
-		
 
 		if (_drone isKindOf "UGV_02_Base_F") then {
 			params ["_UGV"];				
