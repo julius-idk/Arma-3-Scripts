@@ -1629,7 +1629,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		{
 			_radius = _x getVariable ["UCAV_JammingRadius", 100];
 			_c = [side _x] call BIS_fnc_sideColor;
-			_map drawEllipse [_x, _radius, _radius, 0, [1,0,0,1], format ["#(rgb,8,8,3)color(%1,%2,%3,0.2)", _c # 0, _c # 1, _c # 2], false];
+			_map drawEllipse [_x, _radius, _radius, 0, _c, format ["#(rgb,8,8,3)color(%1,%2,%3,0.2)", _c # 0, _c # 1, _c # 2], false];
 			
 			_txt = if (ctrlMapScale _map <= 0.02) then { format ["  Backpack Jammer (%1)", name _x] } else {""};
 			_map drawIcon ["#(rgb,1,1,1)color(1,1,1,1)", _c, _x, 0, 0, 0, _txt, 2, 0.05, "TahomaB"];
