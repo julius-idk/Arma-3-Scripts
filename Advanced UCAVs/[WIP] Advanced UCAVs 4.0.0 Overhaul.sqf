@@ -856,6 +856,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Added functionallity for the Experimental Antenna (Spectrum Device), using it increases Radar range by 1000m.<br/>" + 
 		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
 		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
+		"- Added: the UCAV log now also shows when a player just connects to a drone, not only when he connects to driver/gunner.<br/>" +
 		"</font><font color='#FFD800'>" +	
 		"- Change: Also fully overworked the drone making. The option no longer has to be held manually, and a custom progress bar will pop up.<br/>" +
 		"- Change: Also (again) full overworked Spectrum Device Jamming. Instead of a point and click adventure, players now have to hold leftclick.<br/>" +
