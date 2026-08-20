@@ -1609,7 +1609,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				drawIcon3D [
 					(getText (configfile >> "CfgVehicles" >> typeOf _x >> "icon")), 		
 					_color, 
-					getPosATL _x, 
+					getPosASL _x, 
 					0.8, 
 					0.8, 
 					0, 
@@ -2103,7 +2103,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					_index = _distanceArray find (selectMin _distanceArray);
 					AUCAVs_SDJam_targetDrone = _droneArray select _index;
 					
-					_dronePosScreen = worldToScreen (getPosATL AUCAVs_SDJam_targetDrone);				
+					_dronePosScreen = worldToScreen (getPosASL AUCAVs_SDJam_targetDrone);				
 					if (str _dronePosScreen == "[]") exitWith {};
 					if ((_center distance2D _dronePosScreen) > 0.05) then { AUCAVs_SDJam_targetDrone = objNull };
 					if ((_center distance2D _dronePosScreen) > 0.2) exitWith { _droneBox ctrlShow false };
