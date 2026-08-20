@@ -148,7 +148,7 @@ _EnableScript = {
 
 	if (isNil "AUCAVs_SDJamTime_AR2") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AR2", 2, true] };	
 	if (isNil "AUCAVs_SDJamTime_AL6") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AL6", 3, true] };	
-	if (isNil "AUCAVs_SDJamTime_ED1") then { missionNamespace setVariable ["AUCAVs_SDJamTime_ED1", 5, true] };	
+	if (isNil "AUCAVs_SDJamTime_ED1") then { missionNamespace setVariable ["AUCAVs_SDJamTime_ED1", 4, true] };	
 	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 15, true] };
 	if (isNil "AUCAVs_SDJamTime_Falcon") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Falcon", 15, true] };	
 	if (isNil "AUCAVs_SDJamTime_Greyhawk") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Greyhawk", 20, true] };	
@@ -621,7 +621,7 @@ _ConfigureScript = {
 ["TITLE", ["Spectrum Device Jamming Options"]],
 ["SLIDER", ["AR-2s", "AUCAVs_SDJamTime_AR2", "Set how long players have to aim a Spectrum Device at an AR-2 to jam it (seconds).\n Default: 2s", [1,30]]],	
 ["SLIDER", ["AL-6s", "AUCAVs_SDJamTime_AL6", "Set how long players have to aim a Spectrum Device at an AL-6 to jam it (seconds).\n Default: 3s", [1,30]]],	
-["SLIDER", ["ED-1s", "AUCAVs_SDJamTime_ED1", "Set how long players have to aim a Spectrum Device at an ED-1 to jam it (seconds).\n Default: 5s", [1,30]]],	
+["SLIDER", ["ED-1s", "AUCAVs_SDJamTime_ED1", "Set how long players have to aim a Spectrum Device at an ED-1 to jam it (seconds).\n Default: 4s", [1,30]]],	
 ["SLIDER", ["Stompers", "AUCAVs_SDJamTime_Stomper", "Set how long players have to aim a Spectrum Device at a Stomper to jam it (seconds).\n Default: 15s", [1,30]]],	
 ["SLIDER", ["Falcons", "AUCAVs_SDJamTime_Falcon", "Set how long players have to aim a Spectrum Device at a Falcon to jam it (seconds).\n Default: 15s", [1,30]]],	
 ["SLIDER", ["Greyhawks", "AUCAVs_SDJamTime_Greyhawk", "Set how long players have to aim a Spectrum Device at a Greyhawk to jam it (seconds).\n Default: 20s", [1,30]]],	
