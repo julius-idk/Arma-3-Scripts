@@ -149,7 +149,8 @@ _EnableScript = {
 	if (isNil "AUCAVs_SDJamTime_AR2") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AR2", 2, true] };	
 	if (isNil "AUCAVs_SDJamTime_AL6") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AL6", 3, true] };	
 	if (isNil "AUCAVs_SDJamTime_ED1") then { missionNamespace setVariable ["AUCAVs_SDJamTime_ED1", 5, true] };	
-	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 15, true] };	
+	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 15, true] };
+	if (isNil "AUCAVs_SDJamTime_Falcon") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Falcon", 15, true] };	
 	if (isNil "AUCAVs_SDJamTime_Greyhawk") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Greyhawk", 20, true] };	
 	if (isNil "AUCAVs_SDJamTime_Fenghung") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Fenghung", 20, true] };	
 	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 30, true] };	
@@ -622,6 +623,7 @@ _ConfigureScript = {
 ["SLIDER", ["AL-6s", "AUCAVs_SDJamTime_AL6", "Set how long players have to aim a Spectrum Device at an AL-6 to jam it (seconds).\n Default: 3s", [1,30]]],	
 ["SLIDER", ["ED-1s", "AUCAVs_SDJamTime_ED1", "Set how long players have to aim a Spectrum Device at an ED-1 to jam it (seconds).\n Default: 5s", [1,30]]],	
 ["SLIDER", ["Stompers", "AUCAVs_SDJamTime_Stomper", "Set how long players have to aim a Spectrum Device at a Stomper to jam it (seconds).\n Default: 15s", [1,30]]],	
+["SLIDER", ["Falcons", "AUCAVs_SDJamTime_Falcon", "Set how long players have to aim a Spectrum Device at a Falcon to jam it (seconds).\n Default: 15s", [1,30]]],	
 ["SLIDER", ["Greyhawks", "AUCAVs_SDJamTime_Greyhawk", "Set how long players have to aim a Spectrum Device at a Greyhawk to jam it (seconds).\n Default: 20s", [1,30]]],	
 ["SLIDER", ["Fenghungs", "AUCAVs_SDJamTime_Fenghung", "Set how long players have to aim a Spectrum Device at a Fenghung to jam it (seconds).\n Default: 20s", [1,30]]],	
 ["SLIDER", ["Sentinels", "AUCAVs_SDJamTime_Sentinel", "Set how long players have to aim a Spectrum Device at a Sentinel to jam it (seconds).\n Default: 30s", [1,30]]]
@@ -1595,6 +1597,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		
 		
+		_searchDistance = if ((handgunItems player) select 0 ==	"muzzle_antenna_02_f") then { 2000 } else { 1000 };
 		{		
 			_color = if ((count (crew _x)) > 0) then { [side _x] call BIS_fnc_sideColor } else { [0.7, 0.6, 0, 1] };
 			if ((count (lineIntersectsSurfaces [eyePos player, (_x modelToWorldWorld [0,0,0.1]), _x, player])) <= 0) then {
@@ -1615,7 +1618,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					-0.025
 				];			
 			};
-		} forEach (allUnitsUAV select { _x distance player <= 1000 });
+		} forEach (allUnitsUAV select { _x distance player <= _searchDistance });
 
 	}];
 
@@ -1802,6 +1805,45 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+	AdvancedUCAVs_ChangeSpectrumAntenna_fnc = {
+		if (!isNil "AUCAVs_ReloadAntennaSpawn" && { !scriptDone AUCAVs_ReloadAntennaSpawn }) exitWith {};
+		AUCAVs_ReloadAntennaSpawn = [] spawn {
+			_militaryAntenna = "muzzle_antenna_01_f";
+			_experimentalAntenna = "muzzle_antenna_02_f";
+			_jammerAntenna = "muzzle_antenna_03_f";
+			_currentAntenna = (handgunItems player) select 0;
+			_antennaToUse = "";
+			[_militaryAntenna,_experimentalAntenna,_jammerAntenna] findIf {
+				if (_x in (uniformItems player + vestItems player + backpackItems player)) then {
+					_antennaToUse = _x;
+				};
+			};
+			if (_antennaToUse == "") exitWith {};
+
+			playSound3D ["A3\Sounds_F\arsenal\weapons\Pistols\P07\reload_P07.wss", player, false, getPosASL player, 5, 1, 10, 0, false];
+
+			player playGesture "GestureChangeAntenna";
+
+			[] spawn {
+				waitUntil [{ sleep 0.001; findDisplay 602 closeDisplay 0; gestureState player != "GestureChangeAntenna" }, 10];
+			};
+
+			
+			sleep 0.5;
+			
+			player removeHandgunItem _currentAntenna;
+			player addItem _currentAntenna;
+			
+			sleep 1.1;
+						
+			player addHandgunItem _antennaToUse;
+			player removeItem _antennaToUse;		
+		};
+	};
+	
+	
+	
+	
 	ACUAVs_SDJam_LMBHeld = false;
 
 	AdvancedUCAVs_AddKeybinds_fnc = {
@@ -1838,6 +1880,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if !("muzzle_antenna_03_f" in handgunItems player) exitWith {};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};		
 			if (weaponLowered player) exitWith {};
+			if (!isNull (findDisplay 602)); "inventory";
 			
 			ACUAVs_SDJam_LMBHeld = true;
 			[] call AdvancedUCAVs_SpectrumJamming_fnc;
@@ -1878,7 +1921,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			}; 			
 					
 			if (_key == 19) exitWith { "R";
-				if (cameraView != "GUNNER") exitWith {};
+				if (cameraView != "GUNNER") exitWith { [] call AdvancedUCAVs_ChangeSpectrumAntenna_fnc };
 				if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};		
 				missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumRadar", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true])];		
 				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) then { "Enabled" } else { "Disabled" };
@@ -2023,6 +2066,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					|| weaponLowered player	
 					|| !isNull (findDisplay 49)
 					|| !isGameFocused
+					|| !isNull (findDisplay 602)
 				) exitWith {};						
 								
 				_crosshair ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
@@ -2117,6 +2161,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			"AL-6"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_06_base_F") then {_duration = AUCAVs_SDJamTime_AL6 };	
 			"ED-1"; if (AUCAVs_SDJam_targetDrone isKindOf "UGV_02_Base_F") then {_duration = AUCAVs_SDJamTime_ED1 };	
 			"Stomper"; if (AUCAVs_SDJam_targetDrone isKindOf "UGV_01_base_F") then {_duration = AUCAVs_SDJamTime_Stomper };	
+			"Falcon"; if (AUCAVs_SDJam_targetDrone isKindOf "B_T_UAV_03_dynamicLoadout_F") then {_duration = AUCAVs_SDJamTime_Falcon };			
 			"Greyhawk"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_02_base_F") then {_duration = AUCAVs_SDJamTime_Greyhawk };	
 			"Fenghung"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_04_base_F") then {_duration = AUCAVs_SDJamTime_Fenghung };	
 			"Sentinel"; if (AUCAVs_SDJam_targetDrone isKindOf "UAV_05_Base_F") then {_duration = AUCAVs_SDJamTime_Sentinel };	
