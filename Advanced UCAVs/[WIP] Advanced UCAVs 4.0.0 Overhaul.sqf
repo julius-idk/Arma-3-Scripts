@@ -850,6 +850,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Added a 'Rename AV Callsign' button in the UAV terminal so players can rename the drone they are currently connected to.<br/>" + 
 		"- Added jammer radius marker on map for Radio Backpack Jamming.<br/>" + 
 		"- Added a drone radar to the Spectrum Device: While aming with the spectrum device, players can see all drones in a 1km radius.<br/>" + 		
+		"- Added: Spectrum Device Antennas can be changed by pressing 'R'.<br/>" + 
+		"- Added functionallity for the Experimental Antenna (Spectrum Device), using it increases Radar range by 1000m.<br/>" + 
 		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
 		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
 		"</font><font color='#FFD800'>" +	
@@ -980,12 +982,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		"<font size='20' color='#0094FF'>Feature Overview</font><br/><br/>" +			
 		"- Adds an anti-troll log so drone crashers are easily detectable.<br/>" +
-		"- Adds 'Repair Drone' option to all AR-2s and AL-6s, to 100% repair them.<br/>" +
+		
+		"- Adds 'Full Repair' option to small drones to 100% repair them.(Toolkit needed)<br/>" +
+		"- Adds 'Quick Repair' option to small drones to 40% repair them.(Noting needed)<br/>" +		
 		"- Adds 'Swap Drone Battery' option to all AR-2s and AL-6s, to refuel them.<br/>" +		
 		"- Reduces the battery lifetime of all AR-2 and AL-6 drones.<br/>" +
 		"- Destroyed drones auto despawn after 5 minutes.<br/>" +			
 		"- Adds 'Check Cargo' option to AL-6 to check their cargo mid flight.<br/>" +												
-		"- Adds jamming small drones with a radio backpack or a spectrum device.<br/>" +
+		"- Adds jamming non-static drones with a radio backpack and spectrum device.<br/>" +
 		"- Adds a drone radar when using the spectrum device.<br/>" +
 		"- Adds option to rename any drone.<br/>" +
 		"- Adds the ability for unarmed AL-6s to slingload ED-1s.<br/>" +
@@ -1019,8 +1023,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"<font size='17'>-> How to use jamming (Radio Backpack):</font><br/>" +
 		"1. Grab any Radio Backpack from an arsenal.<br/>" +
 		"2. Press 'J' to toggle jamming on and off.<br/>" +			
-		"The Backpack will jam small UAVs like AR-2 and AL-6 in a 200m radius.<br/>" +
-		"Small UGVs like the ED-1D and ED-1E will be jammed in a 100m radius.<br/><br/>" +
+		"AR-2s, AL-6s and ED-1s visible to the player will be jammed in a 100m radius.<br/><br/>" +
 						
 		"<font size='17'>-> How to use jamming (Spectrum Device):</font><br/>" +
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
@@ -1032,15 +1035,17 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"7. A progress bar will show up. Drone is jammed once that finishes.<br/>" + 
 		"The maximum range is 1000m<br/><br/>" +
 									
-		"<font color='#FF0000'>! Keep in mind that this can also jam friendly drones. Be especially careful with the backpack !</font><br/><br/><br/><br/>" +
+		"<font color='#FF0000'>! Keep in mind that this will also jam friendly drones. Be especially careful with the backpack !</font><br/><br/><br/><br/>" +
 		
 		"<font size='20' color='#0094FF'>Additional Features</font><br/><br/>" +
 		
 		"<font size='17'>-> Using Spectrum Device Radar</font><br/>" +
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
 		"2. Aim with the Spectrum Device (right click).<br/>" +
-		"3. If you look at a drone you'll notice that its name is visible next to it. This works for all drones visible to the player within a 1km radius.<br/>" +
-		"4. Addtional controls are shown at the bottom of the screen right after aiming.<br/><br/>" +
+		"3. All drones within a 1000m radius visible to the player will be shown on your screen.<br/>" +
+		"4. Additionaly: Switching to an Experimental Antenna increases the Radar range to 2000m.<br/>" +	
+		"(Tip: You can quick switch between 2 Antennas by pressing 'R' while not aiming.)<br/>" +
+		"5. All controls are shown at the bottom of the screen right after aiming.<br/><br/>" +
 				
 		"<font size='17'>-> Using Drone Renaming</font><br/>" +	
 		"1. Open your UAV Terminal.<br/>" +
@@ -1579,10 +1584,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 		if !(AdvancedUCAVs_wasHintShown) then {
 			AdvancedUCAVs_wasHintShown = true;
-			_txt = "<t size='1.4'>[CTRL + R] Toggle Spectrum Screen";
+			_txt = "<t size='1.4'>[CTRL + R] Toggle Spectrum Screen<br/>[R (While Not Aiming)] Switch Antennas";
 			
 			if (missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) then {
-				_txt = _txt + "<br/>[R] Toggle drone radar<br/>[Scroll] Change text size"
+				_txt = _txt + "<br/>[R (While Aiming)] Toggle drone radar<br/>[Scroll] Change text size"
 			};		
 			if (missionNamespace getVariable ["AUCAVs_SpectrumJammingON", true] && { "muzzle_antenna_03_f" in handgunItems player }) then {
 				_txt = _txt + "<br/>[Hold Left Click] Jamming<br/>[F] Toggle X on drones (Jamming)<br/>[CTRL + F] Toggle crosshair X (Jamming)";
@@ -1832,12 +1837,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			sleep 0.5;
 			
 			player removeHandgunItem _currentAntenna;
-			player addItem _currentAntenna;
+			player removeItem _antennaToUse;		
 			
 			sleep 1.1;
 						
 			player addHandgunItem _antennaToUse;
-			player removeItem _antennaToUse;		
+			player addItem _currentAntenna;		
 		};
 	};
 	
