@@ -149,11 +149,11 @@ _EnableScript = {
 	if (isNil "AUCAVs_SDJamTime_AR2") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AR2", 2, true] };	
 	if (isNil "AUCAVs_SDJamTime_AL6") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AL6", 3, true] };	
 	if (isNil "AUCAVs_SDJamTime_ED1") then { missionNamespace setVariable ["AUCAVs_SDJamTime_ED1", 4, true] };	
-	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 15, true] };
+	if (isNil "AUCAVs_SDJamTime_Stomper") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Stomper", 10, true] };
 	if (isNil "AUCAVs_SDJamTime_Falcon") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Falcon", 15, true] };	
-	if (isNil "AUCAVs_SDJamTime_Greyhawk") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Greyhawk", 20, true] };	
-	if (isNil "AUCAVs_SDJamTime_Fenghung") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Fenghung", 20, true] };	
-	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 30, true] };	
+	if (isNil "AUCAVs_SDJamTime_Greyhawk") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Greyhawk", 15, true] };	
+	if (isNil "AUCAVs_SDJamTime_Fenghung") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Fenghung", 15, true] };	
+	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 25, true] };	
 	
 	
 
@@ -1143,8 +1143,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	
 	
 	
-	AdvancedUCAVs_savedRole = "";
-	AdvancedUCAVs_savedUAV = objNull;
+	AUCAVs_savedRole = "NOT_CONNECTED";
+	AUCAVs_savedUAV = objNull;
 	AdvancedUCAVs_timePlusTime = time + 0.01;
 
 	if (!isNil "AdvancedUCAVs_EachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_EachFrameEH] };
@@ -1270,42 +1270,46 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		};
 		
 		["Detect Drone Connections"] call {
-			_uav = getConnectedUAV player;
+			_currentUAV = getConnectedUAV player;
 			
-			if (!isNull _uav) then {
-				if (AdvancedUCAVs_savedUAV != _uav) then { AdvancedUCAVs_savedUAV = _uav };
-				
-				_uavControl = UAVControl _uav;
-				_playerIndex = _uavControl find player;
-				_role = if (_playerIndex != -1) then { _uavControl select (_playerIndex + 1) } else { "" };
-				
-				if (_role == "DRIVER") then {
-					if (AdvancedUCAVs_savedRole == _role) exitWith {};
-					AdvancedUCAVs_savedRole = _role;
-					["Log_Connected", [name player, [_uav] call AdvancedUCAVs_getName_fnc, _role, _uav getVariable "DroneType"]] call AdvancedUCAVs_LogMsg;
-					_uav setVariable ["lastRegisteredDriver", name player, true];
-				};
-				if (_role == "GUNNER") then {
-					if (AdvancedUCAVs_savedRole == _role) exitWith {};
-					AdvancedUCAVs_savedRole = _role;
-					["Log_Connected", [name player, [_uav] call AdvancedUCAVs_getName_fnc, _role, _uav getVariable "DroneType"]] call AdvancedUCAVs_LogMsg;
-				};
-				if (_role == "") then {
-					if (AdvancedUCAVs_savedRole == "") exitWith {};
-					AdvancedUCAVs_savedRole = "";
-					if (!alive _uav) exitWith {};
-					["Log_Disconnected", [name player, [_uav] call AdvancedUCAVs_getName_fnc, _uav getVariable "DroneType"]] call AdvancedUCAVs_LogMsg;
-				};
+			if (isNull _currentUAV) exitWith {
+				if (isNull AUCAVs_savedUAV) exitWith {};										
+				["Log_Disconnected", [name player, [AUCAVs_savedUAV] call AdvancedUCAVs_getName_fnc, AUCAVs_savedUAV getVariable ["DroneType", ""]]] call AdvancedUCAVs_LogMsg;
+				AUCAVs_savedUAV = objNull;
+				AUCAVs_savedRole = "NOT_CONNECTED";		
+			};
 			
-			} else {
-				_savedUAV = AdvancedUCAVs_savedUAV;
-				if (!isNull AdvancedUCAVs_savedUAV) then { AdvancedUCAVs_savedUAV = objNull };
-				if (AdvancedUCAVs_savedRole == "") exitWith {};
-				AdvancedUCAVs_savedRole = "";
-				if (isNull _savedUAV) exitWith {};
-				if (!alive _savedUAV) exitWith {};
-				["Log_Disconnected", [name player, [_savedUAV] call AdvancedUCAVs_getName_fnc, _savedUAV getVariable "DroneType"]] call AdvancedUCAVs_LogMsg;
-			};		
+			
+			AUCAVs_savedUAV = _currentUAV;
+			
+			_uavControl = UAVControl _currentUAV;
+			_playerIndex = _uavControl find player;
+			_role = _uavControl select (_playerIndex + 1);
+			_currentRole = if (_role == "") then { "CONNECTED_NOT_CONTROL" } else { _role };
+			_droneName = [_currentUAV] call AdvancedUCAVs_getName_fnc;
+			_droneType = _currentUAV getVariable ["DroneType", ""];
+			
+			
+			if (_currentRole == "CONNECTED_NOT_CONTROL") exitWith {
+				"Only connected, but not controlling";
+				if (AUCAVs_savedRole == "NOT_CONNECTED") then {					
+					["Log_Connected", [name player, _droneName, _droneType]] call AdvancedUCAVs_LogMsg;	
+					AUCAVs_savedRole = "CONNECTED_NOT_CONTROL";
+				} else {
+					if (AUCAVs_savedRole == "CONNECTED_NOT_CONTROL") exitWith {};
+					if (!alive _currentUAV) exitWith { AUCAVs_savedRole = "CONNECTED_NOT_CONTROL" };
+					["Log_Disconnected", [name player, _droneName, _droneType, AUCAVs_savedRole]] call AdvancedUCAVs_LogMsg;				
+					AUCAVs_savedRole = "CONNECTED_NOT_CONTROL";
+				};	
+			};
+			
+			"role = DRIVER/GUNNER";
+			
+			if (AUCAVs_savedRole == _currentRole) exitWith {};
+			AUCAVs_savedRole = _currentRole;
+			["Log_Connected", [name player, _droneName, _droneType, _currentRole]] call AdvancedUCAVs_LogMsg;
+			_currentUAV setVariable ["lastRegisteredDriver", name player, true];			
+						
 		};
 	
 		["ReAdd Diary"] call {
@@ -1408,12 +1412,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				format ["Player <%1> made an <%2>", _playerName, _droneType]				
 			};		
 			case "Log_Connected": {
-				_secondParams params ["_controlerName", "_droneName", "_controlerRole", "_droneType"];
-				format ["Player < %1 > connected to an < %2 %4> as < %3 >", _controlerName, _droneName, _controlerRole, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+				_secondParams params ["_controlerName", "_droneName", "_droneType", ["_controlerRole", ""]];
+				format ["Player < %1 > connected to an < %2 %3>%4", _controlerName, _droneName, if (_droneType != "") then {"("+_droneType+") "} else {""}, if (_controlerRole != "") then {" as < "+_controlerRole+" >"} else {""}];
 			};	
 			case "Log_Disconnected": {
-				_secondParams params ["_controlerName", "_droneName", "_droneType"];
-				format ["Player < %1 > disconnected from an < %2 %3>", _controlerName, _droneName, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+				_secondParams params ["_controlerName", "_droneName", "_droneType", ["_oldRole", ""]];
+				format ["Player < %1 > disconnected from an < %2 %3>%4", _controlerName, _droneName, if (_droneType != "") then {"("+_droneType+") "} else {""}, if (_oldRole != "") then {" as < "+_oldRole+" >"} else {""}]
 			};			
 			case "Log_Assembled": {
 				_secondParams params ["_playerName", "_droneName"];
@@ -1611,7 +1615,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				drawIcon3D [
 					(getText (configfile >> "CfgVehicles" >> typeOf _x >> "icon")), 		
 					_color, 
-					getPosASL _x, 
+					(_x modelToWorld [0,0,0]), 
 					0.8, 
 					0.8, 
 					0, 
@@ -2115,7 +2119,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_index = _distanceArray find (selectMin _distanceArray);
 				AUCAVs_SDJam_targetDrone = _droneArray select _index;
 				
-				_dronePosScreen = worldToScreen (getPosASL AUCAVs_SDJam_targetDrone);				
+				_dronePosScreen = worldToScreen (AUCAVs_SDJam_targetDrone modelToWorld [0,0,0]);				
 				if (str _dronePosScreen == "[]") exitWith {};
 				if ((_center distance2D _dronePosScreen) > 0.05) then { AUCAVs_SDJam_targetDrone = objNull };
 				if ((_center distance2D _dronePosScreen) > 0.2) exitWith { _droneBox ctrlShow false };
