@@ -119,6 +119,7 @@ _EnableScript = {
 		_msg = "		
 		<t size='1.5'>Advanced UCAVs v4.0.0</t><br/>
 		<t size='1.3' color='#00C80C'>Script has been enabled</t>
+		<br/><br/><t color='#FF0000'>This version is currently still being worked on. Bugs may occur!</t>
 		<br/><br/>For more info, open your map and click on <t color='#0094FF'>Advanced UCAVs</t> in the menu on the left side.	
 		"; 
 		
@@ -796,8 +797,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_openGithub = {
 		_IDD = if (visibleMap) then {12} else { if (!isNull findDisplay -1) then {-1} else { if (!isNull findDisplay 312) then {312} else {46}} };
 		_display = (findDisplay _IDD) createDisplay "RscDisplayEmpty";
-		_linkToCopy = _display ctrlCreate ["RscEdit", -1];
-		_linkToCopy ctrlSetPosition [0.11, 0.87, 0.76, 0.06];
+		_linkToCopy = _display ctrlCreate ["RscEditMulti", -1];
+		_linkToCopy ctrlSetPosition [0, 0.87, 1, 0.10];
 		_linkToCopy ctrlSetBackgroundColor [0.2, 0.2, 0.2, 1];
 		_linkToCopy ctrlSetFontHeight 0.048;
 		_linkToCopy ctrlSetText "https://github.com/julius-idk/Arma-3-Scripts/blob/main/Advanced%20UCAVs/%5BWIP%5D%20Advanced%20UCAVs%204.0.0%20Overhaul.sqf";
@@ -810,7 +811,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"Script Info",
 		"<br/>" +
 		"<font size='20'>Script Info</font><br/><br/>" +
-		"<font size='17'>On Workshop: [Still WIP, Update Soon]</font><br/><br/>" +
+		"<font size='17'>On Workshop: n/a</font><br/>" +
+		"v4.0.0 is currently still being worked on, thus only available on github.<br/><br/>" +
+		"If you want to use this script, either copy paste the github code into a console and LOCAL EXEC it, or get an older, less optimized version with less features on the workshop: 'Advanced UCAVs 3.0.8'<br/><br/><br/>" +
+		
 		"[<execute expression='[] call AdvancedUCAVs_openGithub'>Click here to open Advanced UCAVs 4.0.0 Github</execute>]<br/><br/><br/><br/>" +
 		"- script by julius"	
 	]];	
