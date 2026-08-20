@@ -260,7 +260,9 @@ _DisableScript = {
 	
 		if (!isNil "AdvancedUCAVs_SpectrumRadar_Draw3DEH") then {
 			removeMissionEventHandler ["Draw3D", AdvancedUCAVs_SpectrumRadar_Draw3DEH];
-		};		
+		};	
+
+		ACUAVs_SDJam_LMBHeld = false; 
 
 		player removeDiaryRecord ["Advanced UCAVs", AdvancedUCAVs_Diary_Features];
 		player removeDiaryRecord ["Advanced UCAVs", AdvancedUCAVs_Diary_Changelog];	
@@ -2034,108 +2036,108 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AUCAVs_SDJam_targetDrone = objNull;
 
 	AdvancedUCAVs_SpectrumJamming_fnc = {
-		if (!isNil "UCAV_SDJam_InitJamming") then { terminate UCAV_SDJam_InitJamming };
-		UCAV_SDJam_InitJamming = [] spawn {
 
-			_display = findDisplay 46;
+		_display = findDisplay 46;
 
-			_centerX = safeZoneX + (safeZoneW / 2);
-			_centerY = safeZoneY + (safeZoneH / 2);	
-			_center = [_centerX, _centerY];
+		_centerX = safeZoneX + (safeZoneW / 2);
+		_centerY = safeZoneY + (safeZoneH / 2);	
+		_center = [_centerX, _centerY];
 
-			_droneBox = _display ctrlCreate ["RscButton", 169069];
-			_droneBox ctrlSetPosition [0, 0, 0.03, 0.03];
-			_droneBox ctrlSetBackgroundColor [1, 1, 1, 1];
-			_droneBox ctrlSetText "X";
-			_droneBox ctrlSetTextColor [1,1,1,1];
-			_droneBox ctrlSetFontHeight 0.05;
-			_droneBox ctrlCommit 0;
-			_droneBox ctrlShow false;
+		_droneBox = _display ctrlCreate ["RscButton", 169069];
+		_droneBox ctrlSetPosition [0, 0, 0.03, 0.03];
+		_droneBox ctrlSetBackgroundColor [1, 1, 1, 1];
+		_droneBox ctrlSetText "X";
+		_droneBox ctrlSetTextColor [1,1,1,1];
+		_droneBox ctrlSetFontHeight 0.05;
+		_droneBox ctrlCommit 0;
+		_droneBox ctrlShow false;
 
-			_crosshair = _display ctrlCreate ["RscButton", 169070];
-			_crosshair ctrlSetPosition [_centerX - 0.015, _centerY - 0.015, 0.03, 0.03];		
-			_crosshair ctrlSetBackgroundColor [0, 0, 0, 0];
-			_crosshair ctrlSetText "X";
-			_crosshair ctrlSetTextColor [1,0,0,1];
-			_crosshair ctrlSetFontHeight 0.05;
-			_crosshair ctrlCommit 0;
+		_crosshair = _display ctrlCreate ["RscButton", 169070];
+		_crosshair ctrlSetPosition [_centerX - 0.015, _centerY - 0.015, 0.03, 0.03];		
+		_crosshair ctrlSetBackgroundColor [0, 0, 0, 0];
+		_crosshair ctrlSetText "X";
+		_crosshair ctrlSetTextColor [1,0,0,1];
+		_crosshair ctrlSetFontHeight 0.05;
+		_crosshair ctrlCommit 0;
+
+		
+		if (!isNil "AdvancedUCAVs_JammerBoxEachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_JammerBoxEachFrameEH] };
+		AdvancedUCAVs_JammerBoxEachFrameEH = addMissionEventHandler ["EachFrame", {
+			_thisArgs params ["_display", "_center", "_droneBox", "_crosshair"];
 			
-			_frame = diag_frameno;
-			while { ACUAVs_SDJam_LMBHeld } do {
-				if (
-					!(missionNamespace getVariable ["AUCAVs_SpectrumJammingON", true])
-					|| visibleMap
-					|| currentMuzzle player != "hgun_esd_01_F"
-					|| !("muzzle_antenna_03_f" in handgunItems player)
-					|| (!alive player || lifeState player == "INCAPACITATED")
-					|| weaponLowered player	
-					|| !isNull (findDisplay 49)
-					|| !isGameFocused
-					|| !isNull (findDisplay 602)
-				) exitWith {};						
-								
-				_crosshair ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
-				
-				"find suitable drone and draw icon" call {
-					_suitableDrones = (allUnitsUAV select { 
-						(_x distance player) <= 1000 
-						&& { (count crew _x) > 0
-						&& { str (worldToScreen (_x modelToWorldVisual [0, 0, 0.1])) != "[]" 		
-						&& { (count (lineIntersectsSurfaces [eyePos player, (_x modelToWorldWorld [0,0,0.1]), _x, player])) <= 0		
-						&& { !(_x isKindOf "StaticWeapon") }
-					}}}});
-					
-					if (str _suitableDrones == "[]") exitWith { AUCAVs_SDJam_targetDrone = objNull };
-					
-					_distanceArray = [];
-					_droneArray = [];				
-					
-					{
-						_worldToScreen = worldToScreen (_x modelToWorldVisual [0, 0, 0.1]);
-						if (str _worldToScreen != "[]") then {
-							_droneArray pushBack _x;
-							_distanceArray pushBack ([_centerX, _centerY] distance2D _worldToScreen);
-						};
-					} forEach _suitableDrones;
-
-					if (str _distanceArray == "[]") exitWith { AUCAVs_SDJam_targetDrone = objNull};
-
-					_index = _distanceArray find (selectMin _distanceArray);
-					AUCAVs_SDJam_targetDrone = _droneArray select _index;
-					
-					_dronePosScreen = worldToScreen (getPosASL AUCAVs_SDJam_targetDrone);				
-					if (str _dronePosScreen == "[]") exitWith {};
-					if ((_center distance2D _dronePosScreen) > 0.05) then { AUCAVs_SDJam_targetDrone = objNull };
-					if ((_center distance2D _dronePosScreen) > 0.2) exitWith { _droneBox ctrlShow false };
-					
-					_droneBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]);
-					_droneBox ctrlSetPosition [(_dronePosScreen select 0) - 0.015, (_dronePosScreen select 1) - 0.015, 0.03, 0.03];
-					_droneBox ctrlSetBackgroundColor ([side AUCAVs_SDJam_targetDrone] call BIS_fnc_sideColor);
-					_droneBox ctrlCommit 0;	
-				};
-				
-				if !(AUCAVs_SDJam_barCalled) then {		
-					AUCAVs_SDJam_startTime = uiTime;
-					
-					if (!isNull AUCAVs_SDJam_targetDrone && { !freelook }) then {						
-						[] call AdvancedUCAVs_SDJam_startUIBar_fnc;
-					};
-				};
-				AUCAVs_SDJam_timeHeld = uiTime - AUCAVs_SDJam_startTime;	
-				
-				if (freeLook) then { { _x ctrlShow false } forEach [_droneBox, _crosshair] };
-				
-				waitUntil { diag_frameno > _frame };
-				_frame = diag_frameno;
+			if (
+				!ACUAVs_SDJam_LMBHeld
+				|| !(missionNamespace getVariable ["AUCAVs_SpectrumJammingON", true])
+				|| visibleMap
+				|| currentMuzzle player != "hgun_esd_01_F"
+				|| !("muzzle_antenna_03_f" in handgunItems player)
+				|| (!alive player || lifeState player == "INCAPACITATED")
+				|| weaponLowered player	
+				|| !isNull (findDisplay 49)
+				|| !isGameFocused
+				|| !isNull (findDisplay 602)
+			) exitWith {
+				if (!isNil "AdvancedUCAVs_JammerBoxEachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_JammerBoxEachFrameEH] };
+				ACUAVs_SDJam_LMBHeld = false;
+				AUCAVs_SDJam_timeHeld = 0;
+				if (AUCAVs_SDJam_barCalled) then { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };
+				ctrlDelete (_display displayCtrl 169069);
+				ctrlDelete (_display displayCtrl 169070);							
 			};	
+
+	
+			_crosshair ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
 			
-			ACUAVs_SDJam_LMBHeld = false;
-			AUCAVs_SDJam_timeHeld = 0;
-			if (AUCAVs_SDJam_barCalled) then { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };
-			ctrlDelete (_display displayCtrl 169069);
-			ctrlDelete (_display displayCtrl 169070);
+			"find suitable drone and draw icon" call {
+				_suitableDrones = (allUnitsUAV select { 
+					(_x distance player) <= 1000 
+					&& { (count crew _x) > 0
+					&& { str (worldToScreen (_x modelToWorldVisual [0, 0, 0.1])) != "[]" 		
+					&& { (count (lineIntersectsSurfaces [eyePos player, (_x modelToWorldWorld [0,0,0.1]), _x, player])) <= 0		
+					&& { !(_x isKindOf "StaticWeapon") }
+				}}}});
+				
+				if (str _suitableDrones == "[]") exitWith { AUCAVs_SDJam_targetDrone = objNull };
+				
+				_distanceArray = [];
+				_droneArray = [];				
+				
+				{
+					_worldToScreen = worldToScreen (_x modelToWorldVisual [0, 0, 0.1]);
+					if (str _worldToScreen != "[]") then {
+						_droneArray pushBack _x;
+						_distanceArray pushBack (_center distance2D _worldToScreen);
+					};
+				} forEach _suitableDrones;
+
+				if (str _distanceArray == "[]") exitWith { AUCAVs_SDJam_targetDrone = objNull};
+
+				_index = _distanceArray find (selectMin _distanceArray);
+				AUCAVs_SDJam_targetDrone = _droneArray select _index;
+				
+				_dronePosScreen = worldToScreen (getPosASL AUCAVs_SDJam_targetDrone);				
+				if (str _dronePosScreen == "[]") exitWith {};
+				if ((_center distance2D _dronePosScreen) > 0.05) then { AUCAVs_SDJam_targetDrone = objNull };
+				if ((_center distance2D _dronePosScreen) > 0.2) exitWith { _droneBox ctrlShow false };
+				
+				_droneBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]);
+				_droneBox ctrlSetPosition [(_dronePosScreen select 0) - 0.015, (_dronePosScreen select 1) - 0.015, 0.03, 0.03];
+				_droneBox ctrlSetBackgroundColor ([side AUCAVs_SDJam_targetDrone] call BIS_fnc_sideColor);
+				_droneBox ctrlCommit 0;	
+			};
 			
-		};
+			if !(AUCAVs_SDJam_barCalled) then {		
+				AUCAVs_SDJam_startTime = uiTime;
+				
+				if (!isNull AUCAVs_SDJam_targetDrone && { !freelook }) then {						
+					[] call AdvancedUCAVs_SDJam_startUIBar_fnc;
+				};
+			};
+			AUCAVs_SDJam_timeHeld = uiTime - AUCAVs_SDJam_startTime;	
+			
+			if (freeLook) then { { _x ctrlShow false } forEach [_droneBox, _crosshair] };			
+		
+		}, [_display, _center, _droneBox, _crosshair]];		
 	};
 
 
