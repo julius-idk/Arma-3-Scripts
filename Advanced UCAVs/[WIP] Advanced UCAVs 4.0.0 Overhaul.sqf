@@ -145,7 +145,9 @@ _EnableScript = {
 	};
 
 	if (isNil "AUCAVs_camouflageCoef") then { missionNamespace setVariable ["AUCAVs_camouflageCoef", 0.7, true] };
-	if (isNil "AUCAVs_audibleCoef") then { missionNamespace setVariable ["AUCAVs_audibleCoef", 0.7, true] };	
+	if (isNil "AUCAVs_audibleCoef") then { missionNamespace setVariable ["AUCAVs_audibleCoef", 0.7, true] };
+	if (isNil "AUCAVs_aimingAccuracy") then { missionNamespace setVariable ["AUCAVs_aimingAccuracy", 0.3, true] };
+	
 
 	if (isNil "AUCAVs_SDJamTime_AR2") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AR2", 2, true] };	
 	if (isNil "AUCAVs_SDJamTime_AL6") then { missionNamespace setVariable ["AUCAVs_SDJamTime_AL6", 3, true] };	
@@ -157,8 +159,9 @@ _EnableScript = {
 	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 25, true] };	
 	
 	
-
-	missionNamespace setVariable ["AdvancedUCAVs_InitOnPlayer_fnc", ["", AdvancedUCAVs_InitOnPlayer_fnc], true];
+	if (typeName AdvancedUCAVs_InitOnPlayer_fnc != "ARRAY") then {
+		missionNamespace setVariable ["AdvancedUCAVs_InitOnPlayer_fnc", ["", AdvancedUCAVs_InitOnPlayer_fnc], true];
+	};
 
 	[[],{
 		if (!hasInterface) exitWith {};
@@ -216,6 +219,28 @@ _EnableScript = {
 			if (_serverVarCount > 500) then { AdvancedUCAVs_TrollLogVarServer deleteRange [500, (_serverVarCount - 1)] };		
 		};
 
+
+		if (!isNil "AUCAVs_reduceSkillLoop" && { !scriptDone AUCAVs_reduceSkillLoop}) then { terminate AUCAVs_reduceSkillLoop };
+		AUCAVs_reduceSkillLoop = [] spawn {
+			while { true } do {
+				{
+					_unit = _x;
+					_previousSkill = _unit getVariable "AUCAVs_previousSkill";
+					
+					if ((getAttackTarget _unit) isKindOf "UAV_01_base_F") then {
+						if (!isNil "_previousSkill") exitWith {}; 
+						_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
+						_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];
+					} else {				
+						if (isNil "_previousSkill") exitWith {};					
+						_unit setVariable ["AUCAVs_previousSkill", nil];
+						_unit setSkill ["aimingAccuracy", _previousSkill];			
+					};
+				} forEach (allUnits select { local _x && { !isPlayer _x && { alive _x }}});
+					
+				sleep 1;
+			};
+		};
 
 	} remoteExec ["call", 2];			
 }; 
@@ -571,7 +596,7 @@ _ConfigureScript = {
 					if ("SDJamTime" in _var) then { _value = parseNumber ((sliderPosition _slider) toFixed 0) };		
 					
 					missionNamespace setVariable [_var, _value, true];
-					if !("SDJamTime" in _var) then { ["VISIBLITY"] call AdvancedUCAVs_ToggleConfigValues_fnc };
+					if (!("SDJamTime" in _var) && !("Accuracy" in _var)) then { ["VISIBLITY"] call AdvancedUCAVs_ToggleConfigValues_fnc };
 					playSoundUI ["addItemOK"];
 				}];							
 			};
@@ -618,9 +643,10 @@ _ConfigureScript = {
 ["INPUT_FUEL", ["AL-6 Bomb Carrier", ["BombCarrier"], "!Fuel Consumption Changes with Thrust!\n\nArma Default: x1 (2h 46m 40s)\nScript Default: x8.33 (0h 20m 00s)"]],
 ["INPUT_FUEL", ["AL-6 RPG-7", ["RPG7LaunchAL6"], "!Fuel Consumption Changes with Thrust!\n\nArma Default: x1 (2h 46m 40s)\nScript Default: x5.5666 (0h 30m 00s)"]],
 ["INPUT_FUEL", ["AL-6 RPG-42", ["RPG42Launch"], "!Fuel Consumption Changes with Thrust!\n\nArma Default: x1 (2h 46m 40s)\nScript Default: x16.67 (0h 10m 00s)"]],
-["TITLE", ["AI Drone Spot Options"]],
+["TITLE", ["AI Drone Spot and Target Options"]],
 ["SLIDER", ["CamouflageCoef (visual)", "AUCAVs_camouflageCoef", "Reduces the ability for only AI to spot AR-2s, AL-6s and ED-1s. Lower value means harder to spot.\nDoes only affect spotting, not accuracy\n\nArma Default: 1\nScript Default: 0.7"]],
 ["SLIDER", ["AudibleCoef (sound)", "AUCAVs_audibleCoef", "Reduces the ability for only AI to hear AR-2s, AL-6s and ED-1s. Lower value means harder to hear.\nDoes only affect hearing, not accuracy\n\nArma Default: 1\nScript Default: 0.7"]],	
+["SLIDER", ["AimingAccuracy (aim)", "AUCAVs_aimingAccuracy", "Reduces the accuracy for only AI to hit AR-2s and AL-6s. Lower value means lower accuracy.\n\nArma Default: 0.5 (Depends on difficulty)\nScript Default: 0.3"]],	
 ["TITLE", ["Spectrum Device Jamming Options"]],
 ["SLIDER", ["AR-2s", "AUCAVs_SDJamTime_AR2", "Set how long players have to aim a Spectrum Device at an AR-2 to jam it (seconds).\n Default: 2s", [1,30]]],	
 ["SLIDER", ["AL-6s", "AUCAVs_SDJamTime_AL6", "Set how long players have to aim a Spectrum Device at an AL-6 to jam it (seconds).\n Default: 3s", [1,30]]],	
@@ -861,6 +887,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
 		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
 		"- Added: the UCAV log now also shows when a player just connects to a drone, not only when he connects to driver/gunner.<br/>" +
+		"- Added: The visibility, aswell as its accuracy to see and hit drones gets reduced for AI.<br/>" +
 		"</font><font color='#FFD800'>" +	
 		"- Change: Also fully overworked the drone making. The option no longer has to be held manually, and a custom progress bar will pop up.<br/>" +
 		"- Change: Also (again) full overworked Spectrum Device Jamming. Instead of a point and click adventure, players now have to hold leftclick.<br/>" +
@@ -1000,7 +1027,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Adds a drone radar when using the spectrum device.<br/>" +
 		"- Adds option to rename any drone.<br/>" +
 		"- Adds the ability for unarmed AL-6s to slingload ED-1s.<br/>" +
-		"- Makes AR-2s, AL-6s and ED-1s harder to spot for AI.<br/>" +
+		"- Makes AR-2s, AL-6s and ED-1s harder to spot and hit for AI.<br/>" +
 		"- Adds chat commands: '!ucav_config' and '!ucav_log'.<br/>" +		
 		"- Gives all AR-2 and AL-6 drones (exept medic and civ) the options to arm them, making them usable in combat.<br/><br/><br/><br/>" +
 				
@@ -2316,6 +2343,35 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 		};				
 	};
+
+
+
+
+	if (!isNil "AUCAVs_reduceSkillLoop" && { !scriptDone AUCAVs_reduceSkillLoop}) then { terminate AUCAVs_reduceSkillLoop };
+	AUCAVs_reduceSkillLoop = [] spawn {
+		while { true } do {
+			{
+				_unit = _x;
+				_target = getAttackTarget _unit;
+				_previousSkill = _unit getVariable "AUCAVs_previousSkill";
+				
+				if (_target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F") then {
+					if (!isNil "_previousSkill") exitWith {}; 
+					diag_log format ["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy];
+					_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
+					_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];			
+				} else {				
+					if (isNil "_previousSkill") exitWith {};					
+					[format ["[UCAV_LOG {DEBUG}] Reset Skill and Variable of %1 to saved value: %2", _unit, _previousSkill]] remoteExec ["diag_log", allPlayers];
+					_unit setVariable ["AUCAVs_previousSkill", nil];
+					_unit setSkill ["aimingAccuracy", _previousSkill];					
+				};
+			} forEach (allUnits select { local _x && { !isPlayer _x && { alive _x }}});
+				
+			sleep 1;
+		};
+	};
+
 
 
 
