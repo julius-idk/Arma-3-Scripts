@@ -1730,6 +1730,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+	UCAV_BPJam_Radius = 100;
+	ACUAVs_BPJam_Battery = 100;
+	ACUAVs_BPJam_TimeLeft = 600;
+
 	AdvancedUCAVs_BackpackJamming_fnc = {
 	
 		_isJamming = player getVariable ["UCAV_JammingOn", false];
@@ -1743,56 +1747,63 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			player setVariable ["UCAV_JammingOn", true, true];
 			
 			while { player getVariable ["UCAV_JammingOn", false] } do {
-			
-			
-				if (alive player) then {
-				
-					if !("radiobag" in (toLower (backpack player))) exitWith {
-						titleText ["<t color='#FF0000' size='1.5'>Backpack dropped. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
-						player setVariable ["UCAV_JammingOn", false, true];
-					};
-				
 						
-					titleText ["<t color='#00FF0C' size='1.0'>Jamming: On", "PLAIN DOWN", 0.01, true, true];
-
-					_radius = player getVariable ["UCAV_JammingRadius", 100];
-					_nearDrones = (getPos player) nearEntities [["UAV_01_base_F", "UAV_06_base_F", "UGV_02_Base_F"], _radius];
-			
-
-					{
-						_drone = _x;
-						if ((count crew _drone) > 0) then {
-							if (_drone getVariable ["UCAV_Jammed", false]) exitWith {};
-							if ((count (lineIntersectsSurfaces [eyePos player, (_drone modelToWorldWorld [0,0,0.1]), _drone, player])) > 0) exitWith {};
-							_drone setVariable ["UCAV_Jammed", true];						 
-							
-							[_drone] remoteExec ["deleteVehicleCrew", _drone];
-							
-							_displayName = [_drone] call AdvancedUCAVs_getName_fnc;		
-							_side = [_drone] call AdvancedUCAVs_getDroneSide_fnc;			
-							_distance = round (player distance _drone);
-							
-							systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
-													
-							["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;						
 						
-							waitUntil [{ (count crew _drone) <= 0 }, 30, 0.001];
-							_drone setVariable ["UCAV_Jammed", false];
-						};
-					} forEach _nearDrones;
-								
-								
-				} else {
+				if (!alive player) exitWith {
 					titleText ["<t color='#FF0000' size='1.5'>You died. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
-					player setVariable ["UCAV_JammingOn", false, true];						
+					player setVariable ["UCAV_JammingOn", false, true];					
+				};
+				
+				
+				if !("radiobag" in (toLower (backpack player))) exitWith {
+					titleText ["<t color='#FF0000' size='1.5'>Backpack dropped. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
+					player setVariable ["UCAV_JammingOn", false, true];
 				};
 			
+			
+				if (ACUAVs_BPJam_Battery <= 0) exitWith {
+					titleText ["<t color='#FF0000' size='1.5'>Battery empty. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
+					player setVariable ["UCAV_JammingOn", false, true];
+				};				
+					
+					
+				titleText ["<t color='#00FF0C' size='1.0'>Jamming: On", "PLAIN DOWN", 0.01, true, true];
+
+				_nearDrones = (getPos player) nearEntities [["UAV_01_base_F", "UAV_06_base_F", "UGV_02_Base_F"], UCAV_BPJam_Radius];
+		
+
+				{
+					_drone = _x;
+					if ((count crew _drone) > 0) then {
+						if (_drone getVariable ["UCAV_Jammed", false]) exitWith {};
+						if ((count (lineIntersectsSurfaces [eyePos player, (_drone modelToWorldWorld [0,0,0.1]), _drone, player])) > 0) exitWith {};
+						_drone setVariable ["UCAV_Jammed", true];						 
+						
+						[_drone] remoteExec ["deleteVehicleCrew", _drone];
+						
+						_displayName = [_drone] call AdvancedUCAVs_getName_fnc;		
+						_side = [_drone] call AdvancedUCAVs_getDroneSide_fnc;			
+						_distance = round (player distance _drone);
+						
+						systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
+												
+						["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;						
+					
+						waitUntil [{ (count crew _drone) <= 0 }, 30, 0.001];
+						_drone setVariable ["UCAV_Jammed", false];
+					};
+				} forEach _nearDrones;
+
+
+				ACUAVs_BPJam_TimeLeft = ACUAVs_BPJam_Battery / ((UCAV_BPJam_Radius * 0.00016665) / 0.1);       
+				ACUAVs_BPJam_Battery = parseNumber ((ACUAVs_BPJam_Battery - (UCAV_BPJam_Radius * 0.00016665)) toFixed 2);						
+				diag_log [str ACUAVs_BPJam_Battery + "%", format ["%1m %2s", floor (ACUAVs_BPJam_TimeLeft / 60), floor (ACUAVs_BPJam_TimeLeft mod 60)]];
+		
 				sleep 0.1;
-			};
-			
-			
+			};	
 		};				
 	};
+	{ _backpackSlot = (findDisplay 602) displayCtrl 6306 };
 
 
 
@@ -2001,7 +2012,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			ctrlCommitted _progressBar || _failed || _unloaded	
 		};
 		
-		diag_log (diag_frameno-_frameStart)	;
 		{ inGameUISetEventHandler [_x, ""] } forEach ["PrevAction", "Action", "NextAction"];
 		
 		if (_failed || _unloaded) exitWith {	
@@ -3327,7 +3337,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-
 	
 	AdvancedUCAVs_wasHintShown = false;
 	AdvancedUCAVs_SpectrumRadar_TextSize = 0.035;
@@ -3400,18 +3409,26 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_BackpackJamming_DrawRadiusEH = _map ctrlAddEventHandler ["Draw", {
 		params ["_map"];
 		{
-			_radius = _x getVariable ["UCAV_JammingRadius", 100];
+			_radius = UCAV_BPJam_Radius;
 			_c = [side _x] call BIS_fnc_sideColor;
 			_map drawEllipse [_x, _radius, _radius, 0, _c, format ["#(rgb,8,8,3)color(%1,%2,%3,0.2)", _c # 0, _c # 1, _c # 2], false];
 			
 			_txt = if (ctrlMapScale _map <= 0.02) then { format ["  Backpack Jammer (%1)", name _x] } else {""};
-			_map drawIcon ["#(rgb,1,1,1)color(1,1,1,1)", _c, _x, 0, 0, 0, _txt, 2, 0.05, "TahomaB"];
+			_map drawIcon ["a3\ui_f\data\igui\cfg\holdactions\holdaction_connect_ca.paa", _c, _x, 30, 30, 0, _txt, 1, 0.05, "TahomaB", "right"];	
+
 		} forEach (allPlayers select { 
 			(_x getVariable ["UCAV_JammingOn", false]) 
 			&& { str (side _x) == str (side player) 
 		}});
 	}];
-
+	{
+		"extra signals, could use for interference";
+		"a3\ui_f\data\igui\rsctitles\rschvtphase\jac_a3_signal_0_ca.paa";
+		"a3\ui_f\data\igui\rsctitles\rschvtphase\jac_a3_signal_1_ca.paa";
+		"a3\ui_f\data\igui\rsctitles\rschvtphase\jac_a3_signal_2_ca.paa";
+		"a3\ui_f\data\igui\rsctitles\rschvtphase\jac_a3_signal_3_ca.paa";
+		"a3\ui_f\data\igui\rsctitles\rschvtphase\jac_a3_signal_4_ca.paa";		
+	};
 	
 
 
