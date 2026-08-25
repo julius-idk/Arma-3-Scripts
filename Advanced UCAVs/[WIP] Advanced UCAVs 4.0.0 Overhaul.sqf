@@ -1809,6 +1809,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	ACUAVs_SDJam_LMBHeld = false;
+	ACUAVs_BPJam_JHeld = false;
 
 	AdvancedUCAVs_AddKeybinds_fnc = {
 		_display = findDisplay 46;
@@ -1822,15 +1823,28 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		AdvancedUCAVs_BackpackJamming_KeyDownEH = _display displayAddEventHandler ["KeyDown", {
 			params ["_display","_key","_shift","_ctrl","_alt"];
 			
-			if (_key != 36) exitWith {}; "J";
+			if (_key != 36) exitWith {}; "J";			
 			if !(missionNamespace getVariable ["AUCAVs_BackpackJammingON", true]) exitWith {};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};			
 			if !("radiobag" in (toLower (backpack player))) exitWith {};
-
+			if (ACUAVs_BPJam_JHeld) exitWith {};
+			ACUAVs_BPJam_JHeld = true;
+			
 			[] spawn AdvancedUCAVs_BackpackJamming_fnc;
 		}];			
 			
-					
+			
+		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyUpEH") then {
+			_display displayRemoveEventHandler ["KeyUp", AdvancedUCAVs_BackpackJamming_KeyUpEH];
+		};			
+		AdvancedUCAVs_BackpackJamming_KeyUpEH = _display displayAddEventHandler ["KeyUp", {
+			params ["_display","_key","_shift","_ctrl","_alt"];
+			
+			if (_key != 36) exitWith {}; "J";
+			ACUAVs_BPJam_JHeld = false;
+		}];	
+
+			
 		if(!isNil "AdvancedUCAVs_SpectrumJamming_MouseDownEH") then {
 			_display displayRemoveEventHandler ["MouseButtonDown", AdvancedUCAVs_SpectrumJamming_MouseDownEH];
 		};		
@@ -1944,6 +1958,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyDownEH") then {
 			_display displayRemoveEventHandler ["KeyDown", AdvancedUCAVs_BackpackJamming_KeyDownEH];
 		};	
+		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyUpEH") then {
+			_display displayRemoveEventHandler ["KeyUp", AdvancedUCAVs_BackpackJamming_KeyUpEH];
+		};			
 		if(!isNil "AdvancedUCAVs_SpectrumJamming_MouseDownEH") then {
 			_display displayRemoveEventHandler ["MouseButtonDown", AdvancedUCAVs_SpectrumJamming_MouseDownEH];
 		};	
