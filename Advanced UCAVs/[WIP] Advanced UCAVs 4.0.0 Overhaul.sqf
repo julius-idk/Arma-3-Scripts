@@ -1760,11 +1760,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					player setVariable ["UCAV_JammingOn", false, true];
 				};
 			
-			
-				if (ACUAVs_BPJam_Battery <= 0) exitWith {
-					titleText ["<t color='#FF0000' size='1.5'>Battery empty. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
-					player setVariable ["UCAV_JammingOn", false, true];
-				};				
+				{
+					if (ACUAVs_BPJam_Battery <= 0) exitWith {
+						titleText ["<t color='#FF0000' size='1.5'>Battery empty. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
+						player setVariable ["UCAV_JammingOn", false, true];
+					};
+				};
 					
 					
 				titleText ["<t color='#00FF0C' size='1.0'>Jamming: On", "PLAIN DOWN", 0.01, true, true];
@@ -3685,7 +3686,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				if (_target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F") then {
 					if (!isNil "_previousSkill") exitWith {}; 
-					diag_log format ["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy];
+					[["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy]] remoteExec ["diag_log", allPlayers];
 					_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
 					_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];			
 				} else {				
