@@ -2,6 +2,8 @@
 
 if (!isNil "this") then { deleteVehicle this };
 
+if (!isStreamFriendlyUIEnabled) then { showChat true };
+
 _MainToggleScreen = {
 	_display = findDisplay 46;
 	if (!isNull findDisplay 312) then { _display = findDisplay 312 };
@@ -87,7 +89,7 @@ _MainToggleScreen = {
 	_editButton ctrlSetBackgroundColor [0.55, 0.4, 0, 1];
 	_editButton ctrlCommit 0;
 	_editButton ctrlAddEventHandler ["ButtonClick", {
-		[ctrlParent (_this select 0)] call (AdvancedUCAVs_ZeusOptions select 3);
+		[true] call (AdvancedUCAVs_ZeusOptions select 3);
 	}];
 	
 	_openLogButton = _display ctrlCreate ["RscButton", -1];
@@ -303,6 +305,16 @@ _DisableScript = {
 		{ _x ctrlShow true } forEach (allControls (uiNamespace getVariable "RscWeaponSpectrumAnalyzerGeneric"));
 		
 		[] spawn AdvancedUCAVs_RemoveKeybinds_fnc;
+
+					
+		_backpackLow = toLower (backpack player);	
+		if (("_uav_" in _backpackLow) || ("_ugv_" in _backpackLow)) then {		
+			[backpackContainer player, getContainerMaxLoad (backpack player)] remoteExec ["setMaxLoad", 2];	
+		};
+			
+		ctrlDelete ((findDisplay 46) getVariable ["AUCAVs_UGVSmokeCounter", controlNull]);
+		ctrlDelete ((findDisplay 602) getVariable ["saveButton", controlNull]);
+		ctrlDelete ((findDisplay 602) getVariable ["refillButton", controlNull]);
 		
 		{
 			_vehicle = _x;
@@ -311,6 +323,11 @@ _DisableScript = {
 				_vehicle removeAction _actionID;
 			} forEach (_vehicle getVariable ["AdvancedUCAVs_allActionIDs", []]);
 		} forEach vehicles;
+
+		{ 
+			_actionID = _x;
+			player removeAction _actionID;
+		} forEach (player getVariable ["AdvancedUCAVs_allActionIDs", []]);
 			
 	} remoteExec ["call"];
 
@@ -334,18 +351,26 @@ _DisableScript = {
 
 _ConfigureScript = {
 	params [
-		["_display", (if (!isNull findDisplay -1) then {findDisplay -1} else { if (!isNull findDisplay 312) then {findDisplay 312} else {findDisplay 46}})],
+		["_calledFromCfgWindow", false],
 		["_isReadOnly", false]		
 		];
-	
-	if (_isReadOnly && { visibleMap && { !(forcedMap select 1) }}) then { openMap false };
 	
 	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to configure: Advanced UCAVs isn't even running";
 		playSoundUI ["addItemFailed"];
 	};	
 	
-	_display = _display createDisplay "RscDisplayEmpty";
+	
+	_correctDisplay = if (_calledFromCfgWindow) then { 
+		findDisplay -1 
+	} else {
+		if (!isNull findDisplay -1) then { (findDisplay -1) closeDisplay 0 };
+		_excludedDisplays = [(if (!visibleMap) then {findDisplay 12}),findDisplay 49,findDisplay 24,findDisplay 63];
+		_allDisplays = (allDisplays - _excludedDisplays);
+		_allDisplays select ((count _allDisplays) - 1)		
+	};	
+	
+	_display = _correctDisplay createDisplay "RscDisplayEmpty";
 
 	_background = _display ctrlCreate ["RscText", -1];
 	_background ctrlSetPosition [0.15, 0, 0.7, 0.9];
@@ -429,7 +454,7 @@ _ConfigureScript = {
 						missionNamespace setVariable [_var, false, true]; 	
 						_optionText ctrlSetBackgroundColor [0.4, 0, 0, 0.6];
 					};
-					
+
 					if (_var == "AUCAVs_DroneHackingON") then { ["HACKING"] call AdvancedUCAVs_ToggleConfigValues_fnc; };
 					if (_var == "AUCAVs_ReduceBatteryON") then { ["TOGGLEFUEL"] call AdvancedUCAVs_ToggleConfigValues_fnc };				
 				}];			
@@ -621,7 +646,7 @@ _ConfigureScript = {
 ["TITLE", ["Rearm Option Options"]],
 ["TOGGLE", ["ED-1D Rearm Slug", "AUCAVs_ED1RearmSlugON", "Gives ED-1Ds a 'Rearm Slug' option, allowing players to rearm them."]],
 ["TOGGLE", ["ED-1D Rearm Pellets", "AUCAVs_ED1RearmPelletsON", "Gives ED-1Ds a 'Rearm Pellets' option, allowing players to rearm them."]],
-["TOGGLE", ["Demining Drone", "AUCAVs_DemineUAVRearmON", "Gives Demining Drones (IDAP UAV) a 'Rearm Grenade' option, allowing players to rearm Demining Charges."]],
+["TOGGLE", ["Demining Drone Rearm Demining Charges", "AUCAVs_DemineUAVRearmON", "Gives Demining Drones (IDAP UAV) a 'Rearm Grenade' option, allowing players to rearm Demining Charges."]],
 ["TITLE", ["Jamming Options"]],
 ["TOGGLE", ["Radio Backpack Jamming", "AUCAVs_BackpackJammingON" ,"Allows players to jam AL-6, AR-2, ED-1E and ED-1D drones by wearing a radio backpack and having jamming active ('J' to toggle)"]],
 ["TOGGLE", ["Spectrum Device Jamming", "AUCAVs_SpectrumJammingON", "Allows players to jam AL-6, AR-2, ED-1E and ED-1D drones by leftclicking with a spectrum device while looking at one"]],
@@ -631,6 +656,8 @@ _ConfigureScript = {
 ["TOGGLE", ["Allow Debug Log Messages", "AUCAVs_DebugLogON", "Sends a log message, marked with a [UCAV_LOG {DEBUG}] prefix, into the .rtp arma file when:\n- A Killed EventHandler triggers on a drone\n- A Deleted EventHandler triggers on a drone\n- A Hit EventHandler triggers on a drone\n- A Fired EventHandler triggers on a drone"]],
 ["TITLE", ["Drone Renaming Options"]],	
 ["TOGGLE", ["Allow Drone Renaming", "AUCAVs_DroneRenamingON", "Allows players to give any drone they can connect to a custom group name/callsign"]],
+["TITLE", ["Drone Backpack Options"]],	
+["TOGGLE", ["Allow Item Storage", "AUCAVs_BpItemStorageON", "Allows players to carry a small amount of items in a drone backpack"]],
 ["TITLE", ["Drone Hacking Options"]],	
 ["TOGGLE", ["Allow Drone Hacking", "AUCAVs_DroneHackingON", "Allows players to hack an enemy drone if they have an UAV terminal and are close to the drone"]],
 ["TITLE", ["Fuel Consumption Options"]],
@@ -668,7 +695,7 @@ _OpenLog = {
 		findDisplay -1 
 	} else {
 		if (!isNull findDisplay -1) then { (findDisplay -1) closeDisplay 0 };
-		_excludedDisplays = [findDisplay 12,findDisplay 49,findDisplay 24,findDisplay 63];
+		_excludedDisplays = [(if (!visibleMap) then {findDisplay 12}),findDisplay 49,findDisplay 24,findDisplay 63];
 		_allDisplays = (allDisplays - _excludedDisplays);
 		_allDisplays select ((count _allDisplays) - 1)		
 	};
@@ -813,7 +840,7 @@ missionNamespace setVariable ["AdvancedUCAVs_ZeusOptions", [_MainToggleScreen, _
 
 "Entire Script";
 AdvancedUCAVs_InitOnPlayer_fnc = {
-	
+	params [["_onlyAddDiary", false]];
 	
 	if !(player diarySubjectExists "Advanced_UCAVs") then {
 		player createDiarySubject ["Advanced_UCAVs", "Advanced UCAVs"];
@@ -832,6 +859,220 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	};
 	
 	
+	AdvancedUCAVs_openChangelog = {
+		if (!isNull findDisplay -1) then { (findDisplay -1) closeDisplay 0 };
+		_excludedDisplays = [(if (!visibleMap) then {findDisplay 12}),findDisplay 49,findDisplay 24,findDisplay 63];
+		_allDisplays = (allDisplays - _excludedDisplays);
+		_correctDisplay = _allDisplays select ((count _allDisplays) - 1);		
+		
+		_display = _correctDisplay createDisplay "RscDisplayEmpty";
+
+		_background = _display ctrlCreate ["RscBackground", -1];
+		_background ctrlSetPosition [-0.1666, 0, 1.3333, 1];
+		_background ctrlSetBackgroundColor [0.1, 0.1, 0.1, 0.95];
+		_background ctrlCommit 0;
+
+		_windowBar = _display ctrlCreate ["RscText", -1];
+		_windowBar ctrlSetPosition [-0.1666, 0, 1.3333, 0.055];
+		_windowBar ctrlSetBackgroundColor [0, 0, 0, 1];
+		_windowBar ctrlSetText "Advanced UCAVs > Changelog";
+		_windowBar ctrlSetFontHeight 0.044;	
+		_windowBar ctrlCommit 0; 
+
+		_xButton = _display ctrlCreate ["RscButton", -1];
+		_xButton ctrlSetPosition [1.111, 0, 0.055, 0.055];
+		_xButton ctrlSetBackgroundColor [0.5, 0, 0, 1];
+		_xButton ctrlSetText "X";
+		_xButton ctrlSetTooltip "Close";
+		_xButton ctrlSetFontHeight 0.063;
+		_xButton ctrlCommit 0;
+		_xButton ctrlAddEventHandler ["ButtonClick", { (ctrlParent (_this select 0)) closeDisplay 0 }];
+
+		_ctrlGroup = _display ctrlCreate ["RscControlsGroup", -1];
+		_ctrlGroup ctrlSetPosition [-0.16, 0.06, 1.33, 0.92];
+		_ctrlGroup ctrlCommit 0;
+
+		_changelogText = _display ctrlCreate ["RscStructuredText", -1, _ctrlGroup];
+		_changelogText ctrlSetPosition [0, 0, 1.3, 1];
+		_changelogText ctrlSetBackgroundColor [0.1, 0.1, 0.1, 0];		
+		_changelogText ctrlSetTextColor [0.9, 0.9, 0.9, 1];
+		_changelogText ctrlSetStructuredText parseText ( 	
+		"<t size='1.5'>-> ver 4.0.0</t><br/>" + 
+		"<t color='#AFAFAF'>" +
+		"+ Fully overhauled the script, basically writing it new. Removed a ton of AI slop code, useless remote execution and global functions. Optimizing it in many ways and adding lots of new features.<br/><br/>" +	
+		"<br/></t><t color='#0094FF'>" +
+		"- Fixed a bug where drone crashes would sometimes not show up in log.<br/>" +
+		"- Fixed a bug where drone connections would sometimes not show up in log.<br/>" +
+		"- Fixed a bug where the log showed zeuses remote controlling any vehicle. It is now only limited to drones.<br/>" + 		
+		"- Fixed wrong amount of grenades showing under an AL-6 Bomb Carrier when spamming the rearm button.<br/>" +
+		"- Fixed AL-6 ATRQ getting randomly damaged when slingloading a pelter.<br/>" +
+		"- Fixed a bug on the AL-6 Bomb Carrier and regular Demining Drone that allowed them to carry 12 Charges when rearming at a bobcat.<br/>" +
+		"- Fixed a bug on the AR-2 Bomb Drop that allowed it to carry 4 Charges when rearming at a bobcat.<br/>" +
+		"- Fixed radio backpack spamming the jammed log message (due to remoteExec delay)<br/>" +
+		
+		"<br/></t><t color='#38BC00'>" +
+		"<t size='1.1'>Drones and Drone Options</t><br/>" + 		
+		"- Added 'Kamikaze FPV [Light HE]' AR-2 variant. (Replaced Anti-Personell FPV)<br/>" +
+		"- Added 'Kamikaze FPV [Light AT]' AR-2 variant.<br/>" +
+		"- Added 'Kamikaze FPV [Heavy HE]' AR-2 variant. (Replaced Anti-Structure FPV)<br/>" +
+		"- Added 'Kamikaze FPV [Heavy AT]' AR-2 variant.<br/>" +	
+		"- Added: Reduced Battery Lifetime of all AR-2 and AL-6 drones. Also depends on wich weapons they carry.<br/>" +
+		"- Added a 'Swap Drone Battery' option to all drones to refuel them.<br/>" +
+		"- Added a 'Rearm Smoke' option to all ED-1s.<br/>" +		
+		"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
+		"- Added 'Toggle Options' option to ED-1s and Non-Armable drones.<br/>" +
+		"- Added 'Quick Repair' option to all AR-2s, AL-6s and ED-1s. Allowing for a slight repair without needing a toolkit.<br/>" +		
+		"- Added rearm icon to all rearm options on drones.<br/>" +	
+		"- Added: AI's ability to hear, see and hit small UAVs has been reduced.<br/>" +
+		"<t size='1.1'>Spectrum Device, Radio Backpacks, and Jamming</t><br/>" + 
+		"- Added Battery Lifetime to the Radio Backpack Jamming. It can be recharged using Laser Designator Batteries.<br/>" + 
+		"- Added the ability to change Backpack Jamming Radius by scrolling while hovering over the 'Refill Battery' button in inventory. Range 10-300m<br/>" + 		
+		"- Added jammer radius marker on map for Radio Backpack Jamming.<br/>" +
+		"- Added a drone radar to the Spectrum Device: While aming with the spectrum device, players can see all drones in a 1km radius.<br/>" + 		
+		"- Added: Spectrum Device Antennas can be changed by pressing 'R'.<br/>" +		
+		"- Added functionallity for the Experimental Antenna (Spectrum Device), using it increases Radar range by 1000m. (2000m total)<br/>" + 	
+		"<t size='1.1'>Functionallity and UI</t><br/>" +
+		"- Added: Its now possible to store items in a drone backpack.<br/>" +
+		"- Added an option 'Assemble and Craft Drone' wich is shown when carrying a drone backpack with items required for crafting a drone in it.<br/>" +
+		"- Added a 'Save Items' button in inventory when carrying a drone backpack to save items stored in it to keep them after respawn.<br/>" +
+		"- Added a 'Refill Battery' button in inventory when carrying a radio backpack.<br/>" +	
+		"- Added a 'Configure' button for zeus to toggle all features.<br/>" +
+		"- Added a button to the 'Description' tab on the map that allows players so wich see options are enabled/disabled.<br/>" +		
+		"- Added a dialog for the anti-troll log wich can be opened via chat command mentioned below or in the enable/disable window.<br/>" +
+		"- Added a chat command '!ucav_config' so any zeus, even ones without the comp, can enable/disable and configure the script.<br/>" +
+		"- Added a chat command '!ucav_log' so any player can look at the Anti-Troll log.<br/>" +			
+		"- Added a 'Rename AV Callsign' button in the UAV terminal so players can rename the drone they are currently connected to.<br/>" + 		
+		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
+		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
+		"- Added: the UCAV log now also shows when a player just connects to a drone, not only when he connects to driver/gunner.<br/>" +
+		"- Added this custom changelog window.<br/>" +
+		"- Added a custom ED-1 smoke counter in the top right wich is shown when connected to one.<br/>" +
+		
+		
+		"<br/></t><t color='#FFD800'>" +	
+		"<t size='1.1'>Drones and Drone Options</t><br/>" + 
+		"- Change: Kamikaze drones now use the actual missile/rocket attached to them, no longer using just satchels and charges.<br/>" +
+		"- Changed it so ED-1 smoke deploment is now using a counter, no longer infinite with cooldown.<br/>" +	
+		"<t size='1.1'>Spectrum Device, (Radio-) Backpacks, and Jamming</t><br/>" + 
+		"- Change: Also fully overworked Spectrum Device Jamming. Instead of a point and click adventure, players now have to hold leftclick.<br/>" +
+		"- Change: The Spectrum Device can now jam any UAV (excluding statics). Depending on the UAV the jamming proccess takes longer or shorter.<br/>" +			
+		"- Changed it so Backpack Jamming can only jam drones that have 3 walls or less between the player and the drone.<br/>" +		
+		"<t size='1.1'>Functionallity and UI</t><br/>" + 
+		"- Change: Also fully overworked the drone making. The option no longer has to be held manually, and a custom progress bar will pop up.<br/>" +
+		"- Change: Since options don't have to be held anymore, all drone crafting durations have been increased.<br/>" +		
+		"- Change: Optimized addAction by adding 'Lazy Evaluation' to the condition check.<br/>" + 
+		"- Changed it so the script now gets applied to all drones. Enabling/Disabling it now gets updated immidetly on all drones.<br/>" + 		
+		"- Change: Also fully overworked where and how every action and eventhandler is added and executed, getting rid of remoteExec duplication.<br/>" + 	
+		"- Change: Edited a lot in the diary Features and Description info text to make it more readable and visually better.<br/>" +
+		"- Changed it so the option toggling is no longer global, meaning if one player makes them shown, only that player will see the sub-options.<br/>" +
+		
+		"<br/></t><t color='#FF0000'>" +	
+		"- Removed AI slop code.<br/>" +
+		"- Removed 'Anti-Structure' FPV AR-2 variant (Replaced by Heavy HE).<br/>" + 
+		"- Removed 'rtp file tutorial' info tab on the map.<br/>" +
+		"- Removed a bunch of useless (JIP) remote execution.<br/>" +	
+		"</t>" +
+
+		"<br/><br/><t size='1.5'>-> ver 3.0.8</t><br/>" + 		
+		"- Fixed a bug that caused the jamming keybinds to not work sometimes.<br/>" +
+		"- Improved Description and Changelog Tab's readability by adjusting text sizes.<br/>" +
+		"- The Enable/Disable window no longer forces you out of the Zeus interface.<br/>" +
+		"- Fixed a minor bug that didn't delete the invisible helipad automaticly.<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.7</t><br/>" + 
+		"- Corrected a spelling mistake.<br/>" +
+		"- Made 'Jamming: On' message smaller so it's no as anoying.<br/>" +			
+		"- If you disable script without it running, it won't disable it but instead say 'Script isn't even runnning'.<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.6</t><br/>" + 
+		"- Added yet another log message wich says who connected to a drone to avoid trolling.<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.5</t><br/>" + 
+		"- Its now easier to jam a drone using the spectrum device. The crosshair doesn't have to be exactly on the drone anymore.<br/>" +
+		"- Added more log messages for when a drone gets crashed, to avoid trolling.<br/>" +
+		"- Changed it so that only drones assembled by players get autonomous disabled after placed.<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.4</t><br/>" + 
+		"- If a drone is jammed, playername of who did it is sent into .rtp file in case someone is trolling.<br/>" +
+		"- If a player arms an UAV, its now also being saved in the .rtp file also to avoid trolling.<br/>" +
+		"- If an AL-6 UAV is armed, it can no longer slingload ED-1 UGVs<br/>" +			
+		"- Fixed a bug where multiple AL-6 drones were able to slingload one UGV.<br/>" +
+		"- Fixed a bug that caused UGVs to not be slingloadable after the AL-6 wich got it slingloaded died.<br/>" +
+		"- Fixed a bug where if one player would slingload an ED-1, other players werent able to detach it.<br/>" + 
+		"- Fixed a bug that caused the jamming keybinds to not work properly sometimes.<br/><br/>" + 
+		"<t size='1.5'>-> ver 3.0.3</t><br/>" + 
+		"- Bugfix: Pelter smoke cooldown was 5 instead of 60 seconds<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.2</t><br/>" + 
+		"- All AL-6 drones can now slingload ED-1 UGVs if one is in a 5m radius around the AL-6.<br/>" +
+		"- All ED-1 UGVs can now deploy smokes. Infinite uses but 1min cooldown.<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.1</t><br/>" + 
+		"- Added Jamming: Small drones can now also get jammed by aiming a spectrum device with a jammer antenna at a drone and pressing left click.<br/><br/>" +
+		"<t size='1.5'>-> ver 3.0.0</t><br/>" + 
+		"- Added Jamming: All small UAVs and UGVs (AR-2, AL-6, ED-1) can now be jammed if the player presses 'J' while wearing a Radio Backack.<br/><br/>" +										
+		"<t size='1.5'>-> ver 2.1.9</t><br/>" + 
+		"- If a drone is placed, 'Autonomous' is disabled. Can be manually re-enabled by the player in the UAV terminal.<br/><br/>" +		
+		"<t size='1.5'>-> ver 2.1.8</t><br/>" + 
+		"- Fixed a bug where the repair icon was not shown on pelters.<br/><br/>" +
+		"<t size='1.5'>-> ver 2.1.7</t><br/>" + 
+		"- Added repair icon to all 'Repair Drone' options so they look better.<br/>" +
+		"- Also added inventory icon to all 'Check Cargo' options.<br/>" + 
+		"- All options are no longer visible when looking at the drone while in a vehicle.<br/>" +
+		"- All options are no longer visible when looking at the drone with another drone.<br/>" +	
+		"- Fixed a bug with check cargo option where facewear was displayed with the class name.<br/><br/>" +			
+		"<t size='1.5'>-> ver 2.1.6</t><br/>" + 
+		"- Added repair option to all Pelter and Roller UGVs.(all factions)<br/>" +
+		"- Added rearm option to all Pelter UGVs for both slug and pellet rounds.(all factions)<br/><br/>" +											
+		"<t size='1.5'>-> ver 2.1.5</t><br/>" + 	
+		"- Changed how the actions behave when looked at and interacted with.<br/>" +
+		"- Changed hint message when script is ran.<br/><br/>" +	
+		"<t size='1.5'>-> ver 2.1.4</t><br/>" + 
+		"- Changed the texts that are being shown (e.g. 'You need a RGO Grenade') from 'hint' to 'titleText' message to make them look better visually.<br/>" +
+		"- Changed the options so they need to be held for arming a drone. Doesnt affect rearm or repair options.<br/><br/>" +
+		"<t size='1.5'>-> ver 2.1.3</t><br/>" + 
+		"- Fixed a bug wich caused an option to not be removed properly when AL-6 gets armed.<br/><br/>" +						
+		"<t size='1.5'>-> ver 2.1.2</t><br/>" + 
+		"- All AL-6 drones get a 'Check Cargo' option to check cargo mid flight.<br/>" + 
+		"- AL-6 storage gets not only locked but also cleared when armed.<br/>" + 				
+		"- Added repair option all AL-6 drones (civ, medic) wich didnt had them before.<br/><br/>" + 
+		"<t size='1.5'>-> ver 2.1.1</t><br/>" + 			
+		"- Changed range from wich the arming options can be seen from 2m to 2.5m<br/><br/>" + 
+		"<t size='1.5'>-> ver 2.1</t><br/>" +
+		"- (Finally) fixed the bug wich caused the script to turn off if zeus left his slot.<br/>" +
+		"- Added 'Anti-Personnel FPV' so players can use them with just their respawn loadout(wich was not possible until now since you cant carry a AR-2 backpack and items to make larger FPVs in the same loadout) <br/>" +
+		"- Added a few animations. Depending on if the player is standing, crouched or prone, diffrent animations play.<br/>" +
+		"- Instead of just locking the turrets of drones when they are armed, the gunner gets completely removed.<br/>" +
+		"- Changed the order in wich the options are listed.<br/><br/>" +	
+		"<t size='1.5'>-> ver 2.0</t><br/>" +
+		"- Improved both 'Bomb Drop Drone' and 'Bomb Carrier Drone' by adding visual grenades.<br/>" +
+		"- The grenades will visually apear under the drone when rearming, disapear when they are dropped.<br/>" +
+		"- The storage space of AL-6 drones now gets locked when players arm them.<br/><br/>" +				
+		"<t size='1.5'>-> ver 1.9</t><br/>" +
+		"- Renamed the versions tab to changelog and added all the changes from previous version.<br/>" +
+		"- Improved all repair and rearm animtions, so depending on wich weapon type the player is using, diffrent animations play.<br/><br/>" +					
+		"<t size='1.5'>-> ver 1.8</t><br/>" +
+		"- Added rearm and repair options to the civlian demining drone.<br/>" +	
+		"- Fixed a small bug where options would duplicate for new joining players.<br/><br/>" +				
+		"<t size='1.5'>-> ver 1.7</t><br/>" +
+		"- All AL-6 and AR-2 drones from all nations now have the special options, exept the medic AL-6.<br/>" +	
+		"- Added a small version tab with changes shown there.<br/>" +	
+		"- Edited the features list.<br/><br/>" +					
+		"<t size='1.5'>-> ver 1.6</t><br/>" +
+		"- The script no longer bugs out when its placed multiple times by zeus.<br/>" +	
+		"- The enable / disable option now works without any bugs.<br/>" +
+		"- 'Toggle Options' button now works without any issues.<br/><br/>" +						
+		"<t size='1.5'>-> ver 1.5</t><br/>" +
+		"- Fixed a bug with the toggle option.<br/>" +				
+		"- When drone is placed, only toggle option is visible, only after clicking it all options will apear.<br/><br/>" +
+		"<t size='1.5'>-> ver 1.4</t><br/>" +
+		"- Added the option so script can be disabled.<br/>" +
+		"- Added the 'Toggle Options' option to the drones.<br/><br/>" +	
+		"<t size='1.5'>-> ver 1.3</t><br/>" +
+		"- First release of the script." 
+		);				
+		_changelogText ctrlCommit 0;
+
+		_height = ctrlTextHeight _changelogText; 
+		_changelogText ctrlSetPosition [0, 0, 1.3, _height];
+		_changelogText ctrlCommit 0;
+	};	
+	
+	
 	AdvancedUCAVs_Diary_ScriptInfo = player createDiaryRecord ["Advanced_UCAVs", 
 	[
 		"Script Info",
@@ -848,159 +1089,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_Diary_Changelog = player createDiaryRecord ["Advanced_UCAVs", 
 	[
 		"Changelog",
-		"<br/>" +
-		"<font size='20'>Changelog</font><br/><br/><br/>" +	
-		"<font size='17'>-> ver 4.0.0</font><br/>" + 
-		"<font color='#AFAFAF'>" +
-		"+ Fully overworked the script, essentially writing it new. Removed a ton of AI slop code, useless remote execution and global functions. Optimizing it in many ways and adding lots of new features.<br/><br/>" +	
-		"</font><font color='#0094FF'>" +
-		"- Fixed a bug where drone crashes would sometimes not show up in log.<br/>" +
-		"- Fixed a bug where drone connections would sometimes not show up in log.<br/>" +
-		"- Fixed a bug where the log showed zeuses remote controlling any vehicle. It is now only limited to drones.<br/>" + 		
-		"- Fixed wrong amount of grenades showing under an AL-6 Bomb Carrier when spamming the rearm button.<br/>" +
-		"- Fixed AL-6 ATRQ getting randomly damaged when slingloading a pelter.<br/>" +
-		"- Fixed a bug on the AL-6 Bomb Carrier and regular Demining Drone that allowed them to carry 12 Charges when rearming at a bobcat.<br/>" +
-		"- Fixed a bug on the AR-2 Bomb Drop that allowed it to carry 4 Charges when rearming at a bobcat.<br/>" +
-		"- Fixed radio backpack spamming the jammed log message (due to remoteExec delay)<br/>" +
-		"</font><font color='#38BC00'>" +
-		"- Added 'Kamikaze FPV [Light HE]' AR-2 variant. (Replaced Anti-Personell FPV)<br/>" +
-		"- Added 'Kamikaze FPV [Light AT]' AR-2 variant.<br/>" +
-		"- Added 'Kamikaze FPV [Heavy HE]' AR-2 variant. (Replaced Anti-Structure FPV)<br/>" +
-		"- Added 'Kamikaze FPV [Heavy AT]' AR-2 variant.<br/>" +	
-		"- Added rearm icon to all rearm options.<br/>" +	
-		"- Added: Reduced Battery Lifetime of all AR-2 and AL-6 drones. Also depends on wich weapons they carry.<br/>" +
-		"- Added a 'Swap Drone Battery' option to all drones to refuel them.<br/>" +
-		"- Added a 'Rearm Smoke' option to all ED-1s.<br/>" +
-		"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
-		"- Added 'Toggle Options' option to ED-1s and Non-Armable drones.<br/>" +
-		"- Added 'Quick Repair' option to all AR-2s, AL-6s and ED-1s. Allowing for a slight repair without needing a toolkit.<br/>" +		
-		"- Added a 'Configure' button for zeus to toggle all features.<br/>" +
-		"- Added a button to the 'Description' tab on the map that allows players so wich see options are enabled/disabled.<br/>" +		
-		"- Added a dialog for the anti-troll log wich can be opened via chat command mentioned below or in the enable/disable window.<br/>" +
-		"- Added a chat command '!ucav_config' so any zeus, even ones without the comp, can enable/disable and configure the script.<br/>" +
-		"- Added a chat command '!ucav_log' so any player can look at the Anti-Troll log.<br/>" +			
-		"- Added a 'Rename AV Callsign' button in the UAV terminal so players can rename the drone they are currently connected to.<br/>" + 
-		"- Added jammer radius marker on map for Radio Backpack Jamming.<br/>" + 
-		"- Added a drone radar to the Spectrum Device: While aming with the spectrum device, players can see all drones in a 1km radius.<br/>" + 		
-		"- Added: Spectrum Device Antennas can be changed by pressing 'R'.<br/>" + 
-		"- Added functionallity for the Experimental Antenna (Spectrum Device), using it increases Radar range by 1000m.<br/>" + 
-		"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
-		"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
-		"- Added: the UCAV log now also shows when a player just connects to a drone, not only when he connects to driver/gunner.<br/>" +
-		"- Added: The visibility, aswell as its accuracy to see and hit drones gets reduced for AI.<br/>" +
-		"</font><font color='#FFD800'>" +	
-		"- Change: Also fully overworked the drone making. The option no longer has to be held manually, and a custom progress bar will pop up.<br/>" +
-		"- Change: Also (again) full overworked Spectrum Device Jamming. Instead of a point and click adventure, players now have to hold leftclick.<br/>" +
-		"- Change: The Spectrum Device can now jam any UAV (excluding statics). Depending on the UAV the jamming proccess takes longer or shorter.<br/>" +		
-		"- Change: Kamikaze drones now use the actual missile/rocket attached to them, no longer using just satchels and charges.<br/>" +
-		"- Change: Since options don't have to be held anymore, all drone crafting durations have been increased.<br/>" +
-		"- Changed it so ED-1 smoke deploment is now using a counter, no longer infinite with cooldown.<br/>" +
-		"- Change: Optimized addAction by adding 'Lazy Evaluation' to the condition check.<br/>" + 
-		"- Changed it so the script now gets applied to all drones. Enabling/Disabling it now gets updated immidetly on all drones.<br/>" + 
-		"- Change: Also fully worked where and how every action and eventhandler is added and executed, getting rid of remoteExec duplication.<br/>" + 	
-		"- Change: Also edited a lot in the diary (Features, Changelog) section to make it more readable and visually better.<br/>" +
-		"- Changed it so the option toggling is no longer global, meaning if one player makes them shown, only that player will see the sub-options.<br/>" +
-		"- Changed it so Backpack Jamming only jamms drones visible to the player, no longer drones behind walls/montains...<br/>" +
-		"</font><font color='#FF0000'>" +	
-		"- Removed AI slop code.<br/>" +
-		"- Removed 'Anti-Structure' FPV AR-2 variant (Replaced by Heavy HE).<br/>" + 
-		"- Removed 'rtp file tutorial' info tab on the map.<br/>" +
-		"- Removed a bunch of useless (JIP) remote execution.<br/>" +	
-		"</font>" +
-
-		"<br/><font size='17'>-> ver 3.0.8</font><br/>" + 		
-		"- Fixed a bug that caused the jamming keybinds to not work sometimes.<br/>" +
-		"- Improved Description and Changelog Tab's readability by adjusting text sizes.<br/>" +
-		"- The Enable/Disable window no longer forces you out of the Zeus interface.<br/>" +
-		"- Fixed a minor bug that didn't delete the invisible helipad automaticly.<br/><br/>" +
-
-		"<font size='17'>-> ver 3.0.7</font><br/>" + 
-		"- Corrected a spelling mistake.<br/>" +
-		"- Made 'Jamming: On' message smaller so it's no as anoying.<br/>" +			
-		"- If you disable script without it running, it won't disable it but instead say 'Script isn't even runnning'.<br/><br/>" +
-		
-		"<font size='17'>-> ver 3.0.6</font><br/>" + 
-		"- Added yet another log message wich says who connected to a drone to avoid trolling.<br/><br/>" +
-		"<font size='17'>-> ver 3.0.5</font><br/>" + 
-		"- Its now easier to jam a drone using the spectrum device. The crosshair doesn't have to be exactly on the drone anymore.<br/>" +
-		"- Added more log messages for when a drone gets crashed, to avoid trolling.<br/>" +
-		"- Changed it so that only drones assembled by players get autonomous disabled after placed.<br/><br/>" +
-		"<font size='17'>-> ver 3.0.4</font><br/>" + 
-		"- If a drone is jammed, playername of who did it is sent into .rtp file in case someone is trolling.<br/>" +
-		"- If a player arms an UAV, its now also being saved in the .rtp file also to avoid trolling.<br/>" +
-		"- If an AL-6 UAV is armed, it can no longer slingload ED-1 UGVs<br/>" +			
-		"- Fixed a bug where multiple AL-6 drones were able to slingload one UGV.<br/>" +
-		"- Fixed a bug that caused UGVs to not be slingloadable after the AL-6 wich got it slingloaded died.<br/>" +
-		"- Fixed a bug where if one player would slingload an ED-1, other players werent able to detach it.<br/>" + 
-		"- Fixed a bug that caused the jamming keybinds to not work properly sometimes.<br/><br/>" + 
-		"<font size='17'>-> ver 3.0.3</font><br/>" + 
-		"- Bugfix: Pelter smoke cooldown was 5 instead of 60 seconds<br/><br/>" +
-		"<font size='17'>-> ver 3.0.2</font><br/>" + 
-		"- All AL-6 drones can now slingload ED-1 UGVs if one is in a 5m radius around the AL-6.<br/>" +
-		"- All ED-1 UGVs can now deploy smokes. Infinite uses but 1min cooldown.<br/><br/>" +
-		"<font size='17'>-> ver 3.0.1</font><br/>" + 
-		"- Added Jamming: Small drones can now also get jammed by aiming a spectrum device with a jammer antenna at a drone and pressing left click.<br/><br/>" +
-		"<font size='17'>-> ver 3.0.0</font><br/>" + 
-		"- Added Jamming: All small UAVs and UGVs (AR-2, AL-6, ED-1) can now be jammed if the player presses 'J' while wearing a Radio Backack.<br/><br/>" +										
-		"<font size='17'>-> ver 2.1.9</font><br/>" + 
-		"- If a drone is placed, 'Autonomous' is disabled. Can be manually re-enabled by the player in the UAV terminal.<br/><br/>" +		
-		"<font size='17'>-> ver 2.1.8</font><br/>" + 
-		"- Fixed a bug where the repair icon was not shown on pelters.<br/><br/>" +
-		"<font size='17'>-> ver 2.1.7</font><br/>" + 
-		"- Added repair icon to all 'Repair Drone' options so they look better.<br/>" +
-		"- Also added inventory icon to all 'Check Cargo' options.<br/>" + 
-		"- All options are no longer visible when looking at the drone while in a vehicle.<br/>" +
-		"- All options are no longer visible when looking at the drone with another drone.<br/>" +	
-		"- Fixed a bug with check cargo option where facewear was displayed with the class name.<br/><br/>" +			
-		"<font size='17'>-> ver 2.1.6</font><br/>" + 
-		"- Added repair option to all Pelter and Roller UGVs.(all factions)<br/>" +
-		"- Added rearm option to all Pelter UGVs for both slug and pellet rounds.(all factions)<br/><br/>" +											
-		"<font size='17'>-> ver 2.1.5</font><br/>" + 	
-		"- Changed how the actions behave when looked at and interacted with.<br/>" +
-		"- Changed hint message when script is ran.<br/><br/>" +	
-		"<font size='17'>-> ver 2.1.4</font><br/>" + 
-		"- Changed the texts that are being shown (e.g. 'You need a RGO Grenade') from 'hint' to 'titleText' message to make them look better visually.<br/>" +
-		"- Changed the options so they need to be held for arming a drone. Doesnt affect rearm or repair options.<br/><br/>" +
-		"<font size='17'>-> ver 2.1.3</font><br/>" + 
-		"- Fixed a bug wich caused an option to not be removed properly when AL-6 gets armed.<br/><br/>" +						
-		"<font size='17'>-> ver 2.1.2</font><br/>" + 
-		"- All AL-6 drones get a 'Check Cargo' option to check cargo mid flight.<br/>" + 
-		"- AL-6 storage gets not only locked but also cleared when armed.<br/>" + 				
-		"- Added repair option all AL-6 drones (civ, medic) wich didnt had them before.<br/><br/>" + 
-		"<font size='17'>-> ver 2.1.1</font><br/>" + 			
-		"- Changed range from wich the arming options can be seen from 2m to 2.5m<br/><br/>" + 
-		"<font size='17'>-> ver 2.1</font><br/>" +
-		"- (Finally) fixed the bug wich caused the script to turn off if zeus left his slot.<br/>" +
-		"- Added 'Anti-Personnel FPV' so players can use them with just their respawn loadout(wich was not possible until now since you cant carry a AR-2 backpack and items to make larger FPVs in the same loadout) <br/>" +
-		"- Added a few animations. Depending on if the player is standing, crouched or prone, diffrent animations play.<br/>" +
-		"- Instead of just locking the turrets of drones when they are armed, the gunner gets completely removed.<br/>" +
-		"- Changed the order in wich the options are listed.<br/><br/>" +	
-		"<font size='17'>-> ver 2.0</font><br/>" +
-		"- Improved both 'Bomb Drop Drone' and 'Bomb Carrier Drone' by adding visual grenades.<br/>" +
-		"- The grenades will visually apear under the drone when rearming, disapear when they are dropped.<br/>" +
-		"- The storage space of AL-6 drones now gets locked when players arm them.<br/><br/>" +				
-		"<font size='17'>-> ver 1.9</font><br/>" +
-		"- Renamed the versions tab to changelog and added all the changes from previous version.<br/>" +
-		"- Improved all repair and rearm animtions, so depending on wich weapon type the player is using, diffrent animations play.<br/><br/>" +					
-		"<font size='17'>-> ver 1.8</font><br/>" +
-		"- Added rearm and repair options to the civlian demining drone.<br/>" +	
-		"- Fixed a small bug where options would duplicate for new joining players.<br/><br/>" +				
-		"<font size='17'>-> ver 1.7</font><br/>" +
-		"- All AL-6 and AR-2 drones from all nations now have the special options, exept the medic AL-6.<br/>" +	
-		"- Added a small version tab with changes shown there.<br/>" +	
-		"- Edited the features list.<br/><br/>" +					
-		"<font size='17'>-> ver 1.6</font><br/>" +
-		"- The script no longer bugs out when its placed multiple times by zeus.<br/>" +	
-		"- The enable / disable option now works without any bugs.<br/>" +
-		"- 'Toggle Options' button now works without any issues.<br/><br/>" +						
-		"<font size='17'>-> ver 1.5</font><br/>" +
-		"- Fixed a bug with the toggle option.<br/>" +				
-		"- When drone is placed, only toggle option is visible, only after clicking it all options will apear.<br/><br/>" +
-		"<font size='17'>-> ver 1.4</font><br/>" +
-		"- Added the option so script can be disabled.<br/>" +
-		"- Added the 'Toggle Options' option to the drones.<br/><br/>" +	
-		"<font size='17'>-> ver 1.3</font><br/>" +
-		"- First release of the script." 		
+		"<br/><font size='20'>[<execute expression='[] call AdvancedUCAVs_openChangelog'>Click here to open the Changelog</execute>]</font>"
 	]];
 
 	AdvancedUCAVs_Diary_Features = player createDiaryRecord ["Advanced_UCAVs", 
@@ -1028,7 +1117,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- Adds option to rename any drone.<br/>" +
 		"- Adds the ability for unarmed AL-6s to slingload ED-1s.<br/>" +
 		"- Makes AR-2s, AL-6s and ED-1s harder to spot and hit for AI.<br/>" +
-		"- Adds chat commands: '!ucav_config' and '!ucav_log'.<br/>" +		
+		"- Adds chat commands: '!ucav_config' and '!ucav_log'.<br/>" +
+		"- Adds the ability to store items in drone backpacks.<br/>" +
 		"- Gives all AR-2 and AL-6 drones (exept medic and civ) the options to arm them, making them usable in combat.<br/><br/><br/><br/>" +
 				
 		"<font size='20' color='#0094FF'>Drone Variants</font><br/><br/>" +	
@@ -1057,7 +1147,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"<font size='17'>-> How to use jamming (Radio Backpack):</font><br/>" +
 		"1. Grab any Radio Backpack from an arsenal.<br/>" +
 		"2. Press 'J' to toggle jamming on and off.<br/>" +			
-		"AR-2s, AL-6s and ED-1s visible to the player will be jammed in a 100m radius.<br/><br/>" +
+		"AR-2s, AL-6s and ED-1s visible to the player will be jammed in a 100m radius.<br/>" +
+		"3. Change jamming radius or refill battery by opening your inventory and read what the 'Refill Battery' button says.<br/><br/>" +
 						
 		"<font size='17'>-> How to use jamming (Spectrum Device):</font><br/>" +
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
@@ -1077,9 +1168,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
 		"2. Aim with the Spectrum Device (right click).<br/>" +
 		"3. All drones within a 1000m radius visible to the player will be shown on your screen.<br/>" +
-		"4. Additionaly: Switching to an Experimental Antenna increases the Radar range to 2000m.<br/>" +	
+		"4. Additionaly: Switching to an Experimental Antenna increases the Radar range to 2000m.<br/>" +
+		"5. Additionaly: Experimental Antenna allows to see players using a jamming backpack.<br/>" +		
 		"(Tip: You can quick switch between 2 Antennas by pressing 'R' while not aiming.)<br/>" +
-		"5. All controls are shown at the bottom of the screen right after aiming.<br/><br/>" +
+		"6. All controls are shown at the bottom of the screen right after aiming.<br/><br/>" +
 				
 		"<font size='17'>-> Using Drone Renaming</font><br/>" +	
 		"1. Open your UAV Terminal.<br/>" +
@@ -1092,6 +1184,110 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- !ucav_config is only available for zeuses and allows them to toggle features.<br/>" +
 		"- !ucav_log is available for all players, it will open the anti-troll drone log.<br/><br/>"			
 	]];
+	if (_onlyAddDiary) exitWith {};
+	
+	
+	
+	
+	AdvancedUCAVs_saveAction_fnc = {
+		params ["_drone", "_actionID"];
+		if (isNil { _drone getVariable "AdvancedUCAVs_allActionIDs" }) then {
+			_drone setVariable ["AdvancedUCAVs_allActionIDs", []];
+		};
+		(_drone getVariable ["AdvancedUCAVs_allActionIDs", []]) pushBack _actionID;
+	};
+
+
+
+	
+	AdvancedUCAVs_addPlayerAssembleActions_fnc = {
+		{ 
+			_actionID = _x;
+			player removeAction _actionID;
+		} forEach (player getVariable ["AdvancedUCAVs_allActionIDs", []]);
+
+
+		_actionsToAddToPlayer = [
+			[
+				"Assemble and Craft AR-2 Bomb Drop", 
+				"AUCAVs_showOption_AR2BombDrop && { cameraOn == player && { vehicle player == player }}",
+				"BombDrop"
+			],
+			[
+				"Assemble and Craft AR-2 RPG-7 Drone", 
+				"AUCAVs_showOption_AR2Rpg7Launch && { cameraOn == player && { vehicle player == player }}",
+				"RPG7Launch"
+			],
+			[
+				"Assemble and Craft AR-2 Kamikaze FPV [Light HE]", 
+				"AUCAVs_showOption_AR2LightHE && { cameraOn == player && { vehicle player == player }}",
+				"KamikazeLightHE"
+			],
+			[
+				"Assemble and Craft AR-2 Kamikaze FPV [Light AT]", 
+				"AUCAVs_showOption_AR2LightAT && { cameraOn == player && { vehicle player == player }}",
+				"KamikazeLightAT"
+			],
+			[
+				"Assemble and Craft AR-2 Kamikaze FPV [Heavy HE]", 
+				"AUCAVs_showOption_AR2HeavyHE && { cameraOn == player && { vehicle player == player }}",
+				"KamikazeHeavyHE"
+			],
+			[
+				"Assemble and Craft AR-2 Kamikaze FPV [Heavy AT]", 
+				"AUCAVs_showOption_AR2HeavyAT && { cameraOn == player && { vehicle player == player }}",
+				"KamikazeHeavyAT"
+			],
+			[
+				"Assemble and Craft AL-6 Bomb Carrier", 
+				"AUCAVs_showOption_AL6BombCarrier && { cameraOn == player && { vehicle player == player }}",
+				"BombCarrier"
+			],
+			[
+				"Assemble and Craft AL-6 RPG-7 Drone", 
+				"AUCAVs_showOption_AL6Rpg7Launch && { cameraOn == player && { vehicle player == player }}",
+				"RPG7LaunchAL6"
+			],
+			[
+				"Assemble and Craft AL-6 RPG-42 Drone", 
+				"AUCAVs_showOption_AL6Rpg42Launch && { cameraOn == player && { vehicle player == player }}",
+				"RPG42Launch"
+			]
+		];
+
+
+		{
+			_x params ["_actionName", "_condition", "_droneType"];
+			
+			AUCAVs_assembledADrone = false;
+			_actionID = player addAction [_actionName, {
+				params ["_target", "_caller", "_actionId", "_arguments"];
+				_arguments params ["_droneType"];
+						
+				_weaponholder = createVehicle ["GroundWeaponHolder", [0,0,0], [], 0, "NONE"]; 
+				player action ["Assemble", _weaponholder]; 
+				
+				_droneAssembledEH = addMissionEventHandler ["UAVCrewCreated", {
+					params ["_uav", "_driver", "_gunner"];
+					_thisArgs params ["_droneType"];
+					removeMissionEventHandler [_thisEvent, _thisEventHandler];
+					AUCAVs_assembledADrone = true;	
+					[_droneType, [_uav, player, nil, nil]] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+				}, [_droneType]];
+				
+				waitUntil [{ AUCAVs_assembledADrone || (lifeState player == "INCAPACITATED" || !alive player) }, 5];
+				
+				if (AUCAVs_assembledADrone) exitWith { AUCAVs_assembledADrone = false };
+				removeMissionEventHandler ["UAVCrewCreated", _droneAssembledEH];
+				AUCAVs_assembledADrone = false;
+			
+			}, [_droneType], 5, false, false, "", _condition];
+			
+			
+			[player, _actionID] call AdvancedUCAVs_saveAction_fnc;	
+		} forEach _actionsToAddToPlayer;
+	};
+	[] call AdvancedUCAVs_addPlayerAssembleActions_fnc;
 
 
 
@@ -1224,14 +1420,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_saveAction_fnc = {
-		params ["_drone", "_actionID"];
-		(_drone getVariable ["AdvancedUCAVs_allActionIDs", []]) pushBack _actionID;
-	};
-
-
-
-
 	AdvancedUCAVs_DestroyRope_fnc = {
 		params ["_drone", ["_useSetDamage", false]];
 				
@@ -1265,7 +1453,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				} else {
 					[[],{
 						player setUnitTrait ["UAVHacker", false];	
-					}] remoteExec ["call"];
+					}] remoteExec ["call", allPlayers];
 					remoteExec ["", "AdvancedUCAVs_DroneHackingJIPID"];
 				};		
 			};
@@ -1318,8 +1506,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 				};				
 				[] call (AdvancedUCAVs_ZeusOptions select 3);
-			};
-		
+			};	
 		};
 	};
 	["HACKING"] call AdvancedUCAVs_ToggleConfigValues_fnc;
@@ -1426,9 +1613,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		params [["_openOrClose",""], ["_needsTextOutput", false]];
 				
 		_spectrumDisplay = uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull];
+		_sumSubCtrlFromSourceCode = (uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull] displayCtrl 51);
 		_showScreen = missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true];
 		
-		"toggle screen (visual only";
+		
+		
+		"toggle screen visually";
 		_spectrumCrosshair = _spectrumDisplay displayCtrl 1996;	
 		_spectrumControlsToToggle = (allControls _spectrumDisplay);	
 		{ _x ctrlShow _showScreen } forEach _spectrumControlsToToggle;	
@@ -1437,23 +1627,23 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_spectrumCrosshair ctrlshow (cameraView == "GUNNER" && { difficultyOption "weaponCrosshair" > 0 });
 		
 		
-		if (_openOrClose == "open") then {
-			"Manually simulate SD screen opening to hide scrollwheel menu (only if screen is disabled since it works perfectly fine if its enabled)";			
-
-			_handleHiddenActions = _spectrumDisplay getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
-			if ((_handleHiddenActions select 0) == false) then {
-				_spectrumDisplay setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [true, hiddenActions []]];
+		
+		_handleHiddenActions = (_sumSubCtrlFromSourceCode getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]]);
+		_areActionsHidden = _handleHiddenActions select 0;
+		_hiddenActions = _handleHiddenActions select 1;
+		
+		"Manually simulate opening and closing of SD screen to hide/show scroll wheel options. Used A3 code from (uiNamespace getVariable 'RscWeaponSpectrumAnalyzerGeneric_script')";
+		if (_openOrClose == "open") then {		
+			if (!_areActionsHidden) then {
+				_sumSubCtrlFromSourceCode setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [true, hiddenActions []]];
 				hideActions ["HideAllButSelected", []];
 				[missionNamespace, "SpectrumAnalyzerOpened", [_spectrumDisplay]] call BIS_fnc_callScriptedEventHandler;
 			};
 		};	
 		if (_openOrClose == "close") then {
-			"Manually Simulate spectrum screen closing to show scrollwheel menu (only if screen is disabled since it works perfectly fine if its enabled)";
-
-			_handleHiddenActions = _spectrumDisplay getVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
-			if ((_handleHiddenActions select 0) == true) then {
-				hideActions ["UnhideAllButSelected", (_handleHiddenActions select 1)];
-				_spectrumDisplay setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
+			if (_areActionsHidden) then {
+				hideActions ["UnhideAllButSelected", _hiddenActions];
+				_sumSubCtrlFromSourceCode setVariable ["RscWeaponSpectrumAnalyzerGeneric_handleHiddenActions", [false, []]];
 				[missionNamespace, "SpectrumAnalyzerClosed", [_spectrumDisplay]] call BIS_fnc_callScriptedEventHandler;
 			};	
 		};
@@ -1612,13 +1802,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		};
 	};
 		
+		
 	
 	
-	
-	AUCAVs_SDJam_startTime = uiTime;
-	AUCAVs_SDJam_barCalled = false;
-	AUCAVs_SDJam_timeHeld = 0;
-	AUCAVs_SDJam_targetDrone = objNull;
+	if (isNil "AUCAVs_SDJam_startTime") then { AUCAVs_SDJam_startTime = uiTime };
+	if (isNil "AUCAVs_SDJam_barCalled") then { AUCAVs_SDJam_barCalled = false };
+	if (isNil "AUCAVs_SDJam_timeHeld") then { AUCAVs_SDJam_timeHeld = 0 };
+	if (isNil "AUCAVs_SDJam_targetDrone") then { AUCAVs_SDJam_targetDrone = objNull };
 
 	AdvancedUCAVs_SpectrumJamming_fnc = {
 
@@ -1730,9 +1920,9 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	UCAV_BPJam_Radius = 100;
-	ACUAVs_BPJam_Battery = 100;
-	ACUAVs_BPJam_TimeLeft = 600;
+	if (isNil "AUCAVs_BPJam_Radius") then { AUCAVs_BPJam_Radius = 100 };
+	if (isNil "ACUAVs_BPJam_Battery") then { ACUAVs_BPJam_Battery = 100 };	
+	if (isNil "ACUAVs_BPJam_TimeLeft") then { ACUAVs_BPJam_TimeLeft = 600 };	
 
 	AdvancedUCAVs_BackpackJamming_fnc = {
 	
@@ -1740,7 +1930,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if (_isJamming) then {	
 			
 			player setVariable ["UCAV_JammingOn", false, true];
-			titleText ["<t color='#FF0000' size='1.5'>Jamming: Off", "PLAIN DOWN", 0.5, true, true];
+			"UCAVs_RadioBagTxt" cutText ["<t color='#FF0000' size='1.5'>Jamming: Off", "PLAIN DOWN", 0.5, true, true, true];
 		
 		} else {
 				
@@ -1750,34 +1940,35 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						
 						
 				if (!alive player) exitWith {
-					titleText ["<t color='#FF0000' size='1.5'>You died. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
+					"UCAVs_RadioBagTxt" cutText ["<t color='#FF0000' size='1.5'>You died. Jamming: Off", "PLAIN DOWN", 0.5, true, true, true];
 					player setVariable ["UCAV_JammingOn", false, true];					
 				};
 				
 				
-				if !("radiobag" in (toLower (backpack player))) exitWith {
-					titleText ["<t color='#FF0000' size='1.5'>Backpack dropped. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
+				if !("_radiobag_" in (toLower (backpack player))) exitWith {
+					"UCAVs_RadioBagTxt" cutText ["<t color='#FF0000' size='1.5'>Backpack dropped. Jamming: Off", "PLAIN DOWN", 0.5, true, true, true];
 					player setVariable ["UCAV_JammingOn", false, true];
 				};
 			
-				{
-					if (ACUAVs_BPJam_Battery <= 0) exitWith {
-						titleText ["<t color='#FF0000' size='1.5'>Battery empty. Jamming: Off", "PLAIN DOWN", 0.5, true, true];
-						player setVariable ["UCAV_JammingOn", false, true];
-					};
+		
+				if (ACUAVs_BPJam_Battery <= 0) exitWith {
+					"UCAVs_RadioBagTxt" cutText ["<t color='#FF0000' size='1.5'>Battery empty. Jamming: Off", "PLAIN DOWN", 0.5, true, true, true];
+					player setVariable ["UCAV_JammingOn", false, true];
 				};
 					
 					
-				titleText ["<t color='#00FF0C' size='1.0'>Jamming: On", "PLAIN DOWN", 0.01, true, true];
+				"UCAVs_RadioBagTxt" cutText ["<t color='#00FF0C' size='1.0'>Jamming: On", "PLAIN DOWN", 0.01, true, true];
 
-				_nearDrones = (getPos player) nearEntities [["UAV_01_base_F", "UAV_06_base_F", "UGV_02_Base_F"], UCAV_BPJam_Radius];
+				_nearDrones = (getPos player) nearEntities [["UAV_01_base_F", "UAV_06_base_F", "UGV_02_Base_F"], AUCAVs_BPJam_Radius];
 		
 
 				{
 					_drone = _x;
 					if ((count crew _drone) > 0) then {
 						if (_drone getVariable ["UCAV_Jammed", false]) exitWith {};
-						if ((count (lineIntersectsSurfaces [eyePos player, (_drone modelToWorldWorld [0,0,0.1]), _drone, player])) > 0) exitWith {};
+						_intersects = lineIntersectsObjs [eyePos player, (_drone modelToWorldWorld [0,0,0.1]), _drone, player];						
+						if ((count _intersects) > 3) exitWith {};
+						diag_log _intersects;
 						_drone setVariable ["UCAV_Jammed", true];						 
 						
 						[_drone] remoteExec ["deleteVehicleCrew", _drone];
@@ -1795,22 +1986,24 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					};
 				} forEach _nearDrones;
 
-
-				ACUAVs_BPJam_TimeLeft = ACUAVs_BPJam_Battery / ((UCAV_BPJam_Radius * 0.00016665) / 0.1);       
-				ACUAVs_BPJam_Battery = parseNumber ((ACUAVs_BPJam_Battery - (UCAV_BPJam_Radius * 0.00016665)) toFixed 2);						
-				diag_log [str ACUAVs_BPJam_Battery + "%", format ["%1m %2s", floor (ACUAVs_BPJam_TimeLeft / 60), floor (ACUAVs_BPJam_TimeLeft mod 60)]];
+				ACUAVs_BPJam_TimeLeft = ACUAVs_BPJam_Battery / ((AUCAVs_BPJam_Radius * 0.00016665) / 0.1);       
+				ACUAVs_BPJam_Battery = ACUAVs_BPJam_Battery - (AUCAVs_BPJam_Radius * 0.00016665);
+		
+				if (ACUAVs_BPJam_Battery < 10 && ACUAVs_BPJam_Battery > 9.9) then {
+					_duration = if (AUCAVs_BPJam_Radius * 0.01 > 0.5) then { 0.5 } else { AUCAVs_BPJam_Radius * 0.01 };
+					"UCAVs_InventoryTxt" cutText ["<br/><t color='#FF0000' size='1.5'>Low Jammer Battery Warning!", "PLAIN DOWN", _duration, true, true, true];
+				};
 		
 				sleep 0.1;
 			};	
 		};				
 	};
-	{ _backpackSlot = (findDisplay 602) displayCtrl 6306 };
 
 
 
 
-	ACUAVs_SDJam_LMBHeld = false;
-	ACUAVs_BPJam_JHeld = false;
+	if (isNil "ACUAVs_SDJam_LMBHeld") then { ACUAVs_SDJam_LMBHeld = false };
+	if (isNil "ACUAVs_BPJam_JHeld") then { ACUAVs_BPJam_JHeld = false };
 
 	AdvancedUCAVs_AddKeybinds_fnc = {
 		_display = findDisplay 46;
@@ -1827,7 +2020,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (_key != 36) exitWith {}; "J";			
 			if !(missionNamespace getVariable ["AUCAVs_BackpackJammingON", true]) exitWith {};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};			
-			if !("radiobag" in (toLower (backpack player))) exitWith {};
+			if !("_radiobag_" in (toLower (backpack player))) exitWith {};
 			if (ACUAVs_BPJam_JHeld) exitWith {};
 			ACUAVs_BPJam_JHeld = true;
 			
@@ -1931,19 +2124,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 			if (cameraOn != player) exitWith {};
 			if (currentMuzzle player != "hgun_esd_01_F") exitWith {};
-			if (cameraView != "GUNNER") exitWith { if (AdvancedUCAVs_wasHintShown) then { AdvancedUCAVs_wasHintShown = false }};
+			if (cameraView != "GUNNER") exitWith { if (AUCAVs_wasHintShown) then { AUCAVs_wasHintShown = false }};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};
 			if !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) exitWith {};
-			
-			if (_scroll > 0) then {
-				AdvancedUCAVs_SpectrumRadar_TextSize = AdvancedUCAVs_SpectrumRadar_TextSize + 0.001;
-			} else {
-				AdvancedUCAVs_SpectrumRadar_TextSize = AdvancedUCAVs_SpectrumRadar_TextSize - 0.001;
-			};
-			if (AdvancedUCAVs_SpectrumRadar_TextSize < 0) then { AdvancedUCAVs_SpectrumRadar_TextSize = 0 };
-			
-			"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Textsize: %1</t>", AdvancedUCAVs_SpectrumRadar_TextSize], "PLAIN DOWN", 0.3, false, true, true];
-								
+
+			_value = AUCAVs_SpectrumRadar_TextSize;
+			_newValue = if (_scroll > 0) then { _value + 0.001 } else { if (_value - 0.001 < 0) then { 0 } else { _value - 0.001 } };	
+			AUCAVs_SpectrumRadar_TextSize = _newValue;	
+			_defaultTxt = if (str _newValue == "0.035") then { " (Default)" } else { "" };
+			"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Textsize: %1%2</t>", _newValue, _defaultTxt], "PLAIN DOWN", 0.3, false, true, true];						
 		}];				
 	};
 	[] spawn AdvancedUCAVs_AddKeybinds_fnc;
@@ -2066,6 +2255,356 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
+	AdvancedUCAVs_selectDroneAndCraft_fnc = {
+		params ["_droneType", "_actionParams"];
+		_drone = _actionParams select 0;
+		
+
+		if (_droneType == "BombDrop") then {
+			
+			[_drone, "AR-2 Bomb Drop", 20, _actionParams, {
+				params ["_AR2_BombDrop", "_caller", "_actionId", "_arguments"];
+				
+				if ((_AR2_BombDrop getVariable ["DroneType", ""]) != "") exitWith {};
+				
+				["Log_Crafted", [name player, "AR-2 Bomb Drop Drone"]] call AdvancedUCAVs_LogMsg;
+				
+				titleText ["", "PLAIN DOWN", 0.01, true, true];
+				
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				
+				
+				_msg = "		
+				<t size='1.3'>Bomb Drop Drone Tip</t><br/><br/>
+				<t color='#FF0000'>Make sure to be at 50 meters or higher when dropping!</t><br/><br/>
+				Also, if you press <t color='#0094FF'>CTRL + Right Click</t> you can freelook in the drone camera.<br/>				
+				"; 
+				call (compile ("hintSilent " + "parse" + "Text " + "_msg"));			
+
+				_caller removeItem "HandGrenade";
+				
+				_AR2_BombDrop setVariable ["DroneType", "BombDrop", true];
+				
+				[_AR2_BombDrop,  (AUCAVs_FuelValues get "BombDrop") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_BombDrop];
+				
+				[_AR2_BombDrop, ["BombDemine_01_F", [-1]]] remoteExec ["addWeaponTurret", _AR2_BombDrop];
+				[_AR2_BombDrop, ["PylonRack_4Rnd_BombDemine_01_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AR2_BombDrop];
+				[_AR2_BombDrop, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_BombDrop];
+				[_AR2_BombDrop,  [[0],true]] remoteExec ["lockTurret", _AR2_BombDrop];
+				_AR2_BombDrop deleteVehicleCrew (gunner _AR2_BombDrop);
+				
+				_RGO_simpleObj = createSimpleObject ["a3\weapons_f\ammo\handgrenade.p3d", position _AR2_BombDrop];  
+				_RGO_simpleObj attachTo [_AR2_BombDrop, [0, 0.02, -0.15]]; 
+				[_RGO_simpleObj, 90] remoteExec ["setDir", 0, true];
+				[_RGO_simpleObj, 1.5] remoteExec ["setObjectScale", 0, true]; 		
+				_AR2_BombDrop setVariable ["RGO_simpleObj", _RGO_simpleObj, true];
+
+				_AR2_BombDrop setVariable ["AdvancedUCAVs_allAttachedTo", [_RGO_simpleObj], true];				
+
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;			
+		};
+		if (_droneType == "RPG7Launch") then {
+
+			[_drone, "AR-2 RPG-7 Launcher", 20, _actionParams, {
+				params ["_AR2_Rpg7", "_caller", "_actionId", "_arguments"];				
+			
+				if ((_AR2_Rpg7 getVariable ["DroneType", ""]) != "") exitWith {};
+			
+				["Log_Crafted", [name player, "AR-2 RPG-7 Drone"]] call AdvancedUCAVs_LogMsg;
+			
+				titleText ["", "PLAIN DOWN", 0.01, true, true];
+
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeWeapon "launch_RPG7_F";
+				_AR2_Rpg7 setVariable ["DroneType", "RPG7Launch", true];
+								
+				[_AR2_Rpg7, (AUCAVs_FuelValues get "RPG7Launch") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_Rpg7];
+				
+				[_AR2_Rpg7, ["launch_RPG7_F", [-1]]] remoteExec ["addWeaponTurret", _AR2_Rpg7];
+				[_AR2_Rpg7, ["RPG7_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AR2_Rpg7];
+				[_AR2_Rpg7, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_Rpg7];
+				[_AR2_Rpg7,  [[0],true]] remoteExec ["lockTurret", _AR2_Rpg7];
+				_AR2_Rpg7 deleteVehicleCrew gunner _AR2_Rpg7;
+				
+				_RPG7_simpleObj = createSimpleObject ["a3\weapons_f_exp\launchers\rpg7\rpg7_f.p3d", position _AR2_Rpg7];  
+				_RPG7_simpleObj attachTo [_AR2_Rpg7, [0, 0, 0.21]];  
+				[_RPG7_simpleObj, 90] remoteExec ["setDir", 0, true];  
+				_RPG7_simpleObj enableSimulation false;  			
+				_AR2_Rpg7 setVariable ["RPG7_simpleObj", _RPG7_simpleObj, true]; 
+							
+				_rocket7_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AR2_Rpg7];  
+				_rocket7_simpleObj attachTo [_AR2_Rpg7, [0, 0.29, 0.165]];  
+				[_rocket7_simpleObj, 90] remoteExec ["setDir", 0, true]; 
+				_rocket7_simpleObj enableSimulation false;    
+				_AR2_Rpg7 setVariable ["rocket7_simpleObj", _rocket7_simpleObj, true];  
+				
+				_AR2_Rpg7 setVariable ["AdvancedUCAVs_allAttachedTo", [_RPG7_simpleObj,_rocket7_simpleObj], true];				
+			
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;			
+		};
+		if (_droneType == "KamikazeLightHE") then {
+			
+			[_drone, "AR-2 Kamikaze FPV [Light HE]", 20, _actionParams, {
+				params ["_AR2_KamikazeLightHE", "_caller", "_actionId", "_arguments"];				
+			
+				if ((_AR2_KamikazeLightHE getVariable ["DroneType", ""]) != "") exitWith {};
+			
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light HE]"]] call AdvancedUCAVs_LogMsg;
+			
+				titleText ["", "PLAIN DOWN", 0.01, true, true];
+
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeItem "APERSMine_Range_Mag";
+				_AR2_KamikazeLightHE setVariable ["DroneType", "KamikazeLightHE", true];
+										
+				[_AR2_KamikazeLightHE, (AUCAVs_FuelValues get "KamikazeLightHE") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeLightHE];
+
+				[_AR2_KamikazeLightHE,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeLightHE];
+				_AR2_KamikazeLightHE deleteVehicleCrew gunner _AR2_KamikazeLightHE;
+				[_AR2_KamikazeLightHE, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeLightHE, true];
+
+				_UXO_simpleObj = createSimpleObject ["a3\weapons_f_orange\explosives\bombcluster_01_uxo1_f.p3d", position _AR2_KamikazeLightHE];
+				_UXO_simpleObj attachTo [_AR2_KamikazeLightHE, [0, 0.05, -0.13]];
+				[_UXO_simpleObj, 0] remoteExec ["setDir", 0, true];
+				[_UXO_simpleObj, 1.6] remoteExec ["setObjectScale", 0, true];
+			
+				_AR2_KamikazeLightHE setVariable ["AdvancedUCAVs_allAttachedTo", [_UXO_simpleObj], true];				
+				
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+		};
+		if (_droneType == "KamikazeLightAT") then {		
+			
+			[_drone, "AR-2 Kamikaze FPV [Light AT]", 20, _actionParams, {
+				params ["_AR2_KamikazeLightAT", "_caller", "_actionId", "_arguments"];				
+			
+				if ((_AR2_KamikazeLightAT getVariable ["DroneType", ""]) != "") exitWith {};
+			
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light AT]"]] call AdvancedUCAVs_LogMsg;
+		
+				titleText ["", "PLAIN DOWN", 0.01, true, true];	
+
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeItem "RPG7_F";
+				_AR2_KamikazeLightAT setVariable ["DroneType", "KamikazeLightAT", true];
+				
+				[_AR2_KamikazeLightAT, (AUCAVs_FuelValues get "KamikazeLightAT") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeLightAT];
+
+				[_AR2_KamikazeLightAT,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeLightAT];
+				_AR2_KamikazeLightAT deleteVehicleCrew (gunner _AR2_KamikazeLightAT);
+				[_AR2_KamikazeLightAT, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeLightAT];
+
+				_rpg7rocket_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AR2_KamikazeLightAT];
+				_rpg7rocket_simpleObj attachTo [_AR2_KamikazeLightAT, [0, 0.085, -0.12]];
+				[_rpg7rocket_simpleObj, 90] remoteExec ["setDir", 0, true];
+				
+				_AR2_KamikazeLightAT setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg7rocket_simpleObj], true];				
+			
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+		};		
+		if (_droneType == "KamikazeHeavyHE") then {
+			
+			[_drone, "AR-2 Kamikaze FPV [Heavy HE]", 30, _actionParams, {
+				params ["_AR2_KamikazeHeavyHE", "_caller", "_actionId", "_arguments"];				
+				
+				if ((_AR2_KamikazeHeavyHE getVariable ["DroneType", ""]) != "") exitWith {};
+				
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy HE]"]] call AdvancedUCAVs_LogMsg;					
+				
+				titleText ["", "PLAIN DOWN", 0.01, true, true];
+
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeItem "MRAWS_HE_F";
+				_AR2_KamikazeHeavyHE setVariable ["DroneType", "KamikazeHeavyHE", true];
+				
+				[_AR2_KamikazeHeavyHE, (AUCAVs_FuelValues get "KamikazeHeavyHE") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeHeavyHE];
+
+				[_AR2_KamikazeHeavyHE,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeHeavyHE, true];
+				_AR2_KamikazeHeavyHE deleteVehicleCrew gunner _AR2_KamikazeHeavyHE;
+				[_AR2_KamikazeHeavyHE, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeHeavyHE, true];
+
+				_maawsFront_simpleObj = createSimpleObject ["a3\weapons_f_tank\launchers\mraws\rocket_mraws_he_f_item.p3d", [0, 0, 0]];
+				_maawsFront_simpleObj attachTo [_AR2_KamikazeHeavyHE, [0, -0.01, -0.15]];
+				_maawsFront_simpleObj setVectorDirAndUp [[1,0,0], [1,1,0]];
+				[_maawsFront_simpleObj, 1.3] remoteExec ["setObjectScale", 0, true];
+
+				_maawsBack_simpleObj = createSimpleObject ["a3\weapons_f_tank\launchers\mraws\rocket_mraws_he_f_item.p3d", [0, 0, 0]];
+				_maawsBack_simpleObj attachTo [_AR2_KamikazeHeavyHE, [0, -0.34, -0.15]];
+				_maawsBack_simpleObj setVectorDirAndUp [[1,0,0], [1,1,0]];
+				[_maawsBack_simpleObj, 1.3] remoteExec ["setObjectScale", 0, true];
+				
+				_AR2_KamikazeHeavyHE setVariable ["AdvancedUCAVs_allAttachedTo", [_maawsFront_simpleObj,_maawsBack_simpleObj], true];				
+			
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+		};
+		if (_droneType == "KamikazeHeavyAT") then {
+			
+			[_drone, "AR-2 Kamikaze FPV [Heavy AT]", 30, _actionParams, {
+				params ["_AR2_KamikazeHeavyAT", "_caller", "_actionId", "_arguments"];				
+			
+				if ((_AR2_KamikazeHeavyAT getVariable ["DroneType", ""]) != "") exitWith {};
+			
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy AT]"]] call AdvancedUCAVs_LogMsg;
+		
+				titleText ["", "PLAIN DOWN", 0.01, true, true];	
+
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeItem "Titan_AT";
+				_AR2_KamikazeHeavyAT setVariable ["DroneType", "KamikazeHeavyAT", true];
+				
+				[_AR2_KamikazeHeavyAT, (AUCAVs_FuelValues get "KamikazeHeavyAT") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeHeavyAT];
+
+				[_AR2_KamikazeHeavyAT,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeHeavyAT];
+				_AR2_KamikazeHeavyAT deleteVehicleCrew (gunner _AR2_KamikazeHeavyAT);
+				[_AR2_KamikazeHeavyAT, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeHeavyAT];
+
+				_titanRocket_simpleObj = createSimpleObject ["a3\weapons_f_beta\launchers\titan\titan_missile_atl.p3d", position _AR2_KamikazeHeavyAT];
+				_titanRocket_simpleObj attachTo [_AR2_KamikazeHeavyAT, [-0.009, -0.46, -0.15]];
+				_titanRocket_simpleObj setVectorDirAndUp [[0, -1, 0], [1, 0, 0]];				
+				
+				_AR2_KamikazeHeavyAT setVariable ["AdvancedUCAVs_allAttachedTo", [_titanRocket_simpleObj], true];				
+			
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+		};		
+		if (_droneType == "BombCarrier") then {
+			
+			[_drone, "AL-6 Bomb Carrier", 20, _actionParams, {
+				params ["_AL6_BombCarrier", "_caller", "_actionId", "_arguments"];				
+				
+				["Log_Crafted", [name player, "AL-6 Bomb Carrier Drone"]] call AdvancedUCAVs_LogMsg;		
+				
+				titleText ["", "PLAIN DOWN", 0.01, true, true];					
+				
+				[_AL6_BombCarrier] call AdvancedUCAVs_DestroyRope_fnc;
+				
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+
+
+				_msg = "		
+				<t size='1.3'>Bomb Carrier Drone Tip</t><br/><br/>
+				<t color='#FF0000'>Make sure to be at 30 meters or higher when dropping!</t><br/><br/>
+				Also, if you press <t color='#0094FF'>CTRL + Right Click</t> you can freelook in the drone camera.<br/>				
+				"; 
+				call (compile ("hintSilent " + "parse" + "Text " + "_msg"));				
+				
+				
+				for "_i" from 1 to 4 do { _caller removeItem "HandGrenade" };
+				
+				[_AL6_BombCarrier, true] remoteExec ["lockInventory", 0, true];
+				clearBackpackCargoGlobal _AL6_BombCarrier;
+				clearItemCargoGlobal _AL6_BombCarrier;
+				clearMagazineCargoGlobal _AL6_BombCarrier;
+				clearWeaponCargoGlobal _AL6_BombCarrier;
+					
+				_AL6_BombCarrier setVariable ["DroneType", "BombCarrier", true];
+					
+				[_AL6_BombCarrier, ["BombDemine_01_F", [-1]]] remoteExec ["addWeaponTurret", _AL6_BombCarrier];
+				[_AL6_BombCarrier, ["PylonRack_4Rnd_BombDemine_01_F", [-1]]] remoteExec ["addMagazineTurret", _AL6_BombCarrier]; 
+				
+				[_AL6_BombCarrier, (AUCAVs_FuelValues get "BombCarrier") select 0] remoteExec ["setFuelConsumptionCoef", _AL6_BombCarrier];
+											
+																				
+				_rgoAttachPositions = [[0.1, 0.14, -0.23], [-0.1, 0.14, -0.23], [0.1, -0.1, -0.23], [-0.1, -0.1, -0.23]];
+				
+				_attachedToList = [];
+				{				
+					_attachPos = _x;
+					_RGO_simpleObj = createSimpleObject ["a3\weapons_f\ammo\handgrenade.p3d", position _AL6_BombCarrier];  
+					_RGO_simpleObj attachTo [_AL6_BombCarrier, _attachPos]; 
+					[_RGO_simpleObj, 90] remoteExec ["setDir", 0, true];
+					[_RGO_simpleObj, 1.5] remoteExec ["setObjectScale", 0, true];
+						
+					_varName = format ["RGO_simpleObj_%1", _forEachIndex + 1];
+					_AL6_BombCarrier setVariable [_varName, _RGO_simpleObj, true]; 
+					
+					_attachedToList pushBack _RGO_simpleObj;
+				} forEach _rgoAttachPositions;
+				
+				_AL6_BombCarrier setVariable ["AdvancedUCAVs_allAttachedTo", _attachedToList, true];			
+					
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+		};
+		if (_droneType == "RPG7LaunchAL6") then {
+			[_drone, "AL-6 RPG-7 Launcher", 10, _actionParams, {
+				params ["_AL6_RPG7Launch", "_caller", "_actionId", "_arguments"];				
+				
+				["Log_Crafted", [name player, "AL-6 RPG-7 Drone"]] call AdvancedUCAVs_LogMsg;
+					
+				[_AL6_RPG7Launch] call AdvancedUCAVs_DestroyRope_fnc;				
+				
+				titleText ["", "PLAIN DOWN", 0.01, true, true];	
+				
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeWeapon "launch_RPG7_F";
+				
+				[_AL6_RPG7Launch, true] remoteExec ["lockInventory", 0, true];
+				clearBackpackCargoGlobal _AL6_RPG7Launch;
+				clearItemCargoGlobal _AL6_RPG7Launch;
+				clearMagazineCargoGlobal _AL6_RPG7Launch;
+				clearWeaponCargoGlobal _AL6_RPG7Launch;
+						
+				_AL6_RPG7Launch setVariable ["DroneType", "RPG7LaunchAL6", true];
+						
+				[_AL6_RPG7Launch, ["launch_RPG7_F", [-1]]] remoteExec ["addWeaponTurret", _AL6_RPG7Launch];
+				[_AL6_RPG7Launch, ["RPG7_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG7Launch];
+
+				[_AL6_RPG7Launch, (AUCAVs_FuelValues get "RPG7LaunchAL6") select 0] remoteExec ["setFuelConsumptionCoef", _AL6_RPG7Launch];
+					  
+				_rpg7_simpleObj = createSimpleObject ["a3\weapons_f_exp\launchers\rpg7\rpg7_f.p3d", position _AL6_RPG7Launch];  
+				_rpg7_simpleObj attachTo [_AL6_RPG7Launch, [0, 0.06, 0.005]];  
+				[_rpg7_simpleObj, 90] remoteExec ["setDir", 0, true];  
+				_rpg7_simpleObj enableSimulation false;  
+				_AL6_RPG7Launch setVariable ["RPG7_simpleObj", _rpg7_simpleObj, true]; 
+
+				_rocket7_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AL6_RPG7Launch];  
+				_rocket7_simpleObj attachTo [_AL6_RPG7Launch, [0, 0.35, -0.04]];  
+				[_rocket7_simpleObj, 90] remoteExec ["setDir", 0, true];				
+				_rocket7_simpleObj enableSimulation false; 
+				_AL6_RPG7Launch setVariable ["rocket7_simpleObj", _rocket7_simpleObj, true]; 	
+
+				_AL6_RPG7Launch setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg7_simpleObj,_rocket7_simpleObj], true];			
+			
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+		};
+		if (_droneType == "RPG42Launch") then {
+			[_drone, "AL-6 RPG-42 Launcher", 20, _actionParams, {
+				params ["_AL6_RPG42Launch", "_caller", "_actionId", "_arguments"];				
+				
+				["Log_Crafted", [name player, "AL-6 RPG-42 Drone"]] call AdvancedUCAVs_LogMsg;
+				
+				[_AL6_RPG42Launch] call AdvancedUCAVs_DestroyRope_fnc;					
+				
+				titleText ["", "PLAIN DOWN", 0.01, true, true];
+
+				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
+				_caller removeWeapon "launch_RPG32_F";
+				
+				[_AL6_RPG42Launch, true] remoteExec ["lockInventory", 0, true];
+				clearBackpackCargoGlobal _AL6_RPG42Launch;
+				clearItemCargoGlobal _AL6_RPG42Launch;
+				clearMagazineCargoGlobal _AL6_RPG42Launch;
+				clearWeaponCargoGlobal _AL6_RPG42Launch;	
+				
+				_AL6_RPG42Launch setVariable ["DroneType", "RPG42Launch", true];
+				
+				[_AL6_RPG42Launch, ["launch_RPG32_F", [-1]]] remoteExec ["addWeaponTurret", _AL6_RPG42Launch];
+				[_AL6_RPG42Launch, ["RPG32_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG42Launch];
+				
+				[_AL6_RPG42Launch, (AUCAVs_FuelValues get "RPG42Launch") select 0] remoteExec ["setFuelConsumptionCoef", _AL6_RPG42Launch];
+				
+				_rpg42 = createSimpleObject ["a3\weapons_f\launchers\rpg32\rpg32_loaded_f.p3d", position _AL6_RPG42Launch]; 
+				_rpg42 attachTo [_AL6_RPG42Launch, [0.01, 0.2, -0.06]]; 
+				[_rpg42, 90] remoteExec ["setDir", 0, true];  
+				
+				_AL6_RPG42Launch setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg42], true];				
+				
+			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;			
+		};
+
+	};
+	
+
+
+	
 	AdvancedUCAVs_addToDrone_EventHandlers_fnc = {	
 		params ["_drone"];
 		
@@ -2082,7 +2621,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				deleteVehicle _drone;						
 			}] remoteExec ["spawn", 2];
 
-			{ [_drone, _x] remoteExec ["removeAction", 0, true] } forEach (_drone getVariable ["AdvancedUCAVs_allActionIDs", []]);	
+			{ [_drone, _x] remoteExec ["removeAction"] } forEach (_drone getVariable ["AdvancedUCAVs_allActionIDs", []]);	
 
 			{ deleteVehicle _x } forEach (_drone getVariable ["AdvancedUCAVs_allAttachedTo", []]);
 			
@@ -2470,46 +3009,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildRGO = [_caller, "HandGrenade"] call BIS_fnc_hasItem;
 			if (!_hasBuildRGO) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RGO Grenade", "PLAIN DOWN", 0.5, true, true] };
 				
-			[_AR2_BombDrop, "AR-2 Bomb Drop", 20, _this, {
-				params ["_AR2_BombDrop", "_caller", "_actionId", "_arguments"];
-				
-				if ((_AR2_BombDrop getVariable ["DroneType", ""]) != "") exitWith {};
-				
-				["Log_Crafted", [name player, "AR-2 Bomb Drop Drone"]] call AdvancedUCAVs_LogMsg;
-				
-				titleText ["", "PLAIN DOWN", 0.01, true, true];
-				
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				
-				
-				_msg = "		
-				<t size='1.3'>Bomb Drop Drone Tip</t><br/><br/>
-				<t color='#FF0000'>Make sure to be at 50 meters or higher when dropping!</t><br/><br/>
-				Also, if you press <t color='#0094FF'>CTRL + Right Click</t> you can freelook in the drone camera.<br/>				
-				"; 
-				call (compile ("hintSilent " + "parse" + "Text " + "_msg"));			
-
-				_caller removeItem "HandGrenade";
-				
-				_AR2_BombDrop setVariable ["DroneType", "BombDrop", true];
-				
-				[_AR2_BombDrop,  (AUCAVs_FuelValues get "BombDrop") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_BombDrop];
-				
-				[_AR2_BombDrop, ["BombDemine_01_F", [-1]]] remoteExec ["addWeaponTurret", _AR2_BombDrop];
-				[_AR2_BombDrop, ["PylonRack_4Rnd_BombDemine_01_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AR2_BombDrop];
-				[_AR2_BombDrop, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_BombDrop];
-				[_AR2_BombDrop,  [[0],true]] remoteExec ["lockTurret", _AR2_BombDrop];
-				_AR2_BombDrop deleteVehicleCrew (gunner _AR2_BombDrop);
-				
-				_RGO_simpleObj = createSimpleObject ["a3\weapons_f\ammo\handgrenade.p3d", position _AR2_BombDrop];  
-				_RGO_simpleObj attachTo [_AR2_BombDrop, [0, 0.02, -0.15]]; 
-				[_RGO_simpleObj, 90] remoteExec ["setDir", 0, true];
-				[_RGO_simpleObj, 1.5] remoteExec ["setObjectScale", 0, true]; 		
-				_AR2_BombDrop setVariable ["RGO_simpleObj", _RGO_simpleObj, true];
-
-				_AR2_BombDrop setVariable ["AdvancedUCAVs_allAttachedTo", [_RGO_simpleObj], true];				
-
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;
+			["BombDrop", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
 
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2BombDropON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 
@@ -2550,42 +3050,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildLauncher = [_caller, "launch_RPG7_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildLauncher) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-7 Rocket Launcher", "PLAIN DOWN", 0.5, true, true] };
 			
-			[_AR2_Rpg7, "AR-2 RPG-7 Launcher", 20, _this, {
-				params ["_AR2_Rpg7", "_caller", "_actionId", "_arguments"];				
-			
-				if ((_AR2_Rpg7 getVariable ["DroneType", ""]) != "") exitWith {};
-			
-				["Log_Crafted", [name player, "AR-2 RPG-7 Drone"]] call AdvancedUCAVs_LogMsg;
-			
-				titleText ["", "PLAIN DOWN", 0.01, true, true];
-
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeWeapon "launch_RPG7_F";
-				_AR2_Rpg7 setVariable ["DroneType", "RPG7Launch", true];
-								
-				[_AR2_Rpg7, (AUCAVs_FuelValues get "RPG7Launch") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_Rpg7];
-				
-				[_AR2_Rpg7, ["launch_RPG7_F", [-1]]] remoteExec ["addWeaponTurret", _AR2_Rpg7];
-				[_AR2_Rpg7, ["RPG7_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AR2_Rpg7];
-				[_AR2_Rpg7, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_Rpg7];
-				[_AR2_Rpg7,  [[0],true]] remoteExec ["lockTurret", _AR2_Rpg7];
-				_AR2_Rpg7 deleteVehicleCrew gunner _AR2_Rpg7;
-				
-				_RPG7_simpleObj = createSimpleObject ["a3\weapons_f_exp\launchers\rpg7\rpg7_f.p3d", position _AR2_Rpg7];  
-				_RPG7_simpleObj attachTo [_AR2_Rpg7, [0, 0, 0.21]];  
-				[_RPG7_simpleObj, 90] remoteExec ["setDir", 0, true];  
-				_RPG7_simpleObj enableSimulation false;  			
-				_AR2_Rpg7 setVariable ["RPG7_simpleObj", _RPG7_simpleObj, true]; 
-							
-				_rocket7_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AR2_Rpg7];  
-				_rocket7_simpleObj attachTo [_AR2_Rpg7, [0, 0.29, 0.165]];  
-				[_rocket7_simpleObj, 90] remoteExec ["setDir", 0, true]; 
-				_rocket7_simpleObj enableSimulation false;    
-				_AR2_Rpg7 setVariable ["rocket7_simpleObj", _rocket7_simpleObj, true];  
-				
-				_AR2_Rpg7 setVariable ["AdvancedUCAVs_allAttachedTo", [_RPG7_simpleObj,_rocket7_simpleObj], true];			
-			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;
+			["RPG7Launch", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
 				
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2Rpg7ON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 		
@@ -2626,33 +3091,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildAPmine = [_caller, "APERSMine_Range_Mag"] call BIS_fnc_hasItem;
 			if (!_hasBuildAPmine) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an APERS Mine", "PLAIN DOWN", 0.5, true, true] };	
 														
-			[_AR2_KamikazeLightHE, "AR-2 Kamikaze FPV [Light HE]", 20, _this, {
-				params ["_AR2_KamikazeLightHE", "_caller", "_actionId", "_arguments"];				
-			
-				if ((_AR2_KamikazeLightHE getVariable ["DroneType", ""]) != "") exitWith {};
-			
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light HE]"]] call AdvancedUCAVs_LogMsg;
-			
-				titleText ["", "PLAIN DOWN", 0.01, true, true];
-
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeItem "APERSMine_Range_Mag";
-				_AR2_KamikazeLightHE setVariable ["DroneType", "KamikazeLightHE", true];
-										
-				[_AR2_KamikazeLightHE, (AUCAVs_FuelValues get "KamikazeLightHE") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeLightHE];
-
-				[_AR2_KamikazeLightHE,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeLightHE];
-				_AR2_KamikazeLightHE deleteVehicleCrew gunner _AR2_KamikazeLightHE;
-				[_AR2_KamikazeLightHE, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeLightHE, true];
-
-				_UXO_simpleObj = createSimpleObject ["a3\weapons_f_orange\explosives\bombcluster_01_uxo1_f.p3d", position _AR2_KamikazeLightHE];
-				_UXO_simpleObj attachTo [_AR2_KamikazeLightHE, [0, 0.05, -0.13]];
-				[_UXO_simpleObj, 0] remoteExec ["setDir", 0, true];
-				[_UXO_simpleObj, 1.6] remoteExec ["setObjectScale", 0, true];
-			
-				_AR2_KamikazeLightHE setVariable ["AdvancedUCAVs_allAttachedTo", [_UXO_simpleObj], true];				
-				
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;				
+			["KamikazeLightHE", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
 						
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeLightHeON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 
@@ -2666,33 +3105,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildRPG = [_caller, "RPG7_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildRPG) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-7 Rocket", "PLAIN DOWN", 0.5, true, true] };
 	
-			[_AR2_KamikazeLightAT, "AR-2 Kamikaze FPV [Light AT]", 20, _this, {
-				params ["_AR2_KamikazeLightAT", "_caller", "_actionId", "_arguments"];				
-			
-				if ((_AR2_KamikazeLightAT getVariable ["DroneType", ""]) != "") exitWith {};
-			
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light AT]"]] call AdvancedUCAVs_LogMsg;
-		
-				titleText ["", "PLAIN DOWN", 0.01, true, true];	
-
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeItem "RPG7_F";
-				_AR2_KamikazeLightAT setVariable ["DroneType", "KamikazeLightAT", true];
-				
-				[_AR2_KamikazeLightAT, (AUCAVs_FuelValues get "KamikazeLightAT") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeLightAT];
-
-				[_AR2_KamikazeLightAT,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeLightAT];
-				_AR2_KamikazeLightAT deleteVehicleCrew (gunner _AR2_KamikazeLightAT);
-				[_AR2_KamikazeLightAT, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeLightAT];
-
-				_rpg7rocket_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AR2_KamikazeLightAT];
-				_rpg7rocket_simpleObj attachTo [_AR2_KamikazeLightAT, [0, 0.085, -0.12]];
-				[_rpg7rocket_simpleObj, 90] remoteExec ["setDir", 0, true];
-				
-				_AR2_KamikazeLightAT setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg7rocket_simpleObj], true];				
-			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;
-			
+			["KamikazeLightAT", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+						
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeLightAtON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 		
 		_AR2 setUserActionText [_actionID_KamikazeLightAT, "-> Make Kamikaze FPV [Light AT] (20s)", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\obsolete\ui_action_takeweapon_ca.paa'/><br/>Make Kamikaze FPV [Light AT] (20s)"];
@@ -2705,38 +3119,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildItem = [_caller, "MRAWS_HE_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildItem) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a MAAWS HE 44 Round", "PLAIN DOWN", 0.5, true, true] };
 			
-			[_AR2_KamikazeHeavyHE, "AR-2 Kamikaze FPV [Heavy HE]", 30, _this, {
-				params ["_AR2_KamikazeHeavyHE", "_caller", "_actionId", "_arguments"];				
-				
-				if ((_AR2_KamikazeHeavyHE getVariable ["DroneType", ""]) != "") exitWith {};
-				
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy HE]"]] call AdvancedUCAVs_LogMsg;					
-				
-				titleText ["", "PLAIN DOWN", 0.01, true, true];
-
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeItem "MRAWS_HE_F";
-				_AR2_KamikazeHeavyHE setVariable ["DroneType", "KamikazeHeavyHE", true];
-				
-				[_AR2_KamikazeHeavyHE, (AUCAVs_FuelValues get "KamikazeHeavyHE") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeHeavyHE];
-
-				[_AR2_KamikazeHeavyHE,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeHeavyHE, true];
-				_AR2_KamikazeHeavyHE deleteVehicleCrew gunner _AR2_KamikazeHeavyHE;
-				[_AR2_KamikazeHeavyHE, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeHeavyHE, true];
-
-				_maawsFront_simpleObj = createSimpleObject ["a3\weapons_f_tank\launchers\mraws\rocket_mraws_he_f_item.p3d", [0, 0, 0]];
-				_maawsFront_simpleObj attachTo [_AR2_KamikazeHeavyHE, [0, -0.01, -0.15]];
-				_maawsFront_simpleObj setVectorDirAndUp [[1,0,0], [1,1,0]];
-				[_maawsFront_simpleObj, 1.3] remoteExec ["setObjectScale", 0, true];
-
-				_maawsBack_simpleObj = createSimpleObject ["a3\weapons_f_tank\launchers\mraws\rocket_mraws_he_f_item.p3d", [0, 0, 0]];
-				_maawsBack_simpleObj attachTo [_AR2_KamikazeHeavyHE, [0, -0.34, -0.15]];
-				_maawsBack_simpleObj setVectorDirAndUp [[1,0,0], [1,1,0]];
-				[_maawsBack_simpleObj, 1.3] remoteExec ["setObjectScale", 0, true];
-				
-				_AR2_KamikazeHeavyHE setVariable ["AdvancedUCAVs_allAttachedTo", [_maawsFront_simpleObj,_maawsBack_simpleObj], true];				
-			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;
+			["KamikazeHeavyHE", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
 				
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeHeavyHeON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 
@@ -2750,32 +3133,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildItem = [_caller, "Titan_AT"] call BIS_fnc_hasItem;
 			if (!_hasBuildItem) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Titan AT Missile", "PLAIN DOWN", 0.5, true, true] };
 	
-			[_AR2_KamikazeHeavyAT, "AR-2 Kamikaze FPV [Heavy AT]", 30, _this, {
-				params ["_AR2_KamikazeHeavyAT", "_caller", "_actionId", "_arguments"];				
-			
-				if ((_AR2_KamikazeHeavyAT getVariable ["DroneType", ""]) != "") exitWith {};
-			
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy AT]"]] call AdvancedUCAVs_LogMsg;
-		
-				titleText ["", "PLAIN DOWN", 0.01, true, true];	
-
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeItem "Titan_AT";
-				_AR2_KamikazeHeavyAT setVariable ["DroneType", "KamikazeHeavyAT", true];
-				
-				[_AR2_KamikazeHeavyAT, (AUCAVs_FuelValues get "KamikazeHeavyAT") select 0] remoteExec ["setFuelConsumptionCoef", _AR2_KamikazeHeavyAT];
-
-				[_AR2_KamikazeHeavyAT,  [[0],true]] remoteExec ["lockTurret", _AR2_KamikazeHeavyAT];
-				_AR2_KamikazeHeavyAT deleteVehicleCrew (gunner _AR2_KamikazeHeavyAT);
-				[_AR2_KamikazeHeavyAT, ["Laserdesignator_mounted", [0]]] remoteExec ["removeWeaponTurret", _AR2_KamikazeHeavyAT];
-
-				_titanRocket_simpleObj = createSimpleObject ["a3\weapons_f_beta\launchers\titan\titan_missile_atl.p3d", position _AR2_KamikazeHeavyAT];
-				_titanRocket_simpleObj attachTo [_AR2_KamikazeHeavyAT, [-0.009, -0.46, -0.15]];
-				_titanRocket_simpleObj setVectorDirAndUp [[0, -1, 0], [1, 0, 0]];				
-				
-				_AR2_KamikazeHeavyAT setVariable ["AdvancedUCAVs_allAttachedTo", [_titanRocket_simpleObj], true];				
-			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;
+			["KamikazeHeavyAT", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
 			
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeHeavyAtON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 		
@@ -2824,62 +3182,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 			_hasBuildRGO = {_x == "HandGrenade"} count (magazines _caller);
 			if (_hasBuildRGO < 4) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need 4 RGO Grenades", "PLAIN DOWN", 0.5, true, true] };
-					
-			[_AL6_BombCarrier, "AL-6 Bomb Carrier", 20, _this, {
-				params ["_AL6_BombCarrier", "_caller", "_actionId", "_arguments"];				
-				
-				["Log_Crafted", [name player, "AL-6 Bomb Carrier Drone"]] call AdvancedUCAVs_LogMsg;		
-				
-				titleText ["", "PLAIN DOWN", 0.01, true, true];					
-				
-				[_AL6_BombCarrier] call AdvancedUCAVs_DestroyRope_fnc;
-				
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-
-
-				_msg = "		
-				<t size='1.3'>Bomb Carrier Drone Tip</t><br/><br/>
-				<t color='#FF0000'>Make sure to be at 30 meters or higher when dropping!</t><br/><br/>
-				Also, if you press <t color='#0094FF'>CTRL + Right Click</t> you can freelook in the drone camera.<br/>				
-				"; 
-				call (compile ("hintSilent " + "parse" + "Text " + "_msg"));				
-				
-				
-				for "_i" from 1 to 4 do { _caller removeItem "HandGrenade" };
-				
-				[_AL6_BombCarrier, true] remoteExec ["lockInventory", 0, true];
-				clearBackpackCargoGlobal _AL6_BombCarrier;
-				clearItemCargoGlobal _AL6_BombCarrier;
-				clearMagazineCargoGlobal _AL6_BombCarrier;
-				clearWeaponCargoGlobal _AL6_BombCarrier;
-					
-				_AL6_BombCarrier setVariable ["DroneType", "BombCarrier", true];
-					
-				[_AL6_BombCarrier, ["BombDemine_01_F", [-1]]] remoteExec ["addWeaponTurret", _AL6_BombCarrier];
-				[_AL6_BombCarrier, ["PylonRack_4Rnd_BombDemine_01_F", [-1]]] remoteExec ["addMagazineTurret", _AL6_BombCarrier]; 
-				
-				[_AL6_BombCarrier, (AUCAVs_FuelValues get "BombCarrier") select 0] remoteExec ["setFuelConsumptionCoef", _AL6_BombCarrier];
-											
-																				
-				_rgoAttachPositions = [[0.1, 0.14, -0.23], [-0.1, 0.14, -0.23], [0.1, -0.1, -0.23], [-0.1, -0.1, -0.23]];
-				
-				_attachedToList = [];
-				{				
-					_attachPos = _x;
-					_RGO_simpleObj = createSimpleObject ["a3\weapons_f\ammo\handgrenade.p3d", position _AL6_BombCarrier];  
-					_RGO_simpleObj attachTo [_AL6_BombCarrier, _attachPos]; 
-					[_RGO_simpleObj, 90] remoteExec ["setDir", 0, true];
-					[_RGO_simpleObj, 1.5] remoteExec ["setObjectScale", 0, true];
-						
-					_varName = format ["RGO_simpleObj_%1", _forEachIndex + 1];
-					_AL6_BombCarrier setVariable [_varName, _RGO_simpleObj, true]; 
-					
-					_attachedToList pushBack _RGO_simpleObj;
-				} forEach _rgoAttachPositions;
-				
-				_AL6_BombCarrier setVariable ["AdvancedUCAVs_allAttachedTo", _attachedToList, true];			
-					
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;
+		
+			["BombCarrier", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;	
 
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AL6BombCarrierON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 		
@@ -2924,46 +3228,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildLauncher6 = [_caller, "launch_RPG7_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildLauncher6) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-7 Rocket Launcher", "PLAIN DOWN", 0.5, true, true] };
 
-			[_AL6_RPG7Launch, "AL-6 RPG-7 Launcher", 10, _this, {
-				params ["_AL6_RPG7Launch", "_caller", "_actionId", "_arguments"];				
-				
-				["Log_Crafted", [name player, "AL-6 RPG-7 Drone"]] call AdvancedUCAVs_LogMsg;
-					
-				[_AL6_RPG7Launch] call AdvancedUCAVs_DestroyRope_fnc;				
-				
-				titleText ["", "PLAIN DOWN", 0.01, true, true];	
-				
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeWeapon "launch_RPG7_F";
-				
-				[_AL6_RPG7Launch, true] remoteExec ["lockInventory", 0, true];
-				clearBackpackCargoGlobal _AL6_RPG7Launch;
-				clearItemCargoGlobal _AL6_RPG7Launch;
-				clearMagazineCargoGlobal _AL6_RPG7Launch;
-				clearWeaponCargoGlobal _AL6_RPG7Launch;
-						
-				_AL6_RPG7Launch setVariable ["DroneType", "RPG7LaunchAL6", true];
-						
-				[_AL6_RPG7Launch, ["launch_RPG7_F", [-1]]] remoteExec ["addWeaponTurret", _AL6_RPG7Launch];
-				[_AL6_RPG7Launch, ["RPG7_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG7Launch];
-
-				[_AL6_RPG7Launch, (AUCAVs_FuelValues get "RPG7LaunchAL6") select 0] remoteExec ["setFuelConsumptionCoef", _AL6_RPG7Launch];
-					  
-				_rpg7_simpleObj = createSimpleObject ["a3\weapons_f_exp\launchers\rpg7\rpg7_f.p3d", position _AL6_RPG7Launch];  
-				_rpg7_simpleObj attachTo [_AL6_RPG7Launch, [0, 0.06, 0.005]];  
-				[_rpg7_simpleObj, 90] remoteExec ["setDir", 0, true];  
-				_rpg7_simpleObj enableSimulation false;  
-				_AL6_RPG7Launch setVariable ["RPG7_simpleObj", _rpg7_simpleObj, true]; 
-
-				_rocket7_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AL6_RPG7Launch];  
-				_rocket7_simpleObj attachTo [_AL6_RPG7Launch, [0, 0.35, -0.04]];  
-				[_rocket7_simpleObj, 90] remoteExec ["setDir", 0, true];				
-				_rocket7_simpleObj enableSimulation false; 
-				_AL6_RPG7Launch setVariable ["rocket7_simpleObj", _rocket7_simpleObj, true]; 	
-
-				_AL6_RPG7Launch setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg7_simpleObj,_rocket7_simpleObj], true];			
-			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			["RPG7LaunchAL6", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;		
 		
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AL6Rpg7ON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 
@@ -3003,39 +3268,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 																						
 			_hasBuildLauncher42 = [_caller, "launch_RPG32_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildLauncher42) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-42 Rocket Launcher", "PLAIN DOWN", 0.5, true, true] };
-			
-			[_AL6_RPG42Launch, "AL-6 RPG-42 Launcher", 20, _this, {
-				params ["_AL6_RPG42Launch", "_caller", "_actionId", "_arguments"];				
-				
-				["Log_Crafted", [name player, "AL-6 RPG-42 Drone"]] call AdvancedUCAVs_LogMsg;
-				
-				[_AL6_RPG42Launch] call AdvancedUCAVs_DestroyRope_fnc;					
-				
-				titleText ["", "PLAIN DOWN", 0.01, true, true];
-
-				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
-				_caller removeWeapon "launch_RPG32_F";
-				
-				[_AL6_RPG42Launch, true] remoteExec ["lockInventory", 0, true];
-				clearBackpackCargoGlobal _AL6_RPG42Launch;
-				clearItemCargoGlobal _AL6_RPG42Launch;
-				clearMagazineCargoGlobal _AL6_RPG42Launch;
-				clearWeaponCargoGlobal _AL6_RPG42Launch;	
-				
-				_AL6_RPG42Launch setVariable ["DroneType", "RPG42Launch", true];
-				
-				[_AL6_RPG42Launch, ["launch_RPG32_F", [-1]]] remoteExec ["addWeaponTurret", _AL6_RPG42Launch];
-				[_AL6_RPG42Launch, ["RPG32_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG42Launch];
-				
-				[_AL6_RPG42Launch, (AUCAVs_FuelValues get "RPG42Launch") select 0] remoteExec ["setFuelConsumptionCoef", _AL6_RPG42Launch];
-				
-				_rpg42 = createSimpleObject ["a3\weapons_f\launchers\rpg32\rpg32_loaded_f.p3d", position _AL6_RPG42Launch]; 
-				_rpg42 attachTo [_AL6_RPG42Launch, [0.01, 0.2, -0.06]]; 
-				[_rpg42, 90] remoteExec ["setDir", 0, true];  
-				
-				_AL6_RPG42Launch setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg42], true];				
-				
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;				
+		
+			["RPG42Launch", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;	
 						
 		}, nil, 1.5, false, false, "", "(_this distance _target) >= 0.1 && (_this distance _target) < 2.5 && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AL6Rpg42ON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}"];
 		
@@ -3177,7 +3411,6 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			playSound3D ["A3\Sounds_F\arsenal\weapons\UGL\UGL_02.wss", _UGV, false, getPosASL _UGV, 2, 1, 200, 0, false];					
 			
 			_UGV setVariable ["AUCAV_UGVSmokeCount", (_UGV getVariable ["AUCAV_UGVSmokeCount", 3]) - 1, true];
-			titleText [("<t color='#00FF0C' size='1.7'>Smoke Counter: " + str (_UGV getVariable ["AUCAV_UGVSmokeCount", 3]) ) , "PLAIN DOWN", 0.5, true, true] 
 			
 		}, nil, 1.5, false, true, "", "(_this distance _target) < 0.01 && { (missionNamespace getVariable ['AUCAVs_ED1SmokeON', true]) && { ((getPos _target) select 2) < 2 }}"];
 		
@@ -3304,9 +3537,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		
 			
-		if (isNil { _drone getVariable "AdvancedUCAVs_allActionIDs" }) then {
-			_drone setVariable ["AdvancedUCAVs_allActionIDs", []];
-		};
+		{ 
+			_actionID = _x;
+			_drone removeAction _actionID;
+		} forEach (_drone getVariable ["AdvancedUCAVs_allActionIDs", []]);			
 		
 		
 		[_drone, ["CamouflageCoef", AUCAVs_camouflageCoef]] remoteExec ["setUnitTrait", _drone];
@@ -3356,8 +3590,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	
-	AdvancedUCAVs_wasHintShown = false;
-	AdvancedUCAVs_SpectrumRadar_TextSize = 0.035;
+	if (isNil "AUCAVs_wasHintShown") then { AUCAVs_wasHintShown = false };
+	if (isNil "AUCAVs_SpectrumRadar_TextSize") then { AUCAVs_SpectrumRadar_TextSize = 0.035 };
 
 	if (!isNil "AdvancedUCAVs_SpectrumRadar_Draw3DEH") then {
 		removeMissionEventHandler ["Draw3D", AdvancedUCAVs_SpectrumRadar_Draw3DEH];
@@ -3366,16 +3600,16 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		if (currentMuzzle player != "hgun_esd_01_F") exitWith {};
 		if (cameraOn != player) exitWith {};
 		if (cameraView != "GUNNER") exitWith { 
-			if !(AdvancedUCAVs_wasHintShown) exitWith {}; 
-			AdvancedUCAVs_wasHintShown = false;
+			if !(AUCAVs_wasHintShown) exitWith {}; 
+			AUCAVs_wasHintShown = false;
 							
 			if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true]) exitWith {};
 			["close"] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;
 		};
 		if (!alive player || lifeState player == "INCAPACITATED") exitWith {};	
 				
-		if !(AdvancedUCAVs_wasHintShown) then {
-			AdvancedUCAVs_wasHintShown = true;
+		if !(AUCAVs_wasHintShown) then {
+			AUCAVs_wasHintShown = true;
 			_txt = "<t size='1.4'>[CTRL + R] Toggle Spectrum Screen<br/>[R (While Not Aiming)] Switch Antennas";
 			
 			if (missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) then {
@@ -3394,20 +3628,34 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		
 		
-		_searchDistance = if ((handgunItems player) select 0 ==	"muzzle_antenna_02_f") then { 2000 } else { 1000 };
+		_hasExperimental = (handgunItems player) select 0 == "muzzle_antenna_02_f";
+		_searchDistance = if (_hasExperimental) then { 2000 } else { 1000 };
+		_objs = (allUnitsUAV select { _x distance player <= _searchDistance });
+		if (_hasExperimental) then {
+			_objs = _objs + (allPlayers select { _x distance player <= _searchDistance && { _x getVariable ["UCAV_JammingOn", false] && { _x != player }}});
+		};
+		
+
 		{		
+			_isVisibleToPlayer = (count (lineIntersectsSurfaces [eyePos player, (_x modelToWorldWorld [0,0,0.1]), _x, player])) <= 0;
+			_isRadioBag = isPlayer _x && { !(unitIsUAV _x) };
+			_condition = if (_hasExperimental && { _isRadioBag }) then { true } else { _isVisibleToPlayer };
+			
 			_color = if ((count (crew _x)) > 0) then { [side _x] call BIS_fnc_sideColor } else { [0.7, 0.6, 0, 1] };
-			if ((count (lineIntersectsSurfaces [eyePos player, (_x modelToWorldWorld [0,0,0.1]), _x, player])) <= 0) then {
+			_icon = if (_isRadioBag) then { "a3\ui_f\data\igui\cfg\holdactions\holdaction_connect_ca.paa" } else { (getText (configfile >> "CfgVehicles" >> typeOf _x >> "icon")) };
+			_txt = if (_isRadioBag) then { "Jamming Backpack" } else { _x call AdvancedUCAVs_getName_fnc };		
+			
+			if (_condition) then {
 				drawIcon3D [
-					(getText (configfile >> "CfgVehicles" >> typeOf _x >> "icon")), 		
+					_icon, 		
 					_color, 
 					(_x modelToWorld [0,0,0]), 
 					0.8, 
 					0.8, 
 					0, 
-					format ["%1 (%2m)", _x call AdvancedUCAVs_getName_fnc, (player distance _x) toFixed 1], 
+					format ["%1 (%2m)", _txt, (player distance _x) toFixed 1], 
 					2, 
-					AdvancedUCAVs_SpectrumRadar_TextSize, 
+					AUCAVs_SpectrumRadar_TextSize, 
 					"EtelkaMonospacePro", 
 					"right", 
 					true,
@@ -3415,7 +3663,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					-0.025
 				];			
 			};
-		} forEach (allUnitsUAV select { _x distance player <= _searchDistance });
+		} forEach _objs;
 
 	}];
 
@@ -3427,12 +3675,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	AdvancedUCAVs_BackpackJamming_DrawRadiusEH = _map ctrlAddEventHandler ["Draw", {
 		params ["_map"];
 		{
-			_radius = UCAV_BPJam_Radius;
+			_radius = AUCAVs_BPJam_Radius;
 			_c = [side _x] call BIS_fnc_sideColor;
 			_map drawEllipse [_x, _radius, _radius, 0, _c, format ["#(rgb,8,8,3)color(%1,%2,%3,0.2)", _c # 0, _c # 1, _c # 2], false];
 			
 			_txt = if (ctrlMapScale _map <= 0.02) then { format ["  Backpack Jammer (%1)", name _x] } else {""};
-			_map drawIcon ["a3\ui_f\data\igui\cfg\holdactions\holdaction_connect_ca.paa", _c, _x, 30, 30, 0, _txt, 1, 0.05, "TahomaB", "right"];	
+			_map drawIcon ["a3\ui_f\data\igui\cfg\holdactions\holdaction_connect_ca.paa", _c, _x, 0, 0, 0, _txt, 1, 0.05, "TahomaB", "right"];	
 
 		} forEach (allPlayers select { 
 			(_x getVariable ["UCAV_JammingOn", false]) 
@@ -3448,16 +3696,21 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"a3\ui_f\data\igui\rsctitles\rschvtphase\jac_a3_signal_4_ca.paa";		
 	};
 	
+	
 
 
-	AUCAVs_savedRole = "NOT_CONNECTED";
-	AUCAVs_savedUAV = objNull;
-	AdvancedUCAVs_timePlusTime = time + 0.01;
+	AUCAVs_timePlusTime = time + 0.01;
+	if (isNil "AUCAVs_savedRole") then { AUCAVs_savedRole = "NOT_CONNECTED" };
+	if (isNil "AUCAVs_savedUAV") then { AUCAVs_savedUAV = objNull };
+	if (isNil "AUCAVs_savedItems") then { AUCAVs_savedItems = [] };
+	if (isNil "AUCAVs_savedBackpack") then { AUCAVs_savedBackpack = "NONE" };
+	if (isNil "AUCAVs_REToServerDelay") then { AUCAVs_REToServerDelay = time + 1 };
+	if (isNil "AUCAVs_isMouseOverButton") then { AUCAVs_isMouseOverButton = false };
 
 	if (!isNil "AdvancedUCAVs_EachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_EachFrameEH] };
 	AdvancedUCAVs_EachFrameEH = addMissionEventHandler ["EachFrame", {	
-		if (time < AdvancedUCAVs_timePlusTime) exitWith {};
-		AdvancedUCAVs_timePlusTime = time + 0.01;
+		if (time < AUCAVs_timePlusTime) exitWith {};
+		AUCAVs_timePlusTime = time + 0.01;
 		
 		
 		["Drone Callsign Renaming"] call {	
@@ -3576,6 +3829,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_uavTerminalDisplay setVariable ["mainButton", _mainButton];
 		};
 		
+		
 		["Detect Drone Connections"] call {
 			_currentUAV = getConnectedUAV player;
 			
@@ -3615,17 +3869,170 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (AUCAVs_savedRole == _currentRole) exitWith {};
 			AUCAVs_savedRole = _currentRole;
 			["Log_Connected", [name player, _droneName, _droneType, _currentRole]] call AdvancedUCAVs_LogMsg;
-			_currentUAV setVariable ["lastRegisteredDriver", name player, true];			
-						
+			_currentUAV setVariable ["lastRegisteredDriver", name player, true];									
 		};
+	
 	
 		["ReAdd Diary"] call {
 			if (isNull (findDisplay 46)) exitWith {};
 			if (isNull (findDisplay 12)) exitWith {};
 			if (player diarySubjectExists "Advanced_UCAVs") exitWith {};		
-			[] call (AdvancedUCAVs_InitOnPlayer_fnc select 1);
+			if (isNil "AdvancedUCAVs_InitOnPlayer_fnc") exitWith {};
+			if (typeName AdvancedUCAVs_InitOnPlayer_fnc == "ARRAY") then {			
+				[true] call (AdvancedUCAVs_InitOnPlayer_fnc select 1);
+			} else {
+				[true] call AdvancedUCAVs_InitOnPlayer_fnc;
+			};			
 		};
+		
+
+		["Create Inventory Buttons"] call {
+			_inventory = findDisplay 602;	
+			if (isNull _inventory) exitWith { AUCAVs_isMouseOverButton = false };			
+			
+			_backpackLow = toLower (backpack player);		
+			
+			if (("_uav_" in _backpackLow) || ("_ugv_" in _backpackLow)) then {	
+				_saveButton = _inventory getVariable ["saveButton", controlNull];
+				if (!isNull _saveButton) exitWith { _saveButton ctrlShow (missionNamespace getVariable ["AUCAVs_BpItemStorageON", true])};			
+				_backpackSlot = _inventory displayCtrl 6191;
+				
+				_cPos = ctrlPosition _backpackSlot;
+				_saveButton = _inventory ctrlCreate ["RscButton", -1];
+				_saveButton ctrlSetPosition [(_cPos select 0) - 0.00655, (_cPos select 1) - 0.06, (_cPos select 2) + 0.014, 0.05];
+				_saveButton ctrlSetBackgroundColor [1,0,0,0.5];
+				_saveButton ctrlSetText "Save Items";
+				_saveButton ctrlSetToolTip "Save items in drone backpack.\nDue to arma/scripting reasons, you can't save items within a drone backpack as respawn loadout using an AIO arsenal option.\nThis script will attempt to give you these items manually whenever you respawn and you have this drone backpack";
+				_saveButton ctrlCommit 0;
+
+				_inventory setVariable ["saveButton", _saveButton];
+				
+				_saveButton ctrlAddEventHandler ["ButtonClick", {
+					AUCAVs_savedItems = backpackItems player;
+					AUCAVs_savedBackpack = backpack player;
+					systemChat "[Advanced UCAVs] : Drone Backpack Items Saved.";
+					diag_log ("[UCAV_LOG {DEBUG}] Items saved: " + str AUCAVs_savedItems);
+				}];
+			} else {
+				ctrlDelete (_inventory getVariable ["saveButton", controlNull]);
+			};			
+					
+			if ("_radiobag_" in _backpackLow) then {					
+				_refillButton = _inventory getVariable ["refillButton", controlNull];
+				if (!isNull _refillButton) exitWith {
+					_refillButton ctrlSetToolTip ((_refillButton getVariable "defaultToolTip") + (format ["\n\nRadius: %1m\nBattery: %2\nEmpty ETA: %3m %4s", str AUCAVs_BPJam_Radius, ((ACUAVs_BPJam_Battery) toFixed 1) + "%", floor (ACUAVs_BPJam_TimeLeft / 60), floor (ACUAVs_BPJam_TimeLeft mod 60)]));
+					_refillButton ctrlShow (missionNamespace getVariable ["AUCAVs_BackpackJammingON", true]);
+					getMousePosition params ["_mousePosX", "_mousePosY"];
+					([0.57895, 0.68295, 0.04, 0.09]) params ["_leftEdge", "_rightEdge", "_topEdge", "_bottomEdge"];
+					AUCAVs_isMouseOverButton = _mousePosX > _leftEdge && _mousePosX < _rightEdge && _mousePosY > _topEdge && _mousePosY < _bottomEdge;			
+				};
+				_backpackSlot = _inventory displayCtrl 6191;
+				
+				_cPos = ctrlPosition _backpackSlot;
+				_defaultToolTip = "Refill the battery of the Radio Backpack to use its jamming feature.\nRequires: Laser Designator Batteries\nEach battery adds 20%\nScroll while hovering over this button to change jamming radius";
+				_refillButton = _inventory ctrlCreate ["RscButton", -1];
+				_refillButton ctrlSetPosition [(_cPos select 0) - 0.00655, (_cPos select 1) - 0.06, (_cPos select 2) + 0.014, 0.05];
+				_refillButton ctrlSetBackgroundColor [1,0,0,0.5];
+				_refillButton ctrlSetText "Refill Battery";
+				_refillButton ctrlSetToolTip _defaultToolTip;
+				_refillButton ctrlCommit 0;			
 	
+				_refillButton setVariable ["defaultToolTip", _defaultToolTip];		
+				_inventory setVariable ["refillButton", _refillButton];
+				
+				_refillButton ctrlAddEventHandler ["ButtonClick", {
+					if !("Laserbatteries" in (uniformItems player + vestItems player + backpackItems player)) exitWith {
+						"UCAVs_InventoryTxt" cutText ["<br/><t color='#FF0000' size='1.5'>You need Laser Designator Batteries", "PLAIN DOWN", 0.5, true, true, true];
+					};
+					if (ACUAVs_BPJam_Battery >= 100) exitWith {
+						"UCAVs_InventoryTxt" cutText ["<br/><t color='#FF0000' size='1.5'>Battery is already 100%", "PLAIN DOWN", 0.5, true, true, true];
+					};
+					"UCAVs_InventoryTxt" cutText ["<br/><t color='#00FF0C' size='1.5'>Added 20% to battery", "PLAIN DOWN", 0.5, true, true, true];
+					ACUAVs_BPJam_Battery = ACUAVs_BPJam_Battery + 20;
+					if (ACUAVs_BPJam_Battery > 100) then { ACUAVs_BPJam_Battery = 100 };
+					player removeItem "Laserbatteries";
+				}];
+	
+				if (isNil { _inventory getVariable "AUCAVs_ScrolledEH" }) then {
+					_scrolledEH = _inventory displayAddEventHandler ["MouseZChanged", {
+						params ["_inventory", "_scroll"];
+
+						if !(AUCAVs_isMouseOverButton) exitWith {};							
+
+						_value = AUCAVs_BPJam_Radius;
+						_newValue = if (_scroll > 0) then { if (_value + 10 > 300) then { 300 } else { _value + 10 } } else { if (_value - 10 < 10) then { 10 } else { _value - 10 } };	
+						
+						AUCAVs_BPJam_Radius = _newValue;	
+						_defaultTxt = if (str _newValue == "100") then { " (Default)" } else { "" };
+						
+						"UCAVs_InventoryTxt" cutText [format["<br/><t color='#00FF0C' size='1.5'>Set Jamming Radius to %1m", _newValue], "PLAIN DOWN", 0.5, true, true, true]
+												
+					}];		
+					_inventory setVariable ["AUCAVs_ScrolledEH", _scrolledEH];
+				};			
+			
+			} else {
+				ctrlDelete (_inventory getVariable ["refillButton", controlNull]);
+			};			
+		};
+		
+		
+		["Set Backpack maxLoad"] call {
+			_backpackLow = toLower (backpack player);			
+			if (!("_uav_" in _backpackLow) && !("_ugv_" in _backpackLow)) exitWith {};		
+			_backpackContainer = backpackContainer player;
+			if !(missionNamespace getVariable ["AUCAVs_BpItemStorageON", true]) exitWith {
+				if (maxLoad _backpackContainer == getContainerMaxLoad _backpackLow) exitWith {};
+				if (time < AUCAVs_REToServerDelay) exitWith {};
+				AUCAVs_REToServerDelay = time + 1;				
+				[backpackContainer player, getContainerMaxLoad _backpackLow] remoteExec ["setMaxLoad", 2];	
+			};
+			if (maxLoad _backpackContainer > 0) exitWith {};	
+			if (time < AUCAVs_REToServerDelay) exitWith {};
+			AUCAVs_REToServerDelay = time + 1;
+			[_backpackContainer, 40] remoteExec ["setMaxLoad", 2];	
+		};
+
+
+		["Test if custom assemble options should be shown"] call {
+			if (cameraOn != player) exitWith {};
+			_bp = backpack player;
+			_C_notInBp = !("C_" in _bp);
+			_hasAR2NonCivBackpack = "UAV_01_backpack_F" in _bp && { _C_notInBp };
+			_hasAL6NonCivBackpack = "UAV_06_backpack_F" in _bp && { _C_notInBp };
+			_backpackItems = backpackItems player;
+			
+			AUCAVs_showOption_AR2BombDrop = _hasAR2NonCivBackpack && { "HandGrenade" in _backpackItems };
+			AUCAVs_showOption_AR2Rpg7Launch = _hasAR2NonCivBackpack && { secondaryWeapon player == "launch_RPG7_F" };
+			AUCAVs_showOption_AR2LightHE = _hasAR2NonCivBackpack && { "APERSMine_Range_Mag" in _backpackItems };
+			AUCAVs_showOption_AR2LightAT = _hasAR2NonCivBackpack && { "RPG7_F" in _backpackItems };
+			AUCAVs_showOption_AR2HeavyHE = _hasAR2NonCivBackpack && { "MRAWS_HE_F" in _backpackItems };
+			AUCAVs_showOption_AR2HeavyAT = _hasAR2NonCivBackpack && { "Titan_AT" in _backpackItems };
+					
+			AUCAVs_showOption_AL6BombCarrier = _hasAL6NonCivBackpack && { ({_x == "HandGrenade"} count (_backpackItems)) >= 4 };
+			AUCAVs_showOption_AL6Rpg7Launch = _hasAL6NonCivBackpack && { secondaryWeapon player == "launch_RPG7_F" };
+			AUCAVs_showOption_AL6Rpg42Launch = _hasAL6NonCivBackpack && { "launch_RPG32_" in secondaryWeapon player };
+		};
+
+
+		["Show Pelter smoke counter"] call {
+			_cameraOn = cameraOn;
+			_display = findDisplay 46;
+			_smokeCounter = _display getVariable ["AUCAVs_UGVSmokeCounter", controlNull];
+			if !(_cameraOn isKindOf "UGV_02_Base_F") exitWith { ctrlDelete _smokeCounter };
+			
+			
+			if (!isNull _smokeCounter) exitWith { _smokeCounter ctrlSetText (format ["Smoke Grenades: %1", _cameraOn getVariable ["AUCAV_UGVSmokeCount", 3]]) };
+
+			_smokeCounter = _display ctrlCreate ["RscText", -1];
+			_x = safeZoneX + (safeZoneW * 0.87);
+			_y = safeZoneY - (safeZoneH * 0.19);
+			_smokeCounter ctrlSetPosition [_x,_y,1,1];
+			_smokeCounter ctrlSetFontHeight (safeZoneH * 0.019);
+			_smokeCounter ctrlSetTextColor [0.9, 0.9, 0.9, 1];
+			_smokeCounter ctrlCommit 0;	
+			_display setVariable ["AUCAVs_UGVSmokeCounter", _smokeCounter];
+		};
 	}];
 
 
@@ -3686,7 +4093,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				if (_target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F") then {
 					if (!isNil "_previousSkill") exitWith {}; 
-					[["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy]] remoteExec ["diag_log", allPlayers];
+					[format ["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy]] remoteExec ["diag_log", allPlayers];
 					_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
 					_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];			
 				} else {				
@@ -3705,13 +4112,35 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	if (!isNil "AdvancedUCAVs_RespawnEH") then { 
-		player removeEventHandler ["Respawn", AdvancedUCAVs_RespawnEH] 
+		player removeEventHandler ["Respawn", AdvancedUCAVs_RespawnEH]; 
 	};
 	AdvancedUCAVs_RespawnEH = player addEventHandler ["Respawn", {
-		params ["_unit", "_corpse"];		
-		[] spawn AdvancedUCAVs_AddKeybinds_fnc;
-		_unit setVariable ["UCAV_JammingOn", false, true];
-		_corpse setVariable ["UCAV_JammingOn", false, true];
+		_this spawn {
+			_this params ["_unit", "_corpse"];
+					
+			[] spawn AdvancedUCAVs_AddKeybinds_fnc;
+			_unit setVariable ["UCAV_JammingOn", false, true];
+			_corpse setVariable ["UCAV_JammingOn", false, true];
+
+			{ 
+				_actionID = _x;
+				_corpse removeAction _actionID;
+			} forEach (_corpse getVariable ["AdvancedUCAVs_allActionIDs", []]);			
+			
+			waitUntil [{ alive player }, 10];
+			sleep 0.5;
+			
+			[] call AdvancedUCAVs_addPlayerAssembleActions_fnc;
+			
+			_backpackLow = toLower (backpack player);
+			if (!("_uav_" in _backpackLow) && !("_ugv_" in _backpackLow)) exitWith {};	;
+			if (str AUCAVs_savedItems == "[]") exitWith {};
+			waitUntil [{ maxLoad (backpackContainer player) == 40 }, 10];
+			
+			{ player addItemToBackpack _x } forEach AUCAVs_savedItems;
+			
+			systemChat ("[Advanced UCAVs] : Loaded Items: " + str AUCAVs_savedItems);
+		};		
 	}];
 
 
@@ -3729,6 +4158,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	if (!isNil "AdvancedUCAVs_EntityCreatedEH") then { removeMissionEventHandler ["EntityCreated", AdvancedUCAVs_EntityCreatedEH] };
 	AdvancedUCAVs_EntityCreatedEH = addMissionEventHandler ["EntityCreated", {
 		params ["_entity"];
+		if (!alive _entity) exitWith {};
 		[_entity] call AdvancedUCAVs_initOnDrone_fnc;	
 	}];
 
