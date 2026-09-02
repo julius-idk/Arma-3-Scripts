@@ -46,7 +46,7 @@ _MainToggleScreen = {
 	_enableButton ctrlSetTooltip "Enable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
 	_enableButton ctrlCommit 0;
 	_enableButton ctrlAddEventHandler ["ButtonClick", {
-		[] call (AdvancedUCAVs_ZeusOptions select 1);
+		[] call (AUCAVs_ZeusOptions select 1);
 		[(_this select 0)] spawn {
 			params ["_enableButton"];			
 			_disableButton = _enableButton getVariable "disableButton";
@@ -66,7 +66,7 @@ _MainToggleScreen = {
 	_disableButton ctrlSetBackgroundColor [0.5, 0, 0, 1];
 	_disableButton ctrlCommit 0;
 	_disableButton ctrlAddEventHandler ["ButtonClick", {
-		[] call (AdvancedUCAVs_ZeusOptions select 2);
+		[] call (AUCAVs_ZeusOptions select 2);
 		[(_this select 0)] spawn {
 			params ["_disableButton"];		
 			_enableButton = _disableButton getVariable "enableButton";
@@ -89,7 +89,7 @@ _MainToggleScreen = {
 	_editButton ctrlSetBackgroundColor [0.55, 0.4, 0, 1];
 	_editButton ctrlCommit 0;
 	_editButton ctrlAddEventHandler ["ButtonClick", {
-		[true] call (AdvancedUCAVs_ZeusOptions select 3);
+		[true] call (AUCAVs_ZeusOptions select 3);
 	}];
 	
 	_openLogButton = _display ctrlCreate ["RscButton", -1];
@@ -99,7 +99,7 @@ _MainToggleScreen = {
 	_openLogButton ctrlSetTooltip "Open the Anti-Troll log.\n\nTip: You can also type '!UCAV_log' in the chat to open the log dialog";
 	_openLogButton ctrlCommit 0;
 	_openLogButton ctrlAddEventHandler ["ButtonClick", {
-		[true] call (AdvancedUCAVs_ZeusOptions select 4);
+		[true] call (AUCAVs_ZeusOptions select 4);
 	}];	
 };
 [] call _MainToggleScreen;
@@ -107,14 +107,14 @@ _MainToggleScreen = {
 
 _EnableScript = {
 
-	if (missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
+	if (missionNamespace getVariable ["AUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to enable: Advanced UCAVs is already running";
 		playSoundUI ["addItemFailed"];
 	};
 
 	playSoundUI ["addItemOK"];
 
-	missionNamespace setVariable ["AdvancedUCAVs_ScriptEnabled", true, true];
+	missionNamespace setVariable ["AUCAVs_ScriptEnabled", true, true];
 
 
 	{
@@ -161,20 +161,20 @@ _EnableScript = {
 	if (isNil "AUCAVs_SDJamTime_Sentinel") then { missionNamespace setVariable ["AUCAVs_SDJamTime_Sentinel", 25, true] };	
 	
 	
-	if (typeName AdvancedUCAVs_InitOnPlayer_fnc != "ARRAY") then {
-		missionNamespace setVariable ["AdvancedUCAVs_InitOnPlayer_fnc", ["", AdvancedUCAVs_InitOnPlayer_fnc], true];
+	if (typeName AUCAVs_InitOnPlayer_fnc != "ARRAY") then {
+		missionNamespace setVariable ["AUCAVs_InitOnPlayer_fnc", ["", AUCAVs_InitOnPlayer_fnc], true];
 	};
 
 	[[],{
 		if (!hasInterface) exitWith {};
 		waitUntil { sleep 0.5; !isNull (findDisplay 46) };
-		waitUntil { sleep 0.5; !isNil "AdvancedUCAVs_InitOnPlayer_fnc" };
-		[] call (AdvancedUCAVs_InitOnPlayer_fnc select 1);
-	}] remoteExec ["spawn", 0, "AdvancedUCAVs_InitOnPlayer_JIPID"];
+		waitUntil { sleep 0.5; !isNil "AUCAVs_InitOnPlayer_fnc" };
+		[] call (AUCAVs_InitOnPlayer_fnc select 1);
+	}] remoteExec ["spawn", 0, "AUCAVs_InitOnPlayer_JIPID"];
 	
 	
 	{
-		AdvancedUCAVs_secondsToTimeFormat_fnc = {
+		AUCAVs_secondsToTimeFormat_fnc = {
 			params ["_seconds"];
 			_seconds = round _seconds;
 
@@ -184,10 +184,10 @@ _EnableScript = {
 
 			[_h, _m, _s]
 		};	
-		missionNamespace setVariable ["AdvancedUCAVs_secondsToTimeFormat_fnc", AdvancedUCAVs_secondsToTimeFormat_fnc, true];
+		missionNamespace setVariable ["AUCAVs_secondsToTimeFormat_fnc", AUCAVs_secondsToTimeFormat_fnc, true];
 
 
-		AdvancedUCAVs_timeToFormat_fnc = {
+		AUCAVs_timeToFormat_fnc = {
 			params ["_h", "_m", "_s", "_useLetters"];			
 			_h = if (_h < 10) then { "0" + str _h } else { _h };
 			_m = if (_m < 10) then { "0" + str _m } else { _m }; 
@@ -195,30 +195,30 @@ _EnableScript = {
 			_time = if (_useLetters) then { format ["%1h %2m %3s",_h,_m,_s] } else { format ["%1:%2:%3",_h,_m,_s] };		
 			_time
 		};
-		missionNamespace setVariable ["AdvancedUCAVs_timeToFormat_fnc", AdvancedUCAVs_timeToFormat_fnc, true];		
+		missionNamespace setVariable ["AUCAVs_timeToFormat_fnc", AUCAVs_timeToFormat_fnc, true];		
 
 
-		if (isNil "AdvancedUCAVs_TrollLogVarServer") then {
-			AdvancedUCAVs_TrollLogVarServer = [];
+		if (isNil "AUCAVs_TrollLogVarServer") then {
+			AUCAVs_TrollLogVarServer = [];
 		};
 		
 
-		AdvancedUCAVs_sendLogVarToClient_fnc = {
+		AUCAVs_sendLogVarToClient_fnc = {
 			params ["_caller", "_clientVarCount"];
-			_serverVarCount = count AdvancedUCAVs_TrollLogVarServer;
+			_serverVarCount = count AUCAVs_TrollLogVarServer;
 			if (_clientVarCount == _serverVarCount) exitWith {};		
-			missionNamespace setVariable ["AdvancedUCAVs_TrollLogVarClient", AdvancedUCAVs_TrollLogVarServer, _caller];
+			missionNamespace setVariable ["AUCAVs_TrollLogVarClient", AUCAVs_TrollLogVarServer, _caller];
 		};
 
 
-		AdvancedUCAVs_saveLogMsgInVar_fnc = {
+		AUCAVs_saveLogMsgInVar_fnc = {
 			params ["_msg"];
-			([time] call AdvancedUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
-			_time = [_h,_m,_s, false] call AdvancedUCAVs_timeToFormat_fnc;		
-			AdvancedUCAVs_TrollLogVarServer pushBack (format ["[%1] %2", _time, _msg]);
+			([time] call AUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
+			_time = [_h,_m,_s, false] call AUCAVs_timeToFormat_fnc;		
+			AUCAVs_TrollLogVarServer pushBack (format ["[%1] %2", _time, _msg]);
 			
-			_serverVarCount = count AdvancedUCAVs_TrollLogVarServer;
-			if (_serverVarCount > 500) then { AdvancedUCAVs_TrollLogVarServer deleteRange [500, (_serverVarCount - 1)] };		
+			_serverVarCount = count AUCAVs_TrollLogVarServer;
+			if (_serverVarCount > 500) then { AUCAVs_TrollLogVarServer deleteRange [500, (_serverVarCount - 1)] };		
 		};
 
 
@@ -251,7 +251,7 @@ _EnableScript = {
 
 _DisableScript = {
 	
-	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
+	if !(missionNamespace getVariable ["AUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to disable: Advanced UCAVs isn't even running";	
 		playSoundUI ["addItemFailed"];
 	};		
@@ -268,43 +268,43 @@ _DisableScript = {
 	
 	["[UCAV_LOG] Advanced UCAVs has been disabled"] remoteExec ["diag_log"];
 			
-	missionNamespace setVariable ["AdvancedUCAVs_ScriptEnabled", false, true];
+	missionNamespace setVariable ["AUCAVs_ScriptEnabled", false, true];
 
-	remoteExec ["", "AdvancedUCAVs_InitOnPlayer_JIPID"]; 
-	remoteExec ["", "AdvancedUCAVs_DroneHackingJIPID"];
+	remoteExec ["", "AUCAVs_InitOnPlayer_JIPID"]; 
+	remoteExec ["", "AUCAVs_DroneHackingJIPID"];
 
 	{
-		if (!isNil "AdvancedUCAVs_EachFrameEH") then { 
-			removeMissionEventHandler ["EachFrame", AdvancedUCAVs_EachFrameEH] 
+		if (!isNil "AUCAVs_EachFrameEH") then { 
+			removeMissionEventHandler ["EachFrame", AUCAVs_EachFrameEH] 
 		};			
 		
-		if (!isNil "AdvancedUCAVs_EntityCreatedEH") then {
-			removeMissionEventHandler ["EntityCreated", AdvancedUCAVs_EntityCreatedEH];
+		if (!isNil "AUCAVs_EntityCreatedEH") then {
+			removeMissionEventHandler ["EntityCreated", AUCAVs_EntityCreatedEH];
 		};				
 		
-		if (!isNil "AdvancedUCAVs_UAVCrewCreatedEH") then {
-			removeMissionEventHandler ["UAVCrewCreated", AdvancedUCAVs_UAVCrewCreatedEH];
+		if (!isNil "AUCAVs_UAVCrewCreatedEH") then {
+			removeMissionEventHandler ["UAVCrewCreated", AUCAVs_UAVCrewCreatedEH];
 		};
 	
-		if (!isNil "AdvancedUCAVs_SpectrumRadar_Draw3DEH") then {
-			removeMissionEventHandler ["Draw3D", AdvancedUCAVs_SpectrumRadar_Draw3DEH];
+		if (!isNil "AUCAVs_SpectrumRadar_Draw3DEH") then {
+			removeMissionEventHandler ["Draw3D", AUCAVs_SpectrumRadar_Draw3DEH];
 		};	
 
 		ACUAVs_SDJam_LMBHeld = false; 
 
-		player removeDiaryRecord ["Advanced UCAVs", AdvancedUCAVs_Diary_Features];
-		player removeDiaryRecord ["Advanced UCAVs", AdvancedUCAVs_Diary_Changelog];	
-		player removeDiaryRecord ["Advanced UCAVs", AdvancedUCAVs_Diary_ScriptInfo];	
+		player removeDiaryRecord ["Advanced UCAVs", AUCAVs_Diary_Features];
+		player removeDiaryRecord ["Advanced UCAVs", AUCAVs_Diary_Changelog];	
+		player removeDiaryRecord ["Advanced UCAVs", AUCAVs_Diary_ScriptInfo];	
 		
-		player removeDiarySubject "Advanced_UCAVs";			
+		player removeDiarySubject "AUCAVs_DiarySubject";			
 		
 		player setVariable ["UCAV_JammingOn", false, true];	
 		player setUnitTrait ["UAVHacker", false];
 		
-		missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumScreen", true];	
+		missionNamespace setVariable ["AUCAVs_WantsSpectrumScreen", true];	
 		{ _x ctrlShow true } forEach (allControls (uiNamespace getVariable "RscWeaponSpectrumAnalyzerGeneric"));
 		
-		[] spawn AdvancedUCAVs_RemoveKeybinds_fnc;
+		[] spawn AUCAVs_RemoveKeybinds_fnc;
 
 					
 		_backpackLow = toLower (backpack player);	
@@ -321,13 +321,13 @@ _DisableScript = {
 			{ 
 				_actionID = _x;
 				_vehicle removeAction _actionID;
-			} forEach (_vehicle getVariable ["AdvancedUCAVs_allActionIDs", []]);
+			} forEach (_vehicle getVariable ["AUCAVs_allActionIDs", []]);
 		} forEach vehicles;
 
 		{ 
 			_actionID = _x;
 			player removeAction _actionID;
-		} forEach (player getVariable ["AdvancedUCAVs_allActionIDs", []]);
+		} forEach (player getVariable ["AUCAVs_allActionIDs", []]);
 			
 	} remoteExec ["call"];
 
@@ -355,7 +355,7 @@ _ConfigureScript = {
 		["_isReadOnly", false]		
 		];
 	
-	if !(missionNamespace getVariable ["AdvancedUCAVs_ScriptEnabled", false]) exitWith {
+	if !(missionNamespace getVariable ["AUCAVs_ScriptEnabled", false]) exitWith {
 		systemChat "[Advanced UCAVs] Unable to configure: Advanced UCAVs isn't even running";
 		playSoundUI ["addItemFailed"];
 	};	
@@ -455,8 +455,8 @@ _ConfigureScript = {
 						_optionText ctrlSetBackgroundColor [0.4, 0, 0, 0.6];
 					};
 
-					if (_var == "AUCAVs_DroneHackingON") then { ["HACKING"] call AdvancedUCAVs_ToggleConfigValues_fnc; };
-					if (_var == "AUCAVs_ReduceBatteryON") then { ["TOGGLEFUEL"] call AdvancedUCAVs_ToggleConfigValues_fnc };				
+					if (_var == "AUCAVs_DroneHackingON") then { ["HACKING"] call AUCAVs_ToggleConfigValues_fnc; };
+					if (_var == "AUCAVs_ReduceBatteryON") then { ["TOGGLEFUEL"] call AUCAVs_ToggleConfigValues_fnc };				
 				}];			
 			};						
 			case "INPUT_FUEL": {
@@ -465,9 +465,9 @@ _ConfigureScript = {
 				(AUCAVs_FuelValues get (_droneTypes select 0)) params ["_currentValue", "_hardcodedValue"];
 				_coef = _currentValue;
 				_totalSeconds = 10000 / _coef;		
-				([_totalSeconds] call AdvancedUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
-				_time = [_h,_m,_s, true] call AdvancedUCAVs_timeToFormat_fnc;
-				_timeForTxt = [_h,_m,_s, false] call AdvancedUCAVs_timeToFormat_fnc;
+				([_totalSeconds] call AUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
+				_time = [_h,_m,_s, true] call AUCAVs_timeToFormat_fnc;
+				_timeForTxt = [_h,_m,_s, false] call AUCAVs_timeToFormat_fnc;
 					
 						
 				_optionText = _display ctrlCreate ["RscText", -1, _ctrlGroup];
@@ -536,9 +536,9 @@ _ConfigureScript = {
 					if (_totalSeconds < 30) exitWith { "small" call _errorFnc };
 					_coef = parseNumber ((10000 / _totalSeconds) toFixed 4);			
 						
-					([_totalSeconds] call AdvancedUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];	
-					_time = [_h,_m,_s, true] call AdvancedUCAVs_timeToFormat_fnc;
-					_timeForTxt = [_h,_m,_s, false] call AdvancedUCAVs_timeToFormat_fnc;
+					([_totalSeconds] call AUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];	
+					_time = [_h,_m,_s, true] call AUCAVs_timeToFormat_fnc;
+					_timeForTxt = [_h,_m,_s, false] call AUCAVs_timeToFormat_fnc;
 					
 					_inputCtrl ctrlSetText _timeForTxt;	
 					{
@@ -555,10 +555,10 @@ _ConfigureScript = {
 					} forEach _droneTypes;
 					missionNamespace setVariable ["AUCAVs_FuelValues", AUCAVs_FuelValues, true];
 					
-					["FUELCOEF", _coef, _droneTypes] call AdvancedUCAVs_ToggleConfigValues_fnc;			
+					["FUELCOEF", _coef, _droneTypes] call AUCAVs_ToggleConfigValues_fnc;			
 					if !(missionNamespace getVariable ["AUCAVs_ReduceBatteryON", true]) then {
 						missionNamespace setVariable ["AUCAVs_ReduceBatteryON", true, true];
-						["TOGGLEFUEL"] call AdvancedUCAVs_ToggleConfigValues_fnc;
+						["TOGGLEFUEL"] call AUCAVs_ToggleConfigValues_fnc;
 					};
 				}];					
 			};	
@@ -621,7 +621,7 @@ _ConfigureScript = {
 					if ("SDJamTime" in _var) then { _value = parseNumber ((sliderPosition _slider) toFixed 0) };		
 					
 					missionNamespace setVariable [_var, _value, true];
-					if (!("SDJamTime" in _var) && !("Accuracy" in _var)) then { ["VISIBLITY"] call AdvancedUCAVs_ToggleConfigValues_fnc };
+					if (!("SDJamTime" in _var) && !("Accuracy" in _var)) then { ["VISIBLITY"] call AUCAVs_ToggleConfigValues_fnc };
 					playSoundUI ["addItemOK"];
 				}];							
 			};
@@ -746,8 +746,8 @@ _OpenLog = {
 		params ["_refreshButton"];
 		_display = ctrlParent _refreshButton;									
 		
-		_clientVarCount = count (missionNamespace getVariable ["AdvancedUCAVs_TrollLogVarClient", []]);
-		[clientOwner, _clientVarCount] remoteExecCall ["AdvancedUCAVs_sendLogVarToClient_fnc", 2];	
+		_clientVarCount = count (missionNamespace getVariable ["AUCAVs_TrollLogVarClient", []]);
+		[clientOwner, _clientVarCount] remoteExecCall ["AUCAVs_sendLogVarToClient_fnc", 2];	
 		[_display] call (_display getVariable "refreshFnc");			
 		
 		[_refreshButton] spawn {
@@ -816,7 +816,7 @@ _OpenLog = {
 					_logListbox lbAdd _x;
 				};						
 			};
-		} forEachReversed (missionNamespace getVariable ["AdvancedUCAVs_TrollLogVarClient", []]);
+		} forEachReversed (missionNamespace getVariable ["AUCAVs_TrollLogVarClient", []]);
 	
 	}];	
 	
@@ -824,8 +824,8 @@ _OpenLog = {
 		params ["_display"];
 		while { !isNull _display } do {
 			if (_display getVariable ["autoRefreshEnabled", true]) then {
-				_clientVarCount = count (missionNamespace getVariable ["AdvancedUCAVs_TrollLogVarClient", []]);
-				[clientOwner, _clientVarCount] remoteExecCall ["AdvancedUCAVs_sendLogVarToClient_fnc", 2];	
+				_clientVarCount = count (missionNamespace getVariable ["AUCAVs_TrollLogVarClient", []]);
+				[clientOwner, _clientVarCount] remoteExecCall ["AUCAVs_sendLogVarToClient_fnc", 2];	
 				[_display] call (_display getVariable "refreshFnc");
 			};
 			sleep 1;
@@ -835,15 +835,15 @@ _OpenLog = {
 
 
 
-missionNamespace setVariable ["AdvancedUCAVs_ZeusOptions", [_MainToggleScreen, _EnableScript, _DisableScript, _ConfigureScript, _OpenLog], true];
+missionNamespace setVariable ["AUCAVs_ZeusOptions", [_MainToggleScreen, _EnableScript, _DisableScript, _ConfigureScript, _OpenLog], true];
 
 
 "Entire Script";
-AdvancedUCAVs_InitOnPlayer_fnc = {
+AUCAVs_InitOnPlayer_fnc = {
 	params [["_onlyAddDiary", false]];
 	
 	
-	AdvancedUCAVs_createDescriptionWindow = {
+	AUCAVs_createDescriptionWindow = {
 		params [
 			["_createButton", false],
 			["_title", ""],
@@ -890,7 +890,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_openCfgBtn ctrlSetFontHeight 0.043;
 			_openCfgBtn ctrlCommit 0;
 			_openCfgBtn ctrlAddEventHandler ["ButtonClick", {
-				[true, true] call (AdvancedUCAVs_ZeusOptions select 3);
+				[true, true] call (AUCAVs_ZeusOptions select 3);
 			}];
 		};
 
@@ -910,7 +910,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 
 
-	AdvancedUCAVs_openFeatures = {
+	AUCAVs_openFeatures = {
 		[true, "Features and Description", (
 		"<t size='1.5'>Advanced UCAVs</t><br/>" +
 		"<t size='1.3'>Current version: 4.0.0</t><br/><br/><br/>" +
@@ -999,13 +999,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"- There are only two chat commands: '!ucav_config' and '!ucav_log'.<br/>" +
 		"- !ucav_config is only available for zeuses and allows them to toggle features.<br/>" +
 		"- !ucav_log is available for all players, it will open the anti-troll drone log.<br/><br/>"
-		)] call AdvancedUCAVs_createDescriptionWindow;	
+		)] call AUCAVs_createDescriptionWindow;	
 	};
 	
 	
 	
 	
-	AdvancedUCAVs_openChangelog = {
+	AUCAVs_openChangelog = {
 		[false, "Changelog", (
 			"<t size='1.5'>-> ver 4.0.0</t><br/>" + 
 			"<t color='#AFAFAF'>" +
@@ -1174,13 +1174,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			"- Added the 'Toggle Options' option to the drones.<br/><br/>" +	
 			"<t size='1.5'>-> ver 1.3</t><br/>" +
 			"- First release of the script." 
-		)] call AdvancedUCAVs_createDescriptionWindow;
+		)] call AUCAVs_createDescriptionWindow;
 	};	
 	
 	
 	
 	
-	AdvancedUCAVs_openGithub = {
+	AUCAVs_openGithub = {
 		_IDD = if (visibleMap) then {12} else { if (!isNull findDisplay -1) then {-1} else { if (!isNull findDisplay 312) then {312} else {46}} };
 		_display = (findDisplay _IDD) createDisplay "RscDisplayEmpty";
 		_linkToCopy = _display ctrlCreate ["RscEditMulti", -1];
@@ -1194,12 +1194,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	
 	
 	
-	if !(player diarySubjectExists "Advanced_UCAVs") then {
-		player createDiarySubject ["Advanced_UCAVs", "Advanced UCAVs"];
+	if !(player diarySubjectExists "AUCAVs_DiarySubject") then {
+		player createDiarySubject ["AUCAVs_DiarySubject", "Advanced UCAVs"];
 	};
 	
 	
-	AdvancedUCAVs_Diary_ScriptInfo = player createDiaryRecord ["Advanced_UCAVs", 
+	AUCAVs_Diary_ScriptInfo = player createDiaryRecord ["AUCAVs_DiarySubject", 
 	[
 		"Script Info",
 		"<br/>" +
@@ -1208,42 +1208,42 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		"v4.0.0 is currently still being worked on, thus only available on github.<br/><br/>" +
 		"If you want to use this script, either copy paste the github code into a console and LOCAL EXEC it, or get an older, less optimized version with less features on the workshop: 'Advanced UCAVs 3.0.8'<br/><br/><br/>" +
 		
-		"[<execute expression='[] call AdvancedUCAVs_openGithub'>Click here to open Advanced UCAVs 4.0.0 Github</execute>]<br/><br/><br/><br/>" +
+		"[<execute expression='[] call AUCAVs_openGithub'>Click here to open Advanced UCAVs 4.0.0 Github</execute>]<br/><br/><br/><br/>" +
 		"- script by julius"	
 	]];	
 		
-	AdvancedUCAVs_Diary_Changelog = player createDiaryRecord ["Advanced_UCAVs", 
+	AUCAVs_Diary_Changelog = player createDiaryRecord ["AUCAVs_DiarySubject", 
 	[ 
 		"Changelog",
-		"<br/><font size='22'>[<execute expression='[] call AdvancedUCAVs_openChangelog'>Click here to open the Changelog</execute>]</font>"
+		"<br/><font size='22'>[<execute expression='[] call AUCAVs_openChangelog'>Click here to open the Changelog</execute>]</font>"
 	]];
 
-	AdvancedUCAVs_Diary_Features = player createDiaryRecord ["Advanced_UCAVs", 
+	AUCAVs_Diary_Features = player createDiaryRecord ["AUCAVs_DiarySubject", 
 	[
 		"Features And Description",
-		"<br/><font size='22'>[<execute expression='[] call AdvancedUCAVs_openFeatures'>Click here to open the Features And Description</execute>]</font>"
+		"<br/><font size='22'>[<execute expression='[] call AUCAVs_openFeatures'>Click here to open the Features And Description</execute>]</font>"
 	]];			
 	if (_onlyAddDiary) exitWith {};
 	
 	
 	
 	
-	AdvancedUCAVs_saveAction_fnc = {
+	AUCAVs_saveAction_fnc = {
 		params ["_drone", "_actionID"];
-		if (isNil { _drone getVariable "AdvancedUCAVs_allActionIDs" }) then {
-			_drone setVariable ["AdvancedUCAVs_allActionIDs", []];
+		if (isNil { _drone getVariable "AUCAVs_allActionIDs" }) then {
+			_drone setVariable ["AUCAVs_allActionIDs", []];
 		};
-		(_drone getVariable ["AdvancedUCAVs_allActionIDs", []]) pushBack _actionID;
+		(_drone getVariable ["AUCAVs_allActionIDs", []]) pushBack _actionID;
 	};
 
 
 
 	
-	AdvancedUCAVs_addPlayerAssembleActions_fnc = {
+	AUCAVs_addPlayerAssembleActions_fnc = {
 		{ 
 			_actionID = _x;
 			player removeAction _actionID;
-		} forEach (player getVariable ["AdvancedUCAVs_allActionIDs", []]);
+		} forEach (player getVariable ["AUCAVs_allActionIDs", []]);
 
 
 		_actionsToAddToPlayer = [
@@ -1311,7 +1311,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					_thisArgs params ["_droneType"];
 					removeMissionEventHandler [_thisEvent, _thisEventHandler];
 					AUCAVs_assembledADrone = true;	
-					[_droneType, [_uav, player, nil, false]] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+					[_droneType, [_uav, player, nil, false]] call AUCAVs_selectDroneAndCraft_fnc;
 				}, [_droneType]];
 				
 				waitUntil [{ AUCAVs_assembledADrone || (lifeState player == "INCAPACITATED" || !alive player) }, 5];
@@ -1320,18 +1320,18 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				removeMissionEventHandler ["UAVCrewCreated", _droneAssembledEH];
 				AUCAVs_assembledADrone = false;
 			
-			}, [_droneType], 5.9999999, false, false, "", _condition];
+			}, [_droneType], 5.98, false, false, "", _condition];
 			
 			
-			[player, _actionID] call AdvancedUCAVs_saveAction_fnc;	
+			[player, _actionID] call AUCAVs_saveAction_fnc;	
 		} forEach _actionsToAddToPlayer;
 	};
-	[] call AdvancedUCAVs_addPlayerAssembleActions_fnc;
+	[] call AUCAVs_addPlayerAssembleActions_fnc;
 
 
 
 
-	AdvancedUCAVs_PlayerAnimations_fnc = {
+	AUCAVs_PlayerAnimations_fnc = {
 		params ["_caller"];
 				
 		_currentStance = stance _caller;
@@ -1401,7 +1401,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_getName_fnc = {
+	AUCAVs_getName_fnc = {
 		params ["_drone"];
 		_droneName = getText (configFile >> "CfgVehicles" >> (typeOf _drone) >> "displayName");
 		_droneName
@@ -1410,7 +1410,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	
 	
 	
-	AdvancedUCAVs_getDroneSide_fnc = {
+	AUCAVs_getDroneSide_fnc = {
 		params ["_drone"];
 		_side = switch (faction _drone) do {
 			case "BLU_F": { "NATO" };
@@ -1429,7 +1429,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	
-	AdvancedUCAVs_getOperators_fnc = {
+	AUCAVs_getOperators_fnc = {
 		params [["_drone", objNull], ["_getName", false], ["_getRole", false]];
 		_connectedPlayers = [];
 		_controllingPlayers = [];
@@ -1459,7 +1459,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_DestroyRope_fnc = {
+	AUCAVs_DestroyRope_fnc = {
 		params ["_drone", ["_useSetDamage", false]];
 				
 		{
@@ -1478,7 +1478,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	
 	
 	
-	AdvancedUCAVs_ToggleConfigValues_fnc = {
+	AUCAVs_ToggleConfigValues_fnc = {
 		params ["_mode", "_coef", "_droneTypes"];
 		switch (_mode) do {
 			case "HACKING": {
@@ -1488,12 +1488,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						waitUntil { sleep 0.5; !isNull findDisplay 46 };
 						sleep 0.5;
 						player setUnitTrait ["UAVHacker", true];	
-					}] remoteExec ["spawn", 0, "AdvancedUCAVs_DroneHackingJIPID"];	
+					}] remoteExec ["spawn", 0, "AUCAVs_DroneHackingJIPID"];	
 				} else {
 					[[],{
 						player setUnitTrait ["UAVHacker", false];	
 					}] remoteExec ["call", allPlayers];
-					remoteExec ["", "AdvancedUCAVs_DroneHackingJIPID"];
+					remoteExec ["", "AUCAVs_DroneHackingJIPID"];
 				};		
 			};
 			case "VISIBLITY": {
@@ -1519,7 +1519,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					"update fuel coef on all drones";
 					{
 						_defaultFuel = AUCAVs_FuelValues get _x;
-						["FUELCOEF", _defaultFuel, _droneTypes] call AdvancedUCAVs_ToggleConfigValues_fnc;
+						["FUELCOEF", _defaultFuel, _droneTypes] call AUCAVs_ToggleConfigValues_fnc;
 					} forEach ["","BombDrop","RPG7Launch","KamikazeLightHE","KamikazeLightAT","KamikazeHeavyHE","KamikazeHeavyAT","BombCarrier","RPG7LaunchAL6","RPG42Launch"];
 					
 					"change hashmap value so future placed drones get the correct value";
@@ -1533,7 +1533,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				} else {			
 					
 					{
-						["FUELCOEF", 1, _x] call AdvancedUCAVs_ToggleConfigValues_fnc;
+						["FUELCOEF", 1, _x] call AUCAVs_ToggleConfigValues_fnc;
 					} forEach ["","BombDrop","RPG7Launch","KamikazeLightHE","KamikazeLightAT","KamikazeHeavyHE","KamikazeHeavyAT","BombCarrier","RPG7LaunchAL6","RPG42Launch"];
 					
 					{
@@ -1544,16 +1544,16 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					missionNamespace setVariable ["AUCAVs_FuelValues", AUCAVs_FuelValues, true];									
 
 				};				
-				[] call (AdvancedUCAVs_ZeusOptions select 3);
+				[] call (AUCAVs_ZeusOptions select 3);
 			};	
 		};
 	};
-	["HACKING"] call AdvancedUCAVs_ToggleConfigValues_fnc;
+	["HACKING"] call AUCAVs_ToggleConfigValues_fnc;
 
 
 
 
-	AdvancedUCAVs_LogMsg = {
+	AUCAVs_LogMsg = {
 		params [["_msgType", ""], ["_secondParams", []]];
 		if (!(missionNamespace getVariable ["AUCAVs_AntiTrollLogON", true]) && { !("debug" in _msgType) }) exitWith {}; 
 		if (!(missionNamespace getVariable ["AUCAVs_DebugLogON", true]) && { ("debug" in _msgType) }) exitWith {}; 
@@ -1639,7 +1639,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			default { "{Error} : Unknown Parameter was used" };
 		};
 		if !("[UCAV_LOG {DEBUG}]" in _msg) then {
-			[_msg] remoteExec ["AdvancedUCAVs_saveLogMsgInVar_fnc", 2];
+			[_msg] remoteExec ["AUCAVs_saveLogMsgInVar_fnc", 2];
 		} else {
 			[_msg] remoteExec ["diag_log", allPlayers];
 		};
@@ -1648,12 +1648,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 	
 	
-	AdvancedUCAVs_ToggleSpectrumScreen_fnc = {
+	AUCAVs_ToggleSpectrumScreen_fnc = {
 		params [["_openOrClose",""], ["_needsTextOutput", false]];
 				
 		_spectrumDisplay = uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull];
 		_sumSubCtrlFromSourceCode = (uiNamespace getVariable ["RscWeaponSpectrumAnalyzerGeneric", displayNull] displayCtrl 51);
-		_showScreen = missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true];
+		_showScreen = missionNamespace getVariable ["AUCAVs_WantsSpectrumScreen", true];
 		
 		
 		
@@ -1693,7 +1693,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_ChangeSpectrumAntenna_fnc = {
+	AUCAVs_ChangeSpectrumAntenna_fnc = {
 		if (!isNil "AUCAVs_ReloadAntennaSpawn" && { !scriptDone AUCAVs_ReloadAntennaSpawn }) exitWith {};
 		AUCAVs_ReloadAntennaSpawn = [] spawn {
 			_militaryAntenna = "muzzle_antenna_01_f";
@@ -1732,13 +1732,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	
 
 
-	AdvancedUCAVs_SDJam_killUIBar_fnc = { 
+	AUCAVs_SDJam_killUIBar_fnc = { 
 		params [["_onlyVisually", false]];
 		if (_onlyVisually) exitWith {
 			{ _x ctrlshow false } forEach (uiNamespace getVariable ["UCAV_SDJamBarCtrls", []]);
 		};
-		if (!isNil "AdvancedUCAVs_SDJam_UIBar_spawn" && { !(scriptDone AdvancedUCAVs_SDJam_UIBar_spawn) }) then { 
-			terminate AdvancedUCAVs_SDJam_UIBar_spawn; 
+		if (!isNil "AUCAVs_SDJam_UIBar_spawn" && { !(scriptDone AUCAVs_SDJam_UIBar_spawn) }) then { 
+			terminate AUCAVs_SDJam_UIBar_spawn; 
 		};
 		{ ctrlDelete _x } forEach (uiNamespace getVariable ["UCAV_SDJamBarCtrls", []]);
 		AUCAVs_SDJam_barCalled = false;
@@ -1747,12 +1747,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_SDJam_startUIBar_fnc = {
-		[] call AdvancedUCAVs_SDJam_killUIBar_fnc;	
+	AUCAVs_SDJam_startUIBar_fnc = {
+		[] call AUCAVs_SDJam_killUIBar_fnc;	
 
 		AUCAVs_SDJam_barCalled = true;
 		
-		AdvancedUCAVs_SDJam_UIBar_spawn = [] spawn {		
+		AUCAVs_SDJam_UIBar_spawn = [] spawn {		
 		
 			"UCAVs_SpectrumTxt" cutText ["", "PLAIN DOWN", 0.01, false, true, true];
 		
@@ -1805,12 +1805,12 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			while { !ctrlCommitted _progressBar } do {
 			
 				_infoText ctrlSetText (format ["Jamming Drone...%1s", (_duration - (uiTime - AUCAVs_SDJam_startTime)) toFixed 2]);
-				([AUCAVs_SDJam_targetDrone] call AdvancedUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
+				([AUCAVs_SDJam_targetDrone] call AUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
 				if (count _controllingPlayers > 0 && { _REinterval < uiTime }) then {
 					["jamWarn", ["<br/><br/><t font='EtelkaMonospacePro' shadow='0' size='2.5'>JAMMER WARNING", "PLAIN", 0.025, false, true, true]] remoteExec ["cutText", _controllingPlayers];
 					_REinterval = uiTime + 0.5;
 				};			
-				if (isNull AUCAVs_SDJam_targetDrone) exitWith { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };	
+				if (isNull AUCAVs_SDJam_targetDrone) exitWith { [] call AUCAVs_SDJam_killUIBar_fnc };	
 				
 				waitUntil { diag_frameno > _frame };
 				_frame = diag_frameno;
@@ -1822,22 +1822,22 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				[_drone] remoteExec ["deleteVehicleCrew", _drone];				
 				_drone setVariable ["UCAV_Jammed", true];
-				[true] call AdvancedUCAVs_SDJam_killUIBar_fnc;	
+				[true] call AUCAVs_SDJam_killUIBar_fnc;	
 				
-				_droneName = [_drone] call AdvancedUCAVs_getName_fnc;		
-				_side = [_drone] call AdvancedUCAVs_getDroneSide_fnc;	
+				_droneName = [_drone] call AUCAVs_getName_fnc;		
+				_side = [_drone] call AUCAVs_getDroneSide_fnc;	
 				_distance = round (player distance _drone);
 
 				systemChat format ["[Jammer] Jammed Drone: %1 [%2] - (distance %3m)", _droneName, _side, _distance];
 				"UCAVs_SpectrumTxt" cutText ["<t color='#00FF0C' size='1.5'>Jammed Drone", "PLAIN DOWN", 0.5, true, true];
 
-				["Log_JammedSpectrum", [name player, _droneName, _side, _distance]] call AdvancedUCAVs_LogMsg;
+				["Log_JammedSpectrum", [name player, _droneName, _side, _distance]] call AUCAVs_LogMsg;
 			
 				waitUntil [{ (count crew _drone) <= 0 }, 30, 0.001];
 				_drone setVariable ["UCAV_Jammed", false];		
 			};
 			
-			[] call AdvancedUCAVs_SDJam_killUIBar_fnc;		
+			[] call AUCAVs_SDJam_killUIBar_fnc;		
 		};
 	};
 		
@@ -1849,7 +1849,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	if (isNil "AUCAVs_SDJam_timeHeld") then { AUCAVs_SDJam_timeHeld = 0 };
 	if (isNil "AUCAVs_SDJam_targetDrone") then { AUCAVs_SDJam_targetDrone = objNull };
 
-	AdvancedUCAVs_SpectrumJamming_fnc = {
+	AUCAVs_SpectrumJamming_fnc = {
 
 		_display = findDisplay 46;
 
@@ -1875,8 +1875,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_crosshair ctrlCommit 0;
 
 		
-		if (!isNil "AdvancedUCAVs_JammerBoxEachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_JammerBoxEachFrameEH] };
-		AdvancedUCAVs_JammerBoxEachFrameEH = addMissionEventHandler ["EachFrame", {
+		if (!isNil "AUCAVs_JammerBoxEachFrameEH") then { removeMissionEventHandler ["EachFrame", AUCAVs_JammerBoxEachFrameEH] };
+		AUCAVs_JammerBoxEachFrameEH = addMissionEventHandler ["EachFrame", {
 			_thisArgs params ["_display", "_center", "_droneBox", "_crosshair"];
 			
 			if (
@@ -1891,16 +1891,16 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				|| !isGameFocused
 				|| !isNull (findDisplay 602)
 			) exitWith {
-				if (!isNil "AdvancedUCAVs_JammerBoxEachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_JammerBoxEachFrameEH] };
+				if (!isNil "AUCAVs_JammerBoxEachFrameEH") then { removeMissionEventHandler ["EachFrame", AUCAVs_JammerBoxEachFrameEH] };
 				ACUAVs_SDJam_LMBHeld = false;
 				AUCAVs_SDJam_timeHeld = 0;
-				if (AUCAVs_SDJam_barCalled) then { [] call AdvancedUCAVs_SDJam_killUIBar_fnc };
+				if (AUCAVs_SDJam_barCalled) then { [] call AUCAVs_SDJam_killUIBar_fnc };
 				ctrlDelete (_display displayCtrl 169069);
 				ctrlDelete (_display displayCtrl 169070);							
 			};	
 
 	
-			_crosshair ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]);			
+			_crosshair ctrlShow (missionNamespace getVariable ["AUCAVs_WantsXforCrosshair", true]);			
 			
 			"find suitable drone and draw icon" call {
 				_suitableDrones = (allUnitsUAV select { 
@@ -1935,7 +1935,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				if ((_center distance2D _dronePosScreen) > 0.2) exitWith { _droneBox ctrlShow false };
 				
 				
-				_droneBox ctrlShow (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]);	
+				_droneBox ctrlShow (missionNamespace getVariable ["AUCAVs_WantsXforJamming", true]);	
 				_droneBox ctrlSetPosition [(_dronePosScreen select 0) - 0.015, (_dronePosScreen select 1) - 0.015, 0.03, 0.03];
 				_droneBox ctrlSetBackgroundColor ([side AUCAVs_SDJam_targetDrone] call BIS_fnc_sideColor);
 				_droneBox ctrlCommit 0;	
@@ -1945,7 +1945,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				AUCAVs_SDJam_startTime = uiTime;
 				
 				if (!isNull AUCAVs_SDJam_targetDrone && { !freelook && { !(AUCAVs_SDJam_targetDrone getVariable ["UCAV_Jammed", false]) }}) then {						
-					[] call AdvancedUCAVs_SDJam_startUIBar_fnc;
+					[] call AUCAVs_SDJam_startUIBar_fnc;
 				};
 			};
 			AUCAVs_SDJam_timeHeld = uiTime - AUCAVs_SDJam_startTime;	
@@ -1963,7 +1963,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	if (isNil "ACUAVs_BPJam_Battery") then { ACUAVs_BPJam_Battery = 100 };	
 	if (isNil "ACUAVs_BPJam_TimeLeft") then { ACUAVs_BPJam_TimeLeft = 600 };	
 
-	AdvancedUCAVs_BackpackJamming_fnc = {
+	AUCAVs_BackpackJamming_fnc = {
 	
 		_isJamming = player getVariable ["UCAV_JammingOn", false];
 		if (_isJamming) then {	
@@ -2018,13 +2018,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						
 						[_drone] remoteExec ["deleteVehicleCrew", _drone];
 						
-						_displayName = [_drone] call AdvancedUCAVs_getName_fnc;		
-						_side = [_drone] call AdvancedUCAVs_getDroneSide_fnc;			
+						_displayName = [_drone] call AUCAVs_getName_fnc;		
+						_side = [_drone] call AUCAVs_getDroneSide_fnc;			
 						_distance = round (player distance _drone);
 						
 						systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
 												
-						["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AdvancedUCAVs_LogMsg;						
+						["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AUCAVs_LogMsg;						
 					
 						waitUntil [{ (count crew _drone) <= 0 }, 30, 0.001];
 						_drone setVariable ["UCAV_Jammed", false];
@@ -2050,16 +2050,16 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	if (isNil "ACUAVs_SDJam_LMBHeld") then { ACUAVs_SDJam_LMBHeld = false };
 	if (isNil "ACUAVs_BPJam_JHeld") then { ACUAVs_BPJam_JHeld = false };
 
-	AdvancedUCAVs_AddKeybinds_fnc = {
+	AUCAVs_AddKeybinds_fnc = {
 		_display = findDisplay 46;
 		
 		sleep 0.1;
 			
 			
-		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyDownEH") then {
-			_display displayRemoveEventHandler ["KeyDown", AdvancedUCAVs_BackpackJamming_KeyDownEH];
+		if(!isNil "AUCAVs_BackpackJamming_KeyDownEH") then {
+			_display displayRemoveEventHandler ["KeyDown", AUCAVs_BackpackJamming_KeyDownEH];
 		};			
-		AdvancedUCAVs_BackpackJamming_KeyDownEH = _display displayAddEventHandler ["KeyDown", {
+		AUCAVs_BackpackJamming_KeyDownEH = _display displayAddEventHandler ["KeyDown", {
 			params ["_display","_key","_shift","_ctrl","_alt"];
 			
 			if (_key != 36) exitWith {}; "J";			
@@ -2069,14 +2069,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (ACUAVs_BPJam_JHeld) exitWith {};
 			ACUAVs_BPJam_JHeld = true;
 			
-			[] spawn AdvancedUCAVs_BackpackJamming_fnc;
+			[] spawn AUCAVs_BackpackJamming_fnc;
 		}];			
 			
 			
-		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyUpEH") then {
-			_display displayRemoveEventHandler ["KeyUp", AdvancedUCAVs_BackpackJamming_KeyUpEH];
+		if(!isNil "AUCAVs_BackpackJamming_KeyUpEH") then {
+			_display displayRemoveEventHandler ["KeyUp", AUCAVs_BackpackJamming_KeyUpEH];
 		};			
-		AdvancedUCAVs_BackpackJamming_KeyUpEH = _display displayAddEventHandler ["KeyUp", {
+		AUCAVs_BackpackJamming_KeyUpEH = _display displayAddEventHandler ["KeyUp", {
 			params ["_display","_key","_shift","_ctrl","_alt"];
 			
 			if (_key != 36) exitWith {}; "J";
@@ -2084,10 +2084,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		}];	
 
 			
-		if(!isNil "AdvancedUCAVs_SpectrumJamming_MouseDownEH") then {
-			_display displayRemoveEventHandler ["MouseButtonDown", AdvancedUCAVs_SpectrumJamming_MouseDownEH];
+		if(!isNil "AUCAVs_SpectrumJamming_MouseDownEH") then {
+			_display displayRemoveEventHandler ["MouseButtonDown", AUCAVs_SpectrumJamming_MouseDownEH];
 		};		
-		AdvancedUCAVs_SpectrumJamming_MouseDownEH = _display displayAddEventHandler ["MouseButtonDown", {
+		AUCAVs_SpectrumJamming_MouseDownEH = _display displayAddEventHandler ["MouseButtonDown", {
 			params ["_display", "_button", "_xPos", "_yPos", "_shift", "_ctrl", "_alt"];
 
 			if (_button != 0) exitWith {};	
@@ -2100,14 +2100,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (!isNull (findDisplay 602)); "inventory";
 			
 			ACUAVs_SDJam_LMBHeld = true;
-			[] call AdvancedUCAVs_SpectrumJamming_fnc;
+			[] call AUCAVs_SpectrumJamming_fnc;
 		}];	
 	
 		
-		if(!isNil "AdvancedUCAVs_SpectrumJamming_MouseUpEH") then {
-			_display displayRemoveEventHandler ["MouseButtonUp", AdvancedUCAVs_SpectrumJamming_MouseUpEH];
+		if(!isNil "AUCAVs_SpectrumJamming_MouseUpEH") then {
+			_display displayRemoveEventHandler ["MouseButtonUp", AUCAVs_SpectrumJamming_MouseUpEH];
 		};		
-		AdvancedUCAVs_SpectrumJamming_MouseUpEH = _display displayAddEventHandler ["MouseButtonUp", {
+		AUCAVs_SpectrumJamming_MouseUpEH = _display displayAddEventHandler ["MouseButtonUp", {
 			params ["_display", "_button", "_xPos", "_yPos", "_shift", "_ctrl", "_alt"];
 
 			if (_button != 0) exitWith {};	
@@ -2118,10 +2118,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		}];			
 		
 		
-		if(!isNil "AdvancedUCAVs_SpectrumRadar_KeyDownEH") then {
-			_display displayRemoveEventHandler ["KeyDown", AdvancedUCAVs_SpectrumRadar_KeyDownEH];
+		if(!isNil "AUCAVs_SpectrumRadar_KeyDownEH") then {
+			_display displayRemoveEventHandler ["KeyDown", AUCAVs_SpectrumRadar_KeyDownEH];
 		};		
-		AdvancedUCAVs_SpectrumRadar_KeyDownEH = _display displayAddEventHandler ["KeyDown", {
+		AUCAVs_SpectrumRadar_KeyDownEH = _display displayAddEventHandler ["KeyDown", {
 			params ["_display","_key","_shift","_ctrl","_alt"];
 
 			if (cameraOn != player) exitWith {};
@@ -2132,46 +2132,46 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					
 			if (_ctrl && { _key == 19 }) exitWith { "CTRL + R";
 				if (cameraView != "GUNNER") exitWith {};
-				missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumScreen", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true])];									
-				_txt = ["", true] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;		
+				missionNamespace setVariable ["AUCAVs_WantsSpectrumScreen", !(missionNamespace getVariable ["AUCAVs_WantsSpectrumScreen", true])];									
+				_txt = ["", true] call AUCAVs_ToggleSpectrumScreen_fnc;		
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Screen: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			}; 			
 					
 			if (_key == 19) exitWith { "R";
-				if (cameraView != "GUNNER") exitWith { [] call AdvancedUCAVs_ChangeSpectrumAntenna_fnc };
+				if (cameraView != "GUNNER") exitWith { [] call AUCAVs_ChangeSpectrumAntenna_fnc };
 				if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};		
-				missionNamespace setVariable ["AdvancedUCAVs_WantsSpectrumRadar", !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true])];		
-				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) then { "Enabled" } else { "Disabled" };
+				missionNamespace setVariable ["AUCAVs_WantsSpectrumRadar", !(missionNamespace getVariable ["AUCAVs_WantsSpectrumRadar", true])];		
+				_txt = if (missionNamespace getVariable ["AUCAVs_WantsSpectrumRadar", true]) then { "Enabled" } else { "Disabled" };
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Radar: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			}; 
 			
 			if (_ctrl && { _key == 33 }) exitWith { "CTRL + F";		
 				if !(missionNamespace getVariable ["AUCAVs_SpectrumJammingON", true]) exitWith {};
-				missionNamespace setVariable ["AdvancedUCAVs_WantsXforCrosshair", !(missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true])];
-				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsXforCrosshair", true]) then { "Enabled" } else { "Disabled" };
+				missionNamespace setVariable ["AUCAVs_WantsXforCrosshair", !(missionNamespace getVariable ["AUCAVs_WantsXforCrosshair", true])];
+				_txt = if (missionNamespace getVariable ["AUCAVs_WantsXforCrosshair", true]) then { "Enabled" } else { "Disabled" };
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Crosshair X: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			};			
 			
 			if (!_ctrl && { _key == 33 }) exitWith { "F";
 				if !(missionNamespace getVariable ["AUCAVs_SpectrumJammingON", true]) exitWith {};
-				missionNamespace setVariable ["AdvancedUCAVs_WantsXforJamming", !(missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true])];
-				_txt = if (missionNamespace getVariable ["AdvancedUCAVs_WantsXforJamming", true]) then { "Enabled" } else { "Disabled" };
+				missionNamespace setVariable ["AUCAVs_WantsXforJamming", !(missionNamespace getVariable ["AUCAVs_WantsXforJamming", true])];
+				_txt = if (missionNamespace getVariable ["AUCAVs_WantsXforJamming", true]) then { "Enabled" } else { "Disabled" };
 				"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>X On Drones: %1</t>", _txt], "PLAIN DOWN", 0.3, false, true, true];			
 			};
 		}];			
 	
 	
-		if(!isNil "AdvancedUCAVs_SpectrumRadar_ScrolledEH") then {
-			_display displayRemoveEventHandler ["MouseZChanged", AdvancedUCAVs_SpectrumRadar_ScrolledEH];
+		if(!isNil "AUCAVs_SpectrumRadar_ScrolledEH") then {
+			_display displayRemoveEventHandler ["MouseZChanged", AUCAVs_SpectrumRadar_ScrolledEH];
 		};		
-		AdvancedUCAVs_SpectrumRadar_ScrolledEH = _display displayAddEventHandler ["MouseZChanged", {
+		AUCAVs_SpectrumRadar_ScrolledEH = _display displayAddEventHandler ["MouseZChanged", {
 			params ["_display", "_scroll"];
 
 			if (cameraOn != player) exitWith {};
 			if (currentMuzzle player != "hgun_esd_01_F") exitWith {};
 			if (cameraView != "GUNNER") exitWith { if (AUCAVs_wasHintShown) then { AUCAVs_wasHintShown = false }};
 			if (!alive player || lifeState player == "INCAPACITATED") exitWith {};
-			if !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) exitWith {};
+			if !(missionNamespace getVariable ["AUCAVs_WantsSpectrumRadar", true]) exitWith {};
 
 			_value = AUCAVs_SpectrumRadar_TextSize;
 			_newValue = if (_scroll > 0) then { _value + 0.001 } else { if (_value - 0.001 < 0) then { 0 } else { _value - 0.001 } };	
@@ -2180,34 +2180,34 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			"UCAVs_SpectrumTxt" cutText [format ["<t size='1.5'>Textsize: %1%2</t>", _newValue, _defaultTxt], "PLAIN DOWN", 0.3, false, true, true];						
 		}];				
 	};
-	[] spawn AdvancedUCAVs_AddKeybinds_fnc;
+	[] spawn AUCAVs_AddKeybinds_fnc;
 	
 
 
 
-	AdvancedUCAVs_RemoveKeybinds_fnc = {			
+	AUCAVs_RemoveKeybinds_fnc = {			
 		_display = findDisplay 46;
 		
 		sleep 0.1;
 		
-		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyDownEH") then {
-			_display displayRemoveEventHandler ["KeyDown", AdvancedUCAVs_BackpackJamming_KeyDownEH];
+		if(!isNil "AUCAVs_BackpackJamming_KeyDownEH") then {
+			_display displayRemoveEventHandler ["KeyDown", AUCAVs_BackpackJamming_KeyDownEH];
 		};	
-		if(!isNil "AdvancedUCAVs_BackpackJamming_KeyUpEH") then {
-			_display displayRemoveEventHandler ["KeyUp", AdvancedUCAVs_BackpackJamming_KeyUpEH];
+		if(!isNil "AUCAVs_BackpackJamming_KeyUpEH") then {
+			_display displayRemoveEventHandler ["KeyUp", AUCAVs_BackpackJamming_KeyUpEH];
 		};			
-		if(!isNil "AdvancedUCAVs_SpectrumJamming_MouseDownEH") then {
-			_display displayRemoveEventHandler ["MouseButtonDown", AdvancedUCAVs_SpectrumJamming_MouseDownEH];
+		if(!isNil "AUCAVs_SpectrumJamming_MouseDownEH") then {
+			_display displayRemoveEventHandler ["MouseButtonDown", AUCAVs_SpectrumJamming_MouseDownEH];
 		};	
-		if(!isNil "AdvancedUCAVs_SpectrumRadar_KeyDownEH") then {
-			_display displayRemoveEventHandler ["KeyDown", AdvancedUCAVs_SpectrumRadar_KeyDownEH];
+		if(!isNil "AUCAVs_SpectrumRadar_KeyDownEH") then {
+			_display displayRemoveEventHandler ["KeyDown", AUCAVs_SpectrumRadar_KeyDownEH];
 		};			
 	};
 
 
 
 
-	AdvancedUCAVs_startDroneCrafting_fnc = {
+	AUCAVs_startDroneCrafting_fnc = {
 		params [["_drone", objNull], ["_droneTypeName", "<Drone Name>"], ["_duration", 10], ["_params", []], ["_code", {}]];
 	
 		_centerX = safeZoneX + (safeZoneW / 2);
@@ -2299,7 +2299,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_selectDroneAndCraft_fnc = {
+	AUCAVs_selectDroneAndCraft_fnc = {
 		params ["_droneType", "_actionParams"];
 		_drone = _actionParams select 0;
 		
@@ -2311,7 +2311,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				if ((_AR2_BombDrop getVariable ["DroneType", ""]) != "") exitWith {};
 				
-				["Log_Crafted", [name player, "AR-2 Bomb Drop Drone"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AR-2 Bomb Drop Drone"]] call AUCAVs_LogMsg;
 				
 				titleText ["", "PLAIN DOWN", 0.01, true, true];
 				
@@ -2342,11 +2342,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				[_RGO_simpleObj, 90] remoteExec ["setDir", 0, true];
 				[_RGO_simpleObj, 1.5] remoteExec ["setObjectScale", 0, true]; 		
 				_AR2_BombDrop setVariable ["RGO_simpleObj", _RGO_simpleObj, true];
-				_AR2_BombDrop setVariable ["AdvancedUCAVs_allAttachedTo", [_RGO_simpleObj], true];				
+				_AR2_BombDrop setVariable ["AUCAVs_allAttachedTo", [_RGO_simpleObj], true];				
 				
 				_AR2_BombDrop setVariable ["optionsVisible", false];
 				
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;			
+			}] spawn AUCAVs_startDroneCrafting_fnc;			
 		};
 		if (_droneType == "RPG7Launch") then {
 
@@ -2355,7 +2355,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 				if ((_AR2_Rpg7 getVariable ["DroneType", ""]) != "") exitWith {};
 			
-				["Log_Crafted", [name player, "AR-2 RPG-7 Drone"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AR-2 RPG-7 Drone"]] call AUCAVs_LogMsg;
 			
 				titleText ["", "PLAIN DOWN", 0.01, true, true];
 
@@ -2382,11 +2382,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				[_rocket7_simpleObj, 90] remoteExec ["setDir", 0, true]; 
 				_rocket7_simpleObj enableSimulation false;    
 				_AR2_Rpg7 setVariable ["rocket7_simpleObj", _rocket7_simpleObj, true];  			
-				_AR2_Rpg7 setVariable ["AdvancedUCAVs_allAttachedTo", [_RPG7_simpleObj,_rocket7_simpleObj], true];
+				_AR2_Rpg7 setVariable ["AUCAVs_allAttachedTo", [_RPG7_simpleObj,_rocket7_simpleObj], true];
 				
 				_AR2_Rpg7 setVariable ["optionsVisible", false];
 			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;			
+			}] spawn AUCAVs_startDroneCrafting_fnc;			
 		};
 		if (_droneType == "KamikazeLightHE") then {
 			
@@ -2395,7 +2395,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 				if ((_AR2_KamikazeLightHE getVariable ["DroneType", ""]) != "") exitWith {};
 			
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light HE]"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light HE]"]] call AUCAVs_LogMsg;
 			
 				titleText ["", "PLAIN DOWN", 0.01, true, true];
 
@@ -2413,11 +2413,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_UXO_simpleObj attachTo [_AR2_KamikazeLightHE, [0, 0.05, -0.13]];
 				[_UXO_simpleObj, 0] remoteExec ["setDir", 0, true];
 				[_UXO_simpleObj, 1.6] remoteExec ["setObjectScale", 0, true];		
-				_AR2_KamikazeLightHE setVariable ["AdvancedUCAVs_allAttachedTo", [_UXO_simpleObj], true];
+				_AR2_KamikazeLightHE setVariable ["AUCAVs_allAttachedTo", [_UXO_simpleObj], true];
 				
 				_AR2_KamikazeLightHE setVariable ["optionsVisible", false];
 				
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			}] spawn AUCAVs_startDroneCrafting_fnc;		
 		};
 		if (_droneType == "KamikazeLightAT") then {		
 			
@@ -2426,7 +2426,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 				if ((_AR2_KamikazeLightAT getVariable ["DroneType", ""]) != "") exitWith {};
 			
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light AT]"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Light AT]"]] call AUCAVs_LogMsg;
 		
 				titleText ["", "PLAIN DOWN", 0.01, true, true];	
 
@@ -2443,11 +2443,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_rpg7rocket_simpleObj = createSimpleObject ["\A3\Weapons_F_Exp\Launchers\RPG7\rocket_rpg7_item.p3d", position _AR2_KamikazeLightAT];
 				_rpg7rocket_simpleObj attachTo [_AR2_KamikazeLightAT, [0, 0.085, -0.12]];
 				[_rpg7rocket_simpleObj, 90] remoteExec ["setDir", 0, true];			
-				_AR2_KamikazeLightAT setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg7rocket_simpleObj], true];				
+				_AR2_KamikazeLightAT setVariable ["AUCAVs_allAttachedTo", [_rpg7rocket_simpleObj], true];				
 			
 				_AR2_KamikazeLightAT setVariable ["optionsVisible", false];
 				
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			}] spawn AUCAVs_startDroneCrafting_fnc;		
 		};		
 		if (_droneType == "KamikazeHeavyHE") then {
 			
@@ -2456,7 +2456,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				if ((_AR2_KamikazeHeavyHE getVariable ["DroneType", ""]) != "") exitWith {};
 				
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy HE]"]] call AdvancedUCAVs_LogMsg;					
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy HE]"]] call AUCAVs_LogMsg;					
 				
 				titleText ["", "PLAIN DOWN", 0.01, true, true];
 
@@ -2479,11 +2479,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_maawsBack_simpleObj attachTo [_AR2_KamikazeHeavyHE, [0, -0.34, -0.15]];
 				_maawsBack_simpleObj setVectorDirAndUp [[1,0,0], [1,1,0]];
 				[_maawsBack_simpleObj, 1.3] remoteExec ["setObjectScale", 0, true];				
-				_AR2_KamikazeHeavyHE setVariable ["AdvancedUCAVs_allAttachedTo", [_maawsFront_simpleObj,_maawsBack_simpleObj], true];	
+				_AR2_KamikazeHeavyHE setVariable ["AUCAVs_allAttachedTo", [_maawsFront_simpleObj,_maawsBack_simpleObj], true];	
 
 				_AR2_KamikazeHeavyHE setVariable ["optionsVisible", false];
 			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			}] spawn AUCAVs_startDroneCrafting_fnc;		
 		};
 		if (_droneType == "KamikazeHeavyAT") then {
 			
@@ -2492,7 +2492,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 				if ((_AR2_KamikazeHeavyAT getVariable ["DroneType", ""]) != "") exitWith {};
 			
-				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy AT]"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AR-2 Kamikaze FPV [Heavy AT]"]] call AUCAVs_LogMsg;
 		
 				titleText ["", "PLAIN DOWN", 0.01, true, true];	
 
@@ -2509,22 +2509,22 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_titanRocket_simpleObj = createSimpleObject ["a3\weapons_f_beta\launchers\titan\titan_missile_atl.p3d", position _AR2_KamikazeHeavyAT];
 				_titanRocket_simpleObj attachTo [_AR2_KamikazeHeavyAT, [-0.009, -0.46, -0.15]];
 				_titanRocket_simpleObj setVectorDirAndUp [[0, -1, 0], [1, 0, 0]];								
-				_AR2_KamikazeHeavyAT setVariable ["AdvancedUCAVs_allAttachedTo", [_titanRocket_simpleObj], true];				
+				_AR2_KamikazeHeavyAT setVariable ["AUCAVs_allAttachedTo", [_titanRocket_simpleObj], true];				
 			
 				_AR2_KamikazeHeavyAT setVariable ["optionsVisible", false];
 			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			}] spawn AUCAVs_startDroneCrafting_fnc;		
 		};		
 		if (_droneType == "BombCarrier") then {
 			
 			[_drone, "AL-6 Bomb Carrier", 30, _actionParams, {
 				params ["_AL6_BombCarrier", "_caller", "_actionId", ["_removeItem", true]];				
 				
-				["Log_Crafted", [name player, "AL-6 Bomb Carrier Drone"]] call AdvancedUCAVs_LogMsg;		
+				["Log_Crafted", [name player, "AL-6 Bomb Carrier Drone"]] call AUCAVs_LogMsg;		
 				
 				titleText ["", "PLAIN DOWN", 0.01, true, true];					
 				
-				[_AL6_BombCarrier] call AdvancedUCAVs_DestroyRope_fnc;
+				[_AL6_BombCarrier] call AUCAVs_DestroyRope_fnc;
 				
 				[_caller, "AinvPknlMstpSnonWrflDnon_medicEnd"] remoteExec ["switchMove"];
 
@@ -2568,19 +2568,19 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					
 					_attachedToList pushBack _RGO_simpleObj;
 				} forEach _rgoAttachPositions;			
-				_AL6_BombCarrier setVariable ["AdvancedUCAVs_allAttachedTo", _attachedToList, true];			
+				_AL6_BombCarrier setVariable ["AUCAVs_allAttachedTo", _attachedToList, true];			
 					
 				_AL6_BombCarrier setVariable ["optionsVisible", false];	
 					
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			}] spawn AUCAVs_startDroneCrafting_fnc;		
 		};
 		if (_droneType == "RPG7LaunchAL6") then {
 			[_drone, "AL-6 RPG-7 Launcher", 10, _actionParams, {
 				params ["_AL6_RPG7Launch", "_caller", "_actionId", ["_removeItem", true]];				
 				
-				["Log_Crafted", [name player, "AL-6 RPG-7 Drone"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AL-6 RPG-7 Drone"]] call AUCAVs_LogMsg;
 					
-				[_AL6_RPG7Launch] call AdvancedUCAVs_DestroyRope_fnc;				
+				[_AL6_RPG7Launch] call AUCAVs_DestroyRope_fnc;				
 				
 				titleText ["", "PLAIN DOWN", 0.01, true, true];	
 				
@@ -2611,19 +2611,19 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				[_rocket7_simpleObj, 90] remoteExec ["setDir", 0, true];				
 				_rocket7_simpleObj enableSimulation false; 
 				_AL6_RPG7Launch setVariable ["rocket7_simpleObj", _rocket7_simpleObj, true]; 	
-				_AL6_RPG7Launch setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg7_simpleObj,_rocket7_simpleObj], true];			
+				_AL6_RPG7Launch setVariable ["AUCAVs_allAttachedTo", [_rpg7_simpleObj,_rocket7_simpleObj], true];			
 			
 				_AL6_RPG7Launch setVariable ["optionsVisible", false];	
 			
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;		
+			}] spawn AUCAVs_startDroneCrafting_fnc;		
 		};
 		if (_droneType == "RPG42Launch") then {
 			[_drone, "AL-6 RPG-42 Launcher", 20, _actionParams, {
 				params ["_AL6_RPG42Launch", "_caller", "_actionId", ["_removeItem", true]];				
 				
-				["Log_Crafted", [name player, "AL-6 RPG-42 Drone"]] call AdvancedUCAVs_LogMsg;
+				["Log_Crafted", [name player, "AL-6 RPG-42 Drone"]] call AUCAVs_LogMsg;
 				
-				[_AL6_RPG42Launch] call AdvancedUCAVs_DestroyRope_fnc;					
+				[_AL6_RPG42Launch] call AUCAVs_DestroyRope_fnc;					
 				
 				titleText ["", "PLAIN DOWN", 0.01, true, true];
 
@@ -2646,11 +2646,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_rpg42 = createSimpleObject ["a3\weapons_f\launchers\rpg32\rpg32_loaded_f.p3d", position _AL6_RPG42Launch]; 
 				_rpg42 attachTo [_AL6_RPG42Launch, [0.01, 0.2, -0.06]]; 
 				[_rpg42, 90] remoteExec ["setDir", 0, true];  				
-				_AL6_RPG42Launch setVariable ["AdvancedUCAVs_allAttachedTo", [_rpg42], true];				
+				_AL6_RPG42Launch setVariable ["AUCAVs_allAttachedTo", [_rpg42], true];				
 				
 				_AL6_RPG42Launch setVariable ["optionsVisible", false];
 				
-			}] spawn AdvancedUCAVs_startDroneCrafting_fnc;			
+			}] spawn AUCAVs_startDroneCrafting_fnc;			
 		};
 
 	};
@@ -2658,15 +2658,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	
-	AdvancedUCAVs_addToDrone_EventHandlers_fnc = {	
+	AUCAVs_addToDrone_EventHandlers_fnc = {	
 		params ["_drone"];
 		
-		_drone removeEventHandler ["Killed", (_drone getVariable ["AdvancedUCAVs_MainKilledEH", -100])];
+		_drone removeEventHandler ["Killed", (_drone getVariable ["AUCAVs_MainKilledEH", -100])];
 		_killedEH = _drone addEventHandler ["Killed", {
 			params ["_drone", "_killer", "_instigator", "_useEffects"];
 			
 			if (!local _drone) exitWith {};		
-			["Log_DebugKilled", [[_drone] call AdvancedUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AdvancedUCAVs_LogMsg;
+			["Log_DebugKilled", [[_drone] call AUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AUCAVs_LogMsg;
 			
 			[[_drone],{
 				params ["_drone"];
@@ -2674,15 +2674,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				deleteVehicle _drone;						
 			}] remoteExec ["spawn", 2];
 
-			{ [_drone, _x] remoteExec ["removeAction"] } forEach (_drone getVariable ["AdvancedUCAVs_allActionIDs", []]);	
+			{ [_drone, _x] remoteExec ["removeAction"] } forEach (_drone getVariable ["AUCAVs_allActionIDs", []]);	
 
-			{ deleteVehicle _x } forEach (_drone getVariable ["AdvancedUCAVs_allAttachedTo", []]);
+			{ deleteVehicle _x } forEach (_drone getVariable ["AUCAVs_allAttachedTo", []]);
 			
 			if (_drone isKindOf "UAV_06_base_F" && { (typeOf _drone) != "C_IDAP_UAV_06_antimine_F" }) then {
 				params ["_AL6"];
 				_ugv = _AL6 getVariable ["slingload_slingloadedUGV", objNull];
 				if (!isNull _ugv && { ((getPos _ugv) select 2) > 10 }) then { _ugv setDamage 0.5 };
-				[_AL6, true] call AdvancedUCAVs_DestroyRope_fnc;
+				[_AL6, true] call AUCAVs_DestroyRope_fnc;
 			};	
 			
 			">>> anti troll";
@@ -2690,13 +2690,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 			"shot down";
 			
-			_droneName = [_drone] call AdvancedUCAVs_getName_fnc;
+			_droneName = [_drone] call AUCAVs_getName_fnc;
 			_droneType = _drone getVariable "DroneType";
 			if (!isNull _instigator && { str _drone != str _killer }) then {			
 				if ((_drone getVariable ["DroneType", ""]) in ["KamikazeLightHE","KamikazeLightAT","KamikazeHeavyHE","KamikazeHeavyAT"]) exitWith {};
 				
 				_instigatorName = if (isPlayer _instigator) then { name _instigator } else { "[AI] " + name _instigator };			
-				([_drone, true, true] call AdvancedUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
+				([_drone, true, true] call AUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
 				_driverName = "";
 				_gunnerName = "";		
 				
@@ -2705,7 +2705,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					if ((_x select 1) == "GUNNER") then { _gunnerName = (_x select 0) };
 				} forEach _controllingPlayers;
 
-				["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName, _gunnerName]] call AdvancedUCAVs_LogMsg;	
+				["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName, _gunnerName]] call AUCAVs_LogMsg;	
 			};		
 					
 			"crashed";
@@ -2715,29 +2715,29 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_lastRegisteredDriver = _drone getVariable ["lastRegisteredDriver", "Error: Unkown"];
 				if (_playerWhoHitDrone != "") then {											
 					_logType = if (!isNull _killer) then { "Log_CrashGotHit" } else { "Log_CrashGotHitNull" };		
-					[_logType, [_droneName, _lastRegisteredDriver, _playerWhoHitDrone, _droneType]] call AdvancedUCAVs_LogMsg;				
+					[_logType, [_droneName, _lastRegisteredDriver, _playerWhoHitDrone, _droneType]] call AUCAVs_LogMsg;				
 				} else {							
 					_logType = if (!isNull _killer) then { "Log_CrashNoHit" } else { "Log_CrashNoHitNull" };		
-					[_logType, [_droneName, _lastRegisteredDriver, _playerWhoHitDrone, _droneType]] call AdvancedUCAVs_LogMsg;							
+					[_logType, [_droneName, _lastRegisteredDriver, _playerWhoHitDrone, _droneType]] call AUCAVs_LogMsg;							
 				};
 			};	
 		}];			
-		_drone setVariable ["AdvancedUCAVs_MainKilledEH", _killedEH];
+		_drone setVariable ["AUCAVs_MainKilledEH", _killedEH];
 
 
 
-		_drone removeEventHandler ["Deleted", (_drone getVariable ["AdvancedUCAVs_MainDeletedEH", -100])];
+		_drone removeEventHandler ["Deleted", (_drone getVariable ["AUCAVs_MainDeletedEH", -100])];
 		_deletedEH = _drone addEventHandler ["Deleted", {
 			params ["_drone"];
 			if (!local _drone) exitWith {};
-			["Log_DebugDeleted", [_drone call AdvancedUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AdvancedUCAVs_LogMsg;
-			{ deleteVehicle _x } forEach (_drone getVariable ["AdvancedUCAVs_allAttachedTo", []]);					
+			["Log_DebugDeleted", [_drone call AUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AUCAVs_LogMsg;
+			{ deleteVehicle _x } forEach (_drone getVariable ["AUCAVs_allAttachedTo", []]);					
 			
 		}];	
-		_drone setVariable ["AdvancedUCAVs_MainDeletedEH", _deletedEH];
+		_drone setVariable ["AUCAVs_MainDeletedEH", _deletedEH];
 	
 	
-		_drone removeEventHandler ["Hit", (_drone getVariable ["AdvancedUCAVs_MainHitEH", -100])];
+		_drone removeEventHandler ["Hit", (_drone getVariable ["AUCAVs_MainHitEH", -100])];
 		_hitEH = _drone addEventHandler ["Hit", {
 			params ["_drone", "_source", "_damage", "_instigator"];
 
@@ -2746,20 +2746,20 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[_drone, _instigator] spawn {
 				params ["_drone", "_instigator"];
 							
-				_droneName = [_drone] call AdvancedUCAVs_getName_fnc;
+				_droneName = [_drone] call AUCAVs_getName_fnc;
 				_droneType = _drone getVariable ["DroneType", ""];
 				_instigatorName = if (isPlayer _instigator) then { name _instigator } else { "[AI] " + name _instigator };
-				([_drone, true, true] call AdvancedUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
+				([_drone, true, true] call AUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
 				_driverName = "";
 				_controllingPlayers findIf { if (_x select 1 == "DRIVER") then { _driverName = _x select 0 } };							
 					
 				switch (_droneType) do {
 					case "KamikazeLightHE": {
 						sleep 0.0001;
-						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;
+						["Log_DebugHit", [_droneType, clientOwner]] call AUCAVs_LogMsg;
 						if (!isNull _instigator && { isNil {_drone getVariable "killedMsgSent"} }) then { 
 							_drone setVariable ["killedMsgSent", 0];
-							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AdvancedUCAVs_LogMsg;
+							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AUCAVs_LogMsg;
 						};
 						
 						for "_i" from 1 to 3 do {		
@@ -2771,10 +2771,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					};
 					case "KamikazeLightAT": {
 						sleep 0.0001;
-						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;	
+						["Log_DebugHit", [_droneType, clientOwner]] call AUCAVs_LogMsg;	
 						if (!isNull _instigator && { isNil {_drone getVariable "killedMsgSent"} }) then { 
 							_drone setVariable ["killedMsgSent", 0];
-							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AdvancedUCAVs_LogMsg;
+							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AUCAVs_LogMsg;
 						};
 						
 						_dirAndUp = [vectorDir _drone, vectorUp _drone];
@@ -2786,10 +2786,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					};				
 					case "KamikazeHeavyHE": {
 						sleep 0.0001;				
-						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;
+						["Log_DebugHit", [_droneType, clientOwner]] call AUCAVs_LogMsg;
 						if (!isNull _instigator && { isNil {_drone getVariable "killedMsgSent"} }) then { 
 							_drone setVariable ["killedMsgSent", 0];
-							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AdvancedUCAVs_LogMsg;
+							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AUCAVs_LogMsg;
 						};
 						
 						_dirAndUp = [vectorDir _drone, vectorUp _drone];
@@ -2801,10 +2801,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					};
 					case "KamikazeHeavyAT": {
 						sleep 0.0001;
-						["Log_DebugHit", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;	
+						["Log_DebugHit", [_droneType, clientOwner]] call AUCAVs_LogMsg;	
 						if (!isNull _instigator && { isNil {_drone getVariable "killedMsgSent"} }) then { 
 							_drone setVariable ["killedMsgSent", 0];
-							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AdvancedUCAVs_LogMsg;
+							["Log_Killed", [_droneName, _droneType, _instigatorName, _driverName]] call AUCAVs_LogMsg;
 						};
 						
 						_dirAndUp = [vectorDir _drone, vectorUp _drone];
@@ -2815,7 +2815,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						triggerAmmo _titan;							
 					};						
 					default {
-						["Log_DebugHit", ["UNARMED", clientOwner]] call AdvancedUCAVs_LogMsg;
+						["Log_DebugHit", ["UNARMED", clientOwner]] call AUCAVs_LogMsg;
 					};
 				};
 			};
@@ -2826,18 +2826,18 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_drone setVariable ["playerWhoHitDrone", _instigatorName, true];
 			};
 		}];
-		_drone setVariable ["AdvancedUCAVs_MainHitEH", _hitEH];	
+		_drone setVariable ["AUCAVs_MainHitEH", _hitEH];	
 
 
 		"repair AL6 ATRQ when it gets damaged by rope";
 		if (_drone isKindOf "UAV_06_base_F") then {
-			_drone removeEventHandler ["HandleDamage", (_drone getVariable ["AdvancedUCAVs_MainHandleDamageEH", -100])];
+			_drone removeEventHandler ["HandleDamage", (_drone getVariable ["AUCAVs_MainHandleDamageEH", -100])];
 			_handleDmgEH = _drone addEventHandler ["HandleDamage", {
 				params ["_drone", "_selection", "_damage", "_source"];
 				if (!local _drone) exitWith { nil };
 				if (!alive _drone) exitWith { nil };			
 				if (typeOf _source != "Rope") exitWith { nil };
-				["Log_DebugHandleDamage", [_drone, clientOwner]] call AdvancedUCAVs_LogMsg;	
+				["Log_DebugHandleDamage", [_drone, clientOwner]] call AUCAVs_LogMsg;	
 
 				[_drone] spawn {
 					params ["_drone"];
@@ -2846,13 +2846,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				};
 				nil
 			}];
-			_drone setVariable ["AdvancedUCAVs_MainHandleDamageEH", _handleDmgEH];
+			_drone setVariable ["AUCAVs_MainHandleDamageEH", _handleDmgEH];
 		};
 		
 		
 		"Prevent gunner creation for armed AR2s";
 		if (_drone isKindOf "UAV_01_base_F") then {
-			_drone removeEventHandler ["GetIn", (_drone getVariable ["AdvancedUCAVs_MainGetInEH", -100])];
+			_drone removeEventHandler ["GetIn", (_drone getVariable ["AUCAVs_MainGetInEH", -100])];
 			_getInEH = _drone addEventHandler ["GetIn", {
 				params ["_drone", "_role", "_unit", "_turret"];
 				if (!local _drone) exitWith {};
@@ -2860,14 +2860,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				if (_role != "gunner") exitWith {};
 				deleteVehicle _unit;
 			}];
-			_drone setVariable ["AdvancedUCAVs_MainGetInEH", _getInEH];
+			_drone setVariable ["AUCAVs_MainGetInEH", _getInEH];
 		};
 	};
 
 
 
 
-	AdvancedUCAVs_addToDrone_BasicOptions_fnc = {
+	AUCAVs_addToDrone_BasicOptions_fnc = {
 		params ["_drone"];
 	
 		_isUGV = _drone isKindOf "UGV_02_Base_F";
@@ -2879,7 +2879,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_drone setVariable ["optionsVisible", _newState];
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { !(unitIsUAV _this) && { vehicle _this == _this }}", 3];
 		
-		[_drone, _actionID_Toggle] call AdvancedUCAVs_saveAction_fnc;
+		[_drone, _actionID_Toggle] call AUCAVs_saveAction_fnc;
 			
 			
 			
@@ -2900,7 +2900,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		_drone setUserActionText [_actionID_Repair, _repairActionName, "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>"+_repairActionName2];
 		
-		[_drone, _actionID_Repair] call AdvancedUCAVs_saveAction_fnc;
+		[_drone, _actionID_Repair] call AUCAVs_saveAction_fnc;
 
 
 
@@ -2940,7 +2940,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		_drone setUserActionText [_actionID_HalfRepair, _quickRepairActionName, "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\repair_ca.paa'/><br/>"+_quickRepairActionName2];
 		
-		[_drone, _actionID_HalfRepair] call AdvancedUCAVs_saveAction_fnc;
+		[_drone, _actionID_HalfRepair] call AUCAVs_saveAction_fnc;
 
 
 
@@ -2950,7 +2950,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				_hasBattery = "Laserbatteries" in magazines _caller;											
 				if (!_hasBattery) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Designator Battery", "PLAIN DOWN", 0.5, true, true] };	
 				
-				[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+				[_caller] call AUCAVs_PlayerAnimations_fnc;
 				_caller removeItem "Laserbatteries";
 				sleep 1;
 				[_drone, 1] remoteExec ["setFuel", _drone];
@@ -2958,14 +2958,14 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 			_drone setUserActionText [_actionID_Battery, "-> Swap Drone Battery", "<img size='2.5' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_batt_on_ca.paa'/><br/>Swap Drone Battery"];
 
-			[_drone, _actionID_Battery] call AdvancedUCAVs_saveAction_fnc;
+			[_drone, _actionID_Battery] call AUCAVs_saveAction_fnc;
 		};	
 	};
 	
 	
 	
 
-	AdvancedUCAVs_addToDrone_CargoAndSlingload_fnc = {
+	AUCAVs_addToDrone_CargoAndSlingload_fnc = {
 		params ["_AL6"];
 		
 		_actionID_CheckCargo = _AL6 addAction ["-> Check Cargo", {
@@ -3039,19 +3039,19 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 							
 		_actionID_DropSling = _AL6 addAction ["Drop Slingloaded UGV", {
 			params ["_AL6", "_caller", "_actionId", "_arguments"];
-			[_AL6] call AdvancedUCAVs_DestroyRope_fnc;
+			[_AL6] call AUCAVs_DestroyRope_fnc;
 		}, nil, 1.5, true, true, "", "cameraOn == _target && { missionNamespace getVariable ['AUCAVs_AL6SlingloadON', true] && { (_target getVariable ['DroneType', '']) == '' && { !isNull (_target getVariable ['slingload_slingloadedUGV', objNull]) && (speed _target) < 10 && ((getPos _target) select 2) < 10 }}}"];
 		
-		[_AL6, _actionID_CheckCargo] call AdvancedUCAVs_saveAction_fnc;
-		[_AL6, _actionID_Slingload] call AdvancedUCAVs_saveAction_fnc;
-		[_AL6, _actionID_DropSling] call AdvancedUCAVs_saveAction_fnc;
+		[_AL6, _actionID_CheckCargo] call AUCAVs_saveAction_fnc;
+		[_AL6, _actionID_Slingload] call AUCAVs_saveAction_fnc;
+		[_AL6, _actionID_DropSling] call AUCAVs_saveAction_fnc;
 
 	};
 
 
 
 
-	AdvancedUCAVs_addToDrone_AR2ArmOptions_fnc = {
+	AUCAVs_addToDrone_AR2ArmOptions_fnc = {
 		params ["_AR2"];
 
 
@@ -3062,7 +3062,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildRGO = [_caller, "HandGrenade"] call BIS_fnc_hasItem;
 			if (!_hasBuildRGO) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RGO Grenade", "PLAIN DOWN", 0.5, true, true] };
 				
-			["BombDrop", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+			["BombDrop", _this] call AUCAVs_selectDroneAndCraft_fnc;
 
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2BombDropON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 
@@ -3082,7 +3082,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_caller removeItem "HandGrenade";
 			[_AR2_BombDrop, ["PylonRack_4Rnd_BombDemine_01_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AR2_BombDrop];
 			
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 			
 			sleep 1;
 			
@@ -3103,7 +3103,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildLauncher = [_caller, "launch_RPG7_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildLauncher) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-7 Rocket Launcher", "PLAIN DOWN", 0.5, true, true] };
 			
-			["RPG7Launch", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+			["RPG7Launch", _this] call AUCAVs_selectDroneAndCraft_fnc;
 				
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2Rpg7ON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 		
@@ -3120,7 +3120,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_ammo = _AR2_Rpg7 magazinesTurret [-1];  
 			if (count _ammo != 0) exitWith { titleText ["<t color='#FF0000' size='1.7'>Drone is already armed", "PLAIN DOWN", 0.5, true, true] };
 
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 
 			[_AR2_Rpg7, 1] remoteExec ["setVehicleAmmo", _AR2_Rpg7];		
 			_caller removeItem "RPG7_F"; 
@@ -3144,7 +3144,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildAPmine = [_caller, "APERSMine_Range_Mag"] call BIS_fnc_hasItem;
 			if (!_hasBuildAPmine) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an APERS Mine", "PLAIN DOWN", 0.5, true, true] };	
 														
-			["KamikazeLightHE", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+			["KamikazeLightHE", _this] call AUCAVs_selectDroneAndCraft_fnc;
 						
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeLightHeON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 
@@ -3158,7 +3158,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildRPG = [_caller, "RPG7_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildRPG) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-7 Rocket", "PLAIN DOWN", 0.5, true, true] };
 	
-			["KamikazeLightAT", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+			["KamikazeLightAT", _this] call AUCAVs_selectDroneAndCraft_fnc;
 						
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeLightAtON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 		
@@ -3172,7 +3172,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildItem = [_caller, "MRAWS_HE_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildItem) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a MAAWS HE 44 Round", "PLAIN DOWN", 0.5, true, true] };
 			
-			["KamikazeHeavyHE", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+			["KamikazeHeavyHE", _this] call AUCAVs_selectDroneAndCraft_fnc;
 				
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeHeavyHeON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 
@@ -3186,7 +3186,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildItem = [_caller, "Titan_AT"] call BIS_fnc_hasItem;
 			if (!_hasBuildItem) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Titan AT Missile", "PLAIN DOWN", 0.5, true, true] };
 	
-			["KamikazeHeavyAT", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;
+			["KamikazeHeavyAT", _this] call AUCAVs_selectDroneAndCraft_fnc;
 			
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AR2KamikazeHeavyAtON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 		
@@ -3195,7 +3195,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 		{
-			[_AR2, _x] call AdvancedUCAVs_saveAction_fnc;
+			[_AR2, _x] call AUCAVs_saveAction_fnc;
 		} forEach [_actionID_BombDrop,_actionID_RearmGrenade,_actionID_Rpg7Launch,
 		_actionID_RearmRocket,_actionID_KamikazeLightHE,_actionID_KamikazeLightAT,_actionID_KamikazeHeavyAT,_actionID_KamikazeHeavyHE];
 
@@ -3207,7 +3207,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (!local _AR2) exitWith {};
 			
 			_droneType = _AR2 getVariable ["DroneType", ""];
-			["Log_DebugFiredAR2", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;
+			["Log_DebugFiredAR2", [_droneType, clientOwner]] call AUCAVs_LogMsg;
 			
 			if (_droneType == "BombDrop") then {
 				_RGO_simpleObj = _AR2 getVariable ["RGO_simpleObj", objNull];
@@ -3226,7 +3226,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_addToDrone_AL6ArmOptions_fnc = {
+	AUCAVs_addToDrone_AL6ArmOptions_fnc = {
 		params ["_AL6"];
 			
 			
@@ -3236,7 +3236,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildRGO = {_x == "HandGrenade"} count (magazines _caller);
 			if (_hasBuildRGO < 4) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need 4 RGO Grenades", "PLAIN DOWN", 0.5, true, true] };
 		
-			["BombCarrier", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;	
+			["BombCarrier", _this] call AUCAVs_selectDroneAndCraft_fnc;	
 
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AL6BombCarrierON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 		
@@ -3257,7 +3257,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			[_AL6_BombCarrier, ["BombDemine_01_F", (_ammo + 1)]] remoteExec ["setAmmo", _AL6_BombCarrier];	
 			
 			_ammo2 = _AL6_BombCarrier ammo "BombDemine_01_F";
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 			
 			sleep 1;
 			
@@ -3281,7 +3281,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildLauncher6 = [_caller, "launch_RPG7_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildLauncher6) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-7 Rocket Launcher", "PLAIN DOWN", 0.5, true, true] };
 
-			["RPG7LaunchAL6", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;		
+			["RPG7LaunchAL6", _this] call AUCAVs_selectDroneAndCraft_fnc;		
 		
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AL6Rpg7ON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 
@@ -3298,7 +3298,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_ammo = _AL6_RPG7Launch magazinesTurret [-1];  
 			if (count _ammo > 0) exitWith { titleText ["<t color='#FF0000' size='1.7'>Drone is already armed", "PLAIN DOWN", 0.5, true, true] };
 				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 			
 			[_AL6_RPG7Launch, 1] remoteExec ["setVehicleAmmo", _AL6_RPG7Launch];		
 			_caller removeItem "RPG7_F"; 
@@ -3322,7 +3322,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasBuildLauncher42 = [_caller, "launch_RPG32_F"] call BIS_fnc_hasItem;
 			if (!_hasBuildLauncher42) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need an RPG-42 Rocket Launcher", "PLAIN DOWN", 0.5, true, true] };
 		
-			["RPG42Launch", _this] call AdvancedUCAVs_selectDroneAndCraft_fnc;	
+			["RPG42Launch", _this] call AUCAVs_selectDroneAndCraft_fnc;	
 						
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_AL6Rpg42ON', true] && { (_target getVariable ['DroneType', '']) == '' && { !(unitIsUAV _this) && { vehicle _this == _this }}}}}", 2.5];
 		
@@ -3339,7 +3339,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_ammo = _AL6_RPG42Launch magazinesTurret [-1];  
 			if (count _ammo > 0) exitWith { titleText ["<t color='#FF0000' size='1.7'>Drone is already armed", "PLAIN DOWN", 0.5, true, true] };  
 				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 			
 			[_AL6_RPG42Launch, ["RPG32_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG42Launch];		
 			_caller removeItem "RPG32_F";  
@@ -3363,7 +3363,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_ammo = _AL6_RPG42Launch magazinesTurret [-1];  
 			if (count _ammo > 0) exitWith { titleText ["<t color='#FF0000' size='1.7'>Drone is already armed", "PLAIN DOWN", 0.5, true, true] };
 				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 			
 			[_AL6_RPG42Launch, ["RPG32_HE_F", [-1], (1)]] remoteExec ["addMagazineTurret", _AL6_RPG42Launch];		
 			_caller removeItem "RPG32_HE_F"; 
@@ -3379,7 +3379,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		
 		
 		{
-			[_AL6, _x] call AdvancedUCAVs_saveAction_fnc;
+			[_AL6, _x] call AUCAVs_saveAction_fnc;
 		} forEach [_actionID_BombCarrier,_actionID_RearmGrenade,
 		_actionID_Rpg7Launch, _actionID_RearmRocket, _actionID_RPG42Launch,_actionID_RearmRocketAT,_actionID_RearmRocketHE];
 			
@@ -3390,7 +3390,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (!local _AL6) exitWith {};
 			
 			_droneType = _AL6 getVariable ["DroneType", ""];
-			["Log_DebugFiredAL6", [_droneType, clientOwner]] call AdvancedUCAVs_LogMsg;
+			["Log_DebugFiredAL6", [_droneType, clientOwner]] call AUCAVs_LogMsg;
 			
 			if (_droneType == "BombCarrier") then {
 				
@@ -3413,7 +3413,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_addToDrone_DeminingDroneOptions_fnc = {
+	AUCAVs_addToDrone_DeminingDroneOptions_fnc = {
 		params ["_DeminingDrone"];
 		
 			
@@ -3429,20 +3429,20 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 			[_DeminingDrone, ["BombDemine_01_F", (_ammo + 1)]] remoteExec ["setAmmo", _DeminingDrone];
 			
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;					
+			[_caller] call AUCAVs_PlayerAnimations_fnc;					
 		}, nil, 1.5, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_DemineUAVRearmON', true] && { !(unitIsUAV _this) && { vehicle _this == _this }}}}", 3];
 		
 		_DeminingDrone setUserActionText [_actionID_RearmGrenade, "-> Rearm Demine Charges", "<img size='2.3' image='a3\ui_f\data\igui\cfg\simpletasks\types\rearm_ca.paa'/><br/>Rearm Demine Charges"];
 
 		
 
-		[_DeminingDrone, _actionID_RearmGrenade] call AdvancedUCAVs_saveAction_fnc;			
+		[_DeminingDrone, _actionID_RearmGrenade] call AUCAVs_saveAction_fnc;			
 	};
 
 
 
 
-	AdvancedUCAVs_addToDrone_UGVAllOptions_fnc = {
+	AUCAVs_addToDrone_UGVAllOptions_fnc = {
 		params ["_UGV"];
 									
 						
@@ -3480,7 +3480,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_hasSmoke = [_caller, "SmokeShell"] call BIS_fnc_hasItem;  
 			if (!_hasSmoke) exitWith { titleText ["<t color='#FF0000' size='1.7'>You need a Smoke Grenade (White)", "PLAIN DOWN", 0.5, true, true] };  
 				
-			[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+			[_caller] call AUCAVs_PlayerAnimations_fnc;
 
 			_UGV setVariable ["AUCAV_UGVSmokeCount", (_UGV getVariable ["AUCAV_UGVSmokeCount", 0]) + 1, true];
 			_caller removeItem "SmokeShell"; 	  				
@@ -3490,8 +3490,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		_UGV setUserActionText [_actionID_RearmSmoke, "-> Rearm Smoke", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_start_on_ca.paa'/><br/>Rearm Smoke"];			
 
 
-		[_UGV, _actionID_DeploySmoke] call AdvancedUCAVs_saveAction_fnc;
-		[_UGV, _actionID_RearmSmoke] call AdvancedUCAVs_saveAction_fnc;
+		[_UGV, _actionID_DeploySmoke] call AUCAVs_saveAction_fnc;
+		[_UGV, _actionID_RearmSmoke] call AUCAVs_saveAction_fnc;
 
 
 		if (_UGV isKindOf "UGV_02_Demining_Base_F") then {
@@ -3513,7 +3513,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					
 				_caller removeItem "6Rnd_12Gauge_Slug";
 				[_ArmedUGV, ["15Rnd_12Gauge_Slug", 15, [0]]] remoteExec ["setMagazineTurretAmmo"];					
-				[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;
+				[_caller] call AUCAVs_PlayerAnimations_fnc;
 				
 			}, nil, 1.4, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_ED1RearmSlugON', true] && { !(unitIsUAV _this) && { vehicle _this == _this }}}}", 3];
 
@@ -3537,7 +3537,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				_caller removeItem "6Rnd_12Gauge_Pellets";
 				[_ArmedUGV, ["15Rnd_12Gauge_Pellets", 15, [0]]] remoteExec ["setMagazineTurretAmmo"];					
-				[_caller] call AdvancedUCAVs_PlayerAnimations_fnc;					
+				[_caller] call AUCAVs_PlayerAnimations_fnc;					
 			
 			}, nil, 1.4, false, false, "", "cameraOn != _target && { _target getVariable ['optionsVisible', false] && { missionNamespace getVariable ['AUCAVs_ED1RearmPelletsON', true] && { !(unitIsUAV _this) && { vehicle _this == _this }}}}", 3];													
 			
@@ -3545,8 +3545,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 			
 				
-			[_UGV, _actionID_RearmSlug] call AdvancedUCAVs_saveAction_fnc;
-			[_UGV, _actionID_RearmPellets] call AdvancedUCAVs_saveAction_fnc;
+			[_UGV, _actionID_RearmSlug] call AUCAVs_saveAction_fnc;
+			[_UGV, _actionID_RearmPellets] call AUCAVs_saveAction_fnc;
 		
 		};
 		
@@ -3555,7 +3555,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AdvancedUCAVs_addToDrone_UnJamOptions_fnc = {
+	AUCAVs_addToDrone_UnJamOptions_fnc = {
 		params ["_drone"];
 
 		_actionID_UnJam = [_drone, "-> Un-Jam Drone", 
@@ -3568,21 +3568,21 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			{ 
 				params ["_drone", "_caller", "_actionId", "_arguments"];	
 				[_drone] remoteExec ["createVehicleCrew", _drone];
-				_droneName = [_drone] call AdvancedUCAVs_getName_fnc;
-				["Log_UnJammed", [name _caller, _droneName]] call AdvancedUCAVs_LogMsg;			
+				_droneName = [_drone] call AUCAVs_getName_fnc;
+				["Log_UnJammed", [name _caller, _droneName]] call AUCAVs_LogMsg;			
 			}, {}, [], 3, 1.5, true, false, false, 2.5
 		] call BIS_fnc_holdActionAdd;
 
-		[_drone, _actionID_UnJam] call AdvancedUCAVs_saveAction_fnc;
+		[_drone, _actionID_UnJam] call AUCAVs_saveAction_fnc;
 	};
 
 
 
 
-	AdvancedUCAVs_initOnDrone_fnc = {
+	AUCAVs_initOnDrone_fnc = {
 		params ["_entity"];
 		
-		if (unitIsUAV _entity && { !(_entity isKindOf "StaticWeapon") }) then { [_entity] call AdvancedUCAVs_addToDrone_UnJamOptions_fnc };
+		if (unitIsUAV _entity && { !(_entity isKindOf "StaticWeapon") }) then { [_entity] call AUCAVs_addToDrone_UnJamOptions_fnc };
 		
 		
 		if ((["UAV_01_base_F", "UAV_06_base_F", "UGV_02_Base_F"] findIf { _entity isKindOf _x }) == -1) exitWith {};
@@ -3593,15 +3593,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 		{ 
 			_actionID = _x;
 			_drone removeAction _actionID;
-		} forEach (_drone getVariable ["AdvancedUCAVs_allActionIDs", []]);			
+		} forEach (_drone getVariable ["AUCAVs_allActionIDs", []]);			
 		
 		
 		[_drone, ["CamouflageCoef", AUCAVs_camouflageCoef]] remoteExec ["setUnitTrait", _drone];
 		[_drone, ["AudibleCoef", AUCAVs_audibleCoef]] remoteExec ["setUnitTrait", _drone];	
 			
 				
-		[_drone] call AdvancedUCAVs_addToDrone_EventHandlers_fnc;
-		[_drone] call AdvancedUCAVs_addToDrone_BasicOptions_fnc; "Toggle, Repair, Battery";
+		[_drone] call AUCAVs_addToDrone_EventHandlers_fnc;
+		[_drone] call AUCAVs_addToDrone_BasicOptions_fnc; "Toggle, Repair, Battery";
 				
 		
 		if (_drone isKindOf "UAV_01_base_F" || _drone isKindOf "UAV_06_base_F") then { 
@@ -3612,31 +3612,31 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					
 		if (_drone isKindOf "UAV_06_base_F" && { (typeOf _drone) != "C_IDAP_UAV_06_antimine_F" }) then {
 			params ["_AL6"];
-			[_AL6] call AdvancedUCAVs_addToDrone_CargoAndSlingload_fnc;		
+			[_AL6] call AUCAVs_addToDrone_CargoAndSlingload_fnc;		
 		};
 		
 		
 		if ((typeOf _drone) in ["B_UAV_01_F", "O_UAV_01_F", "I_UAV_01_F", "I_E_UAV_01_F"]) then {
 			params ["_AR2"];				
-			[_AR2] call AdvancedUCAVs_addToDrone_AR2ArmOptions_fnc;
+			[_AR2] call AUCAVs_addToDrone_AR2ArmOptions_fnc;
 		};
 
 
 		if ((typeOf _drone) in ["B_UAV_06_F", "O_UAV_06_F", "I_UAV_06_F", "I_E_UAV_06_F"]) then {
 			params ["_AL6"];			
-			[_AL6] call AdvancedUCAVs_addToDrone_AL6ArmOptions_fnc;
+			[_AL6] call AUCAVs_addToDrone_AL6ArmOptions_fnc;
 		};
 				
 		
 		if ((typeOf _drone) == "C_IDAP_UAV_06_antimine_F" ) then {
 			params ["_DeminingDrone"];			
-			[_DeminingDrone] call AdvancedUCAVs_addToDrone_DeminingDroneOptions_fnc;
+			[_DeminingDrone] call AUCAVs_addToDrone_DeminingDroneOptions_fnc;
 		};			
 
 
 		if (_drone isKindOf "UGV_02_Base_F") then {
 			params ["_UGV"];				
-			[_UGV] call AdvancedUCAVs_addToDrone_UGVAllOptions_fnc; "Repair, Smoke & (Armed: Rearm)";
+			[_UGV] call AUCAVs_addToDrone_UGVAllOptions_fnc; "Repair, Smoke & (Armed: Rearm)";
 		};	
 	};
 
@@ -3646,18 +3646,18 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	if (isNil "AUCAVs_wasHintShown") then { AUCAVs_wasHintShown = false };
 	if (isNil "AUCAVs_SpectrumRadar_TextSize") then { AUCAVs_SpectrumRadar_TextSize = 0.035 };
 
-	if (!isNil "AdvancedUCAVs_SpectrumRadar_Draw3DEH") then {
-		removeMissionEventHandler ["Draw3D", AdvancedUCAVs_SpectrumRadar_Draw3DEH];
+	if (!isNil "AUCAVs_SpectrumRadar_Draw3DEH") then {
+		removeMissionEventHandler ["Draw3D", AUCAVs_SpectrumRadar_Draw3DEH];
 	};
-	AdvancedUCAVs_SpectrumRadar_Draw3DEH = addMissionEventHandler ["Draw3D", {		
+	AUCAVs_SpectrumRadar_Draw3DEH = addMissionEventHandler ["Draw3D", {		
 		if (currentMuzzle player != "hgun_esd_01_F") exitWith {};
 		if (cameraOn != player) exitWith {};
 		if (cameraView != "GUNNER") exitWith { 
 			if !(AUCAVs_wasHintShown) exitWith {}; 
 			AUCAVs_wasHintShown = false;
 							
-			if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true]) exitWith {};
-			["close"] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;
+			if (missionNamespace getVariable ["AUCAVs_WantsSpectrumScreen", true]) exitWith {};
+			["close"] call AUCAVs_ToggleSpectrumScreen_fnc;
 		};
 		if (!alive player || lifeState player == "INCAPACITATED") exitWith {};	
 				
@@ -3673,11 +3673,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			};
 			"UCAVs_SpectrumTxt" cutText [_txt, "PLAIN DOWN", 0.3, false, true, true];		
 				
-			if (missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumScreen", true]) exitWith {};
-			["open"] call AdvancedUCAVs_ToggleSpectrumScreen_fnc;		
+			if (missionNamespace getVariable ["AUCAVs_WantsSpectrumScreen", true]) exitWith {};
+			["open"] call AUCAVs_ToggleSpectrumScreen_fnc;		
 		};
 		if !(missionNamespace getVariable ["AUCAVs_SpectrumRadarON", true]) exitWith {};
-		if !(missionNamespace getVariable ["AdvancedUCAVs_WantsSpectrumRadar", true]) exitWith {};
+		if !(missionNamespace getVariable ["AUCAVs_WantsSpectrumRadar", true]) exitWith {};
 		
 		
 		
@@ -3696,7 +3696,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 			_color = if ((count (crew _x)) > 0) then { [side _x] call BIS_fnc_sideColor } else { [0.7, 0.6, 0, 1] };
 			_icon = if (_isRadioBag) then { "a3\ui_f\data\igui\cfg\holdactions\holdaction_connect_ca.paa" } else { (getText (configfile >> "CfgVehicles" >> typeOf _x >> "icon")) };
-			_txt = if (_isRadioBag) then { "Jamming Backpack" } else { _x call AdvancedUCAVs_getName_fnc };		
+			_txt = if (_isRadioBag) then { "Jamming Backpack" } else { [_x] call AUCAVs_getName_fnc };		
 			
 			if (_condition) then {
 				drawIcon3D [
@@ -3724,8 +3724,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 	_map = (findDisplay 12) displayCtrl 51;
-	if (!isNil "AdvancedUCAVs_BackpackJamming_DrawRadiusEH") then { _map ctrlRemoveEventHandler ["Draw", AdvancedUCAVs_BackpackJamming_DrawRadiusEH] };
-	AdvancedUCAVs_BackpackJamming_DrawRadiusEH = _map ctrlAddEventHandler ["Draw", {
+	if (!isNil "AUCAVs_BackpackJamming_DrawRadiusEH") then { _map ctrlRemoveEventHandler ["Draw", AUCAVs_BackpackJamming_DrawRadiusEH] };
+	AUCAVs_BackpackJamming_DrawRadiusEH = _map ctrlAddEventHandler ["Draw", {
 		params ["_map"];
 		{
 			_radius = AUCAVs_BPJam_Radius;
@@ -3760,8 +3760,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 	if (isNil "AUCAVs_REToServerDelay") then { AUCAVs_REToServerDelay = time + 1 };
 	if (isNil "AUCAVs_isMouseOverButton") then { AUCAVs_isMouseOverButton = false };
 
-	if (!isNil "AdvancedUCAVs_EachFrameEH") then { removeMissionEventHandler ["EachFrame", AdvancedUCAVs_EachFrameEH] };
-	AdvancedUCAVs_EachFrameEH = addMissionEventHandler ["EachFrame", {	
+	if (!isNil "AUCAVs_EachFrameEH") then { removeMissionEventHandler ["EachFrame", AUCAVs_EachFrameEH] };
+	AUCAVs_EachFrameEH = addMissionEventHandler ["EachFrame", {	
 		if (time < AUCAVs_timePlusTime) exitWith {};
 		AUCAVs_timePlusTime = time + 0.01;
 		
@@ -3810,10 +3810,10 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 				
 				
 				uiNamespace setVariable ["UCAV_feedBackFnc", {
-					if (!isNil "AdvancedUCAVs_CallsignEdit_Msg_spawn" && { !scriptDone AdvancedUCAVs_CallsignEdit_Msg_spawn }) then { 
-						terminate AdvancedUCAVs_CallsignEdit_Msg_spawn; 
+					if (!isNil "AUCAVs_CallsignEdit_Msg_spawn" && { !scriptDone AUCAVs_CallsignEdit_Msg_spawn }) then { 
+						terminate AUCAVs_CallsignEdit_Msg_spawn; 
 					};
-					AdvancedUCAVs_CallsignEdit_Msg_spawn = _this spawn {	
+					AUCAVs_CallsignEdit_Msg_spawn = _this spawn {	
 						_this params [["_msg", ""], ["_isError", true]];
 						_display = findDisplay -1;
 						_feedBackCtrl = (_display getVariable "feedbackCtrl");
@@ -3853,15 +3853,15 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					
 
 					
-					if (!isNil "AdvancedUCAVs_CallsignEdit_timeOut_spawn" && { !scriptDone AdvancedUCAVs_CallsignEdit_timeOut_spawn }) then { 
-						terminate AdvancedUCAVs_CallsignEdit_timeOut_spawn; 
+					if (!isNil "AUCAVs_CallsignEdit_timeOut_spawn" && { !scriptDone AUCAVs_CallsignEdit_timeOut_spawn }) then { 
+						terminate AUCAVs_CallsignEdit_timeOut_spawn; 
 					};
-					AdvancedUCAVs_CallsignEdit_timeOut_spawn = [_input] spawn {
+					AUCAVs_CallsignEdit_timeOut_spawn = [_input] spawn {
 						params ["_input"];
 						_feedBackFnc = uiNamespace getVariable "UCAV_feedBackFnc";
 						["Awaiting callsign update...", false] call _feedBackFnc;
 						
-						(getConnectedUAV player) setVariable ["AdvancedUCAVs_customName", _input, true]; "make sure it BE kicks if disallowed name";
+						(getConnectedUAV player) setVariable ["AUCAVs_customName", _input, true]; "make sure it BE kicks if disallowed name";
 						sleep 1;
 						(group (getConnectedUAV player)) setGroupIdGlobal [_input];
 						
@@ -3869,7 +3869,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 						waitUntil { (groupID (group (getConnectedUAV player))) == _input || time > _timeplus5 };
 						if ((groupID (group (getConnectedUAV player))) == _input) then {
 							["AV callsign updated. Re-open terminal to refresh", false] call _feedBackFnc;						
-							["Log_Renamed", [name player, [getConnectedUAV player] call AdvancedUCAVs_getName_fnc, groupID (group (getConnectedUAV player))]] call AdvancedUCAVs_LogMsg;
+							["Log_Renamed", [name player, [getConnectedUAV player] call AUCAVs_getName_fnc, groupID (group (getConnectedUAV player))]] call AUCAVs_LogMsg;
 						} else {
 							["Callsign change timed out. Waited for 5 seconds"] call _feedBackFnc;
 						};			
@@ -3887,7 +3887,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 					
 			if (isNull _currentUAV) exitWith {
 				if (isNull AUCAVs_savedUAV) exitWith {};										
-				["Log_Disconnected", [name player, [AUCAVs_savedUAV] call AdvancedUCAVs_getName_fnc, AUCAVs_savedUAV getVariable ["DroneType", ""]]] call AdvancedUCAVs_LogMsg;
+				["Log_Disconnected", [name player, [AUCAVs_savedUAV] call AUCAVs_getName_fnc, AUCAVs_savedUAV getVariable ["DroneType", ""]]] call AUCAVs_LogMsg;
 				AUCAVs_savedUAV = objNull;
 				AUCAVs_savedRole = "NOT_CONNECTED";		
 			};		
@@ -3899,19 +3899,19 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			_playerIndex = _uavControl find player;
 			_role = _uavControl select (_playerIndex + 1);
 			_currentRole = if (_role == "") then { "CONNECTED_NOT_CONTROL" } else { _role };
-			_droneName = [_currentUAV] call AdvancedUCAVs_getName_fnc;
+			_droneName = [_currentUAV] call AUCAVs_getName_fnc;
 			_droneType = _currentUAV getVariable ["DroneType", ""];
 			
 			
 			if (_currentRole == "CONNECTED_NOT_CONTROL") exitWith {
 				"Only connected, but not controlling";
 				if (AUCAVs_savedRole == "NOT_CONNECTED") then {					
-					["Log_Connected", [name player, _droneName, _droneType]] call AdvancedUCAVs_LogMsg;	
+					["Log_Connected", [name player, _droneName, _droneType]] call AUCAVs_LogMsg;	
 					AUCAVs_savedRole = "CONNECTED_NOT_CONTROL";
 				} else {
 					if (AUCAVs_savedRole == "CONNECTED_NOT_CONTROL") exitWith {};
 					if (!alive _currentUAV) exitWith { AUCAVs_savedRole = "CONNECTED_NOT_CONTROL" };
-					["Log_Disconnected", [name player, _droneName, _droneType, AUCAVs_savedRole]] call AdvancedUCAVs_LogMsg;				
+					["Log_Disconnected", [name player, _droneName, _droneType, AUCAVs_savedRole]] call AUCAVs_LogMsg;				
 					AUCAVs_savedRole = "CONNECTED_NOT_CONTROL";
 				};	
 			};
@@ -3920,7 +3920,7 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			
 			if (AUCAVs_savedRole == _currentRole) exitWith {};
 			AUCAVs_savedRole = _currentRole;
-			["Log_Connected", [name player, _droneName, _droneType, _currentRole]] call AdvancedUCAVs_LogMsg;
+			["Log_Connected", [name player, _droneName, _droneType, _currentRole]] call AUCAVs_LogMsg;
 			_currentUAV setVariable ["lastRegisteredDriver", name player, true];									
 		};
 			
@@ -3929,13 +3929,13 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if (
 				isNull (findDisplay 46) 
 				|| isNull (findDisplay 12) 
-				|| player diarySubjectExists "Advanced_UCAVs" 
-				|| isNil "AdvancedUCAVs_InitOnPlayer_fnc"
+				|| player diarySubjectExists "AUCAVs_DiarySubject" 
+				|| isNil "AUCAVs_InitOnPlayer_fnc"
 			) exitWith {};
-			if (typeName AdvancedUCAVs_InitOnPlayer_fnc == "ARRAY") then {			
-				[true] call (AdvancedUCAVs_InitOnPlayer_fnc select 1);
+			if (typeName AUCAVs_InitOnPlayer_fnc == "ARRAY") then {			
+				[true] call (AUCAVs_InitOnPlayer_fnc select 1);
 			} else {
-				[true] call AdvancedUCAVs_InitOnPlayer_fnc;
+				[true] call AUCAVs_InitOnPlayer_fnc;
 			};			
 		};
 		
@@ -4103,8 +4103,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	if (!isNil "AdvancedUCAVs_ChatCommandMissionEH") then { removeMissionEventHandler ["HandleChatMessage", AdvancedUCAVs_ChatCommandMissionEH] };
-	AdvancedUCAVs_ChatCommandMissionEH = addMissionEventHandler ["HandleChatMessage", {
+	if (!isNil "AUCAVs_ChatCommandMissionEH") then { removeMissionEventHandler ["HandleChatMessage", AUCAVs_ChatCommandMissionEH] };
+	AUCAVs_ChatCommandMissionEH = addMissionEventHandler ["HandleChatMessage", {
 		params ["_channel", "_owner", "_from", "_message", "_person", "_name", "_strID", "_forcedDisplay", "_isPlayerMessage", "_sentenceType", "_chatMessageType", "_params"];
 		if (player != _person) exitWith {};
 		
@@ -4115,11 +4115,11 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 			if ((str getAssignedCuratorLogic player) == "bis_curator_1" && { ["IsSpectating"] call BIS_fnc_EGSpectator }) exitWith { 
 				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Sorry, but it would apear that the game moderator slot is disabled." }; 
 			};			
-			[] call (AdvancedUCAVs_ZeusOptions select 0);		
+			[] call (AUCAVs_ZeusOptions select 0);		
 		};
 		
 		if (((toLower _message) find "!ucav_log") == 0) then {	
-			[] call (AdvancedUCAVs_ZeusOptions select 4);		
+			[] call (AUCAVs_ZeusOptions select 4);		
 		};		
 
 	}];
@@ -4132,8 +4132,8 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	if (!isNil "AdvancedUCAVs_ResetBombDropAmmoEH") then { removeMissionEventHandler ["Service", AdvancedUCAVs_ResetBombDropAmmoEH] };
-	AdvancedUCAVs_ResetBombDropAmmoEH = addMissionEventHandler ["Service", {
+	if (!isNil "AUCAVs_ResetBombDropAmmoEH") then { removeMissionEventHandler ["Service", AUCAVs_ResetBombDropAmmoEH] };
+	AUCAVs_ResetBombDropAmmoEH = addMissionEventHandler ["Service", {
 		params ["_serviceVehicle", "_servicedVehicle", "_serviceType", "_needsService", "_autoSupply"];
 		if (_serviceType != 3) exitWith {};
 		if (_servicedVehicle isKindOf "UAV_01_base_F" && { (_servicedVehicle getVariable ["DroneType", ""]) == "BombDrop" }) then {		
@@ -4176,26 +4176,26 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	if (!isNil "AdvancedUCAVs_RespawnEH") then { 
-		player removeEventHandler ["Respawn", AdvancedUCAVs_RespawnEH]; 
+	if (!isNil "AUCAVs_RespawnEH") then { 
+		player removeEventHandler ["Respawn", AUCAVs_RespawnEH]; 
 	};
-	AdvancedUCAVs_RespawnEH = player addEventHandler ["Respawn", {
+	AUCAVs_RespawnEH = player addEventHandler ["Respawn", {
 		_this spawn {
 			_this params ["_unit", "_corpse"];
 					
-			[] spawn AdvancedUCAVs_AddKeybinds_fnc;
+			[] spawn AUCAVs_AddKeybinds_fnc;
 			_unit setVariable ["UCAV_JammingOn", false, true];
 			_corpse setVariable ["UCAV_JammingOn", false, true];
 
 			{ 
 				_actionID = _x;
 				_corpse removeAction _actionID;
-			} forEach (_corpse getVariable ["AdvancedUCAVs_allActionIDs", []]);			
+			} forEach (_corpse getVariable ["AUCAVs_allActionIDs", []]);			
 			
 			waitUntil [{ alive player }, 10];
 			sleep 0.5;
 			
-			[] call AdvancedUCAVs_addPlayerAssembleActions_fnc;
+			[] call AUCAVs_addPlayerAssembleActions_fnc;
 			
 			_backpackLow = toLower (backpack player);
 			if (!("_uav_" in _backpackLow) && !("_ugv_" in _backpackLow)) exitWith {};	;
@@ -4211,25 +4211,25 @@ AdvancedUCAVs_InitOnPlayer_fnc = {
 
 
 
-	if (!isNil "AdvancedUCAVs_UAVCrewCreatedEH") then { removeMissionEventHandler ["UAVCrewCreated", AdvancedUCAVs_UAVCrewCreatedEH] };
-	AdvancedUCAVs_UAVCrewCreatedEH = addMissionEventHandler ["UAVCrewCreated", {
+	if (!isNil "AUCAVs_UAVCrewCreatedEH") then { removeMissionEventHandler ["UAVCrewCreated", AUCAVs_UAVCrewCreatedEH] };
+	AUCAVs_UAVCrewCreatedEH = addMissionEventHandler ["UAVCrewCreated", {
 		params ["_uav", "_driver", "_gunner"];
 		[_uav, false] remoteExec ["setAutonomous", 0, true];
-		["Log_Assembled", [name player, [_uav] call AdvancedUCAVs_getName_fnc]] call AdvancedUCAVs_LogMsg;
+		["Log_Assembled", [name player, [_uav] call AUCAVs_getName_fnc]] call AUCAVs_LogMsg;
 	}];
 	
 	
 	
-	if (!isNil "AdvancedUCAVs_EntityCreatedEH") then { removeMissionEventHandler ["EntityCreated", AdvancedUCAVs_EntityCreatedEH] };
-	AdvancedUCAVs_EntityCreatedEH = addMissionEventHandler ["EntityCreated", {
+	if (!isNil "AUCAVs_EntityCreatedEH") then { removeMissionEventHandler ["EntityCreated", AUCAVs_EntityCreatedEH] };
+	AUCAVs_EntityCreatedEH = addMissionEventHandler ["EntityCreated", {
 		params ["_entity"];
 		if (!alive _entity) exitWith {};
-		[_entity] call AdvancedUCAVs_initOnDrone_fnc;	
+		[_entity] call AUCAVs_initOnDrone_fnc;	
 	}];
 
 
 	{
-		[_x] call AdvancedUCAVs_initOnDrone_fnc;	
+		[_x] call AUCAVs_initOnDrone_fnc;	
 	} forEach (vehicles select { alive _x });
 
 
