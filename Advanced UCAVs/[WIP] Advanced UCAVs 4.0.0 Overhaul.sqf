@@ -173,78 +173,10 @@ _EnableScript = {
 	}] remoteExec ["spawn", 0, "AUCAVs_InitOnPlayer_JIPID"];
 	
 	
-	{
-		AUCAVs_secondsToTimeFormat_fnc = {
-			params ["_seconds"];
-			_seconds = round _seconds;
-
-			_h = floor (_seconds / 3600);
-			_m = floor ((_seconds mod 3600) / 60);
-			_s = _seconds mod 60;
-
-			[_h, _m, _s]
-		};	
-		missionNamespace setVariable ["AUCAVs_secondsToTimeFormat_fnc", AUCAVs_secondsToTimeFormat_fnc, true];
-
-
-		AUCAVs_timeToFormat_fnc = {
-			params ["_h", "_m", "_s", "_useLetters"];			
-			_h = if (_h < 10) then { "0" + str _h } else { _h };
-			_m = if (_m < 10) then { "0" + str _m } else { _m }; 
-			_s = if (_s < 10) then { "0" + str _s } else { _s };		
-			_time = if (_useLetters) then { format ["%1h %2m %3s",_h,_m,_s] } else { format ["%1:%2:%3",_h,_m,_s] };		
-			_time
-		};
-		missionNamespace setVariable ["AUCAVs_timeToFormat_fnc", AUCAVs_timeToFormat_fnc, true];		
-
-
-		if (isNil "AUCAVs_TrollLogVarServer") then {
-			AUCAVs_TrollLogVarServer = [];
-		};
-		
-
-		AUCAVs_sendLogVarToClient_fnc = {
-			params ["_caller", "_clientVarCount"];
-			_serverVarCount = count AUCAVs_TrollLogVarServer;
-			if (_clientVarCount == _serverVarCount) exitWith {};		
-			missionNamespace setVariable ["AUCAVs_TrollLogVarClient", AUCAVs_TrollLogVarServer, _caller];
-		};
-
-
-		AUCAVs_saveLogMsgInVar_fnc = {
-			params ["_msg"];
-			([time] call AUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
-			_time = [_h,_m,_s, false] call AUCAVs_timeToFormat_fnc;		
-			AUCAVs_TrollLogVarServer pushBack (format ["[%1] %2", _time, _msg]);
-			
-			_serverVarCount = count AUCAVs_TrollLogVarServer;
-			if (_serverVarCount > 500) then { AUCAVs_TrollLogVarServer deleteRange [500, (_serverVarCount - 1)] };		
-		};
-
-
-		if (!isNil "AUCAVs_reduceSkillLoop" && { !scriptDone AUCAVs_reduceSkillLoop}) then { terminate AUCAVs_reduceSkillLoop };
-		AUCAVs_reduceSkillLoop = [] spawn {
-			while { true } do {
-				{
-					_unit = _x;
-					_previousSkill = _unit getVariable "AUCAVs_previousSkill";
-					
-					if ((getAttackTarget _unit) isKindOf "UAV_01_base_F") then {
-						if (!isNil "_previousSkill") exitWith {}; 
-						_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
-						_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];
-					} else {				
-						if (isNil "_previousSkill") exitWith {};					
-						_unit setVariable ["AUCAVs_previousSkill", nil];
-						_unit setSkill ["aimingAccuracy", _previousSkill];			
-					};
-				} forEach (allUnits select { local _x && { !isPlayer _x && { alive _x }}});
-					
-				sleep 1;
-			};
-		};
-
-	} remoteExec ["call", 2];			
+	[[],{
+		waitUntil { !isNil "AUCAVs_InitOnServer_fnc" };
+		[] call (AUCAVs_InitOnServer_fnc select 1);
+	}] remoteExec ["call", 2];			
 }; 
 
 
@@ -465,9 +397,9 @@ _ConfigureScript = {
 				(AUCAVs_FuelValues get (_droneTypes select 0)) params ["_currentValue", "_hardcodedValue"];
 				_coef = _currentValue;
 				_totalSeconds = 10000 / _coef;		
-				([_totalSeconds] call AUCAVs_secondsToTimeFormat_fnc) params ["_h","_m","_s"];
-				_time = [_h,_m,_s, true] call AUCAVs_timeToFormat_fnc;
-				_timeForTxt = [_h,_m,_s, false] call AUCAVs_timeToFormat_fnc;
+				(["secondsToHMSTime", [_totalSeconds]] call AUCAVs_timeFormat_fnc) params ["_h","_m","_s"];
+				_time = ["timeToFormat", [_h,_m,_s, true]] call AUCAVs_timeFormat_fnc;
+				_timeForTxt = ["timeToFormat", [_h,_m,_s, false]] call AUCAVs_timeFormat_fnc;
 					
 						
 				_optionText = _display ctrlCreate ["RscText", -1, _ctrlGroup];
@@ -836,6 +768,239 @@ _OpenLog = {
 
 
 missionNamespace setVariable ["AUCAVs_ZeusOptions", [_MainToggleScreen, _EnableScript, _DisableScript, _ConfigureScript, _OpenLog], true];
+
+
+
+
+missionNamespace setVariable ["AUCAVs_InitOnServer_fnc", ["", {
+
+	AUCAVs_timeFormat_fnc = {
+		params [["_mode", ""], ["_secondParams", []]];
+		switch (_mode) do {
+			case "timeToFormat": {
+				_secondParams params ["_h", "_m", "_s", "_useLetters"];			
+				_h = if (_h < 10) then { "0" + str _h } else { _h };
+				_m = if (_m < 10) then { "0" + str _m } else { _m }; 
+				_s = if (_s < 10) then { "0" + str _s } else { _s };		
+				if (_useLetters) then { 
+					format ["%1h %2m %3s",_h,_m,_s] 
+				} else { 
+					format ["%1:%2:%3",_h,_m,_s] 
+				};					
+			};		
+			case "secondsToHMSTime": {
+				_secondParams params ["_seconds"];
+				_seconds = round _seconds;
+
+				_h = floor (_seconds / 3600);
+				_m = floor ((_seconds mod 3600) / 60);
+				_s = _seconds mod 60;
+				[_h, _m, _s]				
+			};
+			default {};
+		};		
+	};
+	missionNamespace setVariable ["AUCAVs_timeFormat_fnc", AUCAVs_timeFormat_fnc, true];		
+
+
+
+
+	AUCAVs_translateName_fnc = {
+		params [["_droneNames", []], ["_REOwner", -1]];
+		_droneNames params ["_typeOfDrone", ""], ["_droneNameClient", ""];
+
+		if (language == "English") then {			
+			getText (configFile >> "CfgVehicles" >> _typeOfDrone >> "displayName");
+		} else {
+			_playerUnit = (allPlayers select { owner _x == _REOwner }) param [0, objNull];
+			_clientLanguage = _playerUnit getVariable ["AUCAV_gameLanguage", ""];
+			if (_clientLanguage == "English") then { 
+				_droneNameClient 
+			} else {
+				"Neither server nor client have english, GG..., falling back to server";
+				getText (configFile >> "CfgVehicles" >> _typeOfDrone >> "displayName");
+			};
+		};
+	};
+
+	
+
+
+	AUCAVs_LogMsgServer_fnc = {
+		params [["_msgType", ""], ["_secondParams", []]];
+		if (!(missionNamespace getVariable ["AUCAVs_AntiTrollLogON", true]) && { !("debug" in _msgType) }) exitWith {}; 
+		if (!(missionNamespace getVariable ["AUCAVs_DebugLogON", true]) && { ("debug" in _msgType) }) exitWith {}; 
+		_REOwner = remoteExecutedOwner;
+
+
+		_msg = switch (_msgType) do {			
+			case "Log_Crafted": {
+				_secondParams params ["_playerName", "_droneType"];			
+				format ["Player <%1> made an <%2>", _playerName, _droneType]				
+			};		
+			case "Log_Connected": {
+				_secondParams params ["_controlerName", "_droneNames", "_droneType", ["_controlerRole", ""]];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player < %1 > connected to an < %2 %3>%4", _controlerName, _droneName, if (_droneType != "") then {"("+_droneType+") "} else {""}, if (_controlerRole != "") then {" as < "+_controlerRole+" >"} else {""}];
+			};	
+			case "Log_Disconnected": {
+				_secondParams params ["_controlerName", "_droneNames", "_droneType", ["_oldRole", ""]];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player < %1 > disconnected from an < %2 %3>%4", _controlerName, _droneName, if (_droneType != "") then {"("+_droneType+") "} else {""}, if (_oldRole != "") then {" as < "+_oldRole+" >"} else {""}]
+			};			
+			case "Log_Assembled": {
+				_secondParams params ["_playerName", "_droneNames"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player < %1 > assembled an < %2 >", _playerName, _droneName]
+			};			
+			case "Log_Renamed": {
+				_secondParams params ["_playerName", "_droneNames", "_callsign"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player < %1 > renamed the callsign of an <%2> to <%3>", _playerName, _droneName, _callsign]		
+			};				
+			case "Log_JammedBackpack": {
+				_secondParams params ["_playerName", "_droneNames", "_side", "_distance"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player <%1> jammed a drone: <%2 [%3] - distance (%4m)> using the radio backpack", _playerName, _droneName, _side, _distance]		
+			};			
+			case "Log_JammedSpectrum": {
+				_secondParams params ["_playerName", "_droneNames", "_side", "_distance"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player <%1> jammed a drone: <%2 [%3] - distance (%4m)> using the spectrum device", _playerName, _droneName, _side, _distance]		
+			};		
+			case "Log_UnJammed": {
+				_secondParams params ["_playerName", "_droneNames"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["Player < %1 > un-jammed an < %2 >", _playerName, _droneName];
+			};					
+			case "Log_CrashNoHit": {
+				_secondParams params ["_droneNames", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["< %1 %3> was killed by itself, it was probably crashed. Last registered driver: < %2 >", _droneName, _lastDriver, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+			};
+			case "Log_CrashNoHitNull": {
+				_secondParams params ["_droneNames", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["< %1 %3> was killed by {NULL-object}, it could have been crashed. Last registered driver: < %2 >.", _droneName, _lastDriver, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+			};					
+			case "Log_CrashGotHit": {
+				_secondParams params ["_droneNames", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["< %1 %4> was killed by itself, it was probably crashed. Last registered driver: < %2 >. Though it was hit before by: < %3 >", _droneName, _lastDriver, _playerWhoHitDrone, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+			};			
+			case "Log_CrashGotHitNull": {
+				_secondParams params ["_droneNames", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["< %1 %4> was killed by {NULL-object}, it could have been crashed. Last registered driver: < %2 >. Though it was hit before by: < %3 >", _droneName, _lastDriver, _playerWhoHitDrone, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+			};
+			case "Log_Killed": {
+				_secondParams params ["_droneNames", "_droneType", "_instigator", ["_driverName",""], ["_gunnerName",""]];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["< %1 %3> was killed by < %2 >.%4%5", _droneName, _instigator, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}, if (_driverName != "") then {" Driver in that moment: < "+_driverName+" >."} else {""}, if (_gunnerName != "") then {" Gunner in that moment: < "+_gunnerName+" >"} else {""}]
+			};	
+			case "Log_Fired": {
+				_secondParams params ["_playerName", "_droneNames", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["< %1 > fired with a drone < %2 %3>", _playerName, _droneName, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
+			};			
+			
+			
+			case "Log_DebugFiredAR2": {
+				_secondParams params ["_droneType", "_clientOwner"];
+				format ["[UCAV_LOG {DEBUG}] AR-2 (type: %1) fired eventhandler triggered at clientOwner: %2", _droneType, _clientOwner]			
+			};
+			case "Log_DebugFiredAL6": {
+				_secondParams params ["_droneType", "_clientOwner"];
+				format ["[UCAV_LOG {DEBUG}] AL-6 (type: %1) fired eventhandler triggered at clientOwner: %2", _droneType, _clientOwner]			
+			};			
+			case "Log_DebugHit": {
+				_secondParams params ["_droneType", "_clientOwner"];
+				format ["[UCAV_LOG {DEBUG}] AR-2 (type: %1) hit eventhandler triggered at clientOwner: %2", _droneType, _clientOwner]		
+			};						
+			case "Log_DebugDeleted": {
+				_secondParams params ["_droneNames", "_clientOwner", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["[UCAV_LOG {DEBUG}] %1%3 deleted eventhandler triggered at clientOwner: %2", _droneName, _clientOwner, if (!isNil "_droneType") then {" ("+_droneType+")"} else {""}]		
+			};		
+			case "Log_DebugKilled": {
+				_secondParams params ["_droneNames", "_clientOwner", "_droneType"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["[UCAV_LOG {DEBUG}] %1%3 killed eventhandler triggered at clientOwner: %2", _droneName, _clientOwner, if (!isNil "_droneType") then {" ("+_droneType+")"} else {""}]
+			};
+			case "Log_DebugHandleDamage": {
+				_secondParams params ["_droneNames", "_clientOwner"];
+				_droneName = [_droneNames, _REOwner] call AUCAVs_translateName_fnc;
+				format ["[UCAV_LOG {DEBUG}] %1 handledamage eventhandler triggered at clientOwner: %2. Caused by 'Rope'. Repaired ATRQ", _droneName, _clientOwner];
+			};
+			
+			default { "{Error} : Unknown Parameter was used" };
+		};		
+		if !("[UCAV_LOG {DEBUG}]" in _msg) then {
+			[_msg] call AUCAVs_saveLogMsgInVar_fnc;
+		} else {
+			[_msg] remoteExec ["diag_log", allPlayers];
+		};	
+	};
+		
+
+
+
+	if (isNil "AUCAVs_TrollLogVarServer") then {
+		AUCAVs_TrollLogVarServer = [];
+	};
+	
+
+
+
+	AUCAVs_sendLogVarToClient_fnc = {
+		params ["_caller", "_clientVarCount"];
+		_serverVarCount = count AUCAVs_TrollLogVarServer;
+		if (_clientVarCount == _serverVarCount) exitWith {};		
+		missionNamespace setVariable ["AUCAVs_TrollLogVarClient", AUCAVs_TrollLogVarServer, _caller];
+	};
+
+
+
+
+	AUCAVs_saveLogMsgInVar_fnc = {
+		params ["_msg"];
+		(["secondsToHMSTime", [time]] call AUCAVs_timeFormat_fnc) params ["_h","_m","_s"];
+		_time = ["timeToFormat", [_h,_m,_s, false]] call AUCAVs_timeFormat_fnc;
+		AUCAVs_TrollLogVarServer pushBack (format ["[%1] %2", _time, _msg]);
+		
+		_serverVarCount = count AUCAVs_TrollLogVarServer;
+		if (_serverVarCount > 500) then { AUCAVs_TrollLogVarServer deleteRange [500, (_serverVarCount - 1)] };		
+	};
+
+
+
+
+	if (!isNil "AUCAVs_reduceSkillLoop" && { !scriptDone AUCAVs_reduceSkillLoop}) then { terminate AUCAVs_reduceSkillLoop };
+	AUCAVs_reduceSkillLoop = [] spawn {
+		while { true } do {
+			{
+				_unit = _x;
+				_target = getAttackTarget _unit;
+				_previousSkill = _unit getVariable "AUCAVs_previousSkill";
+				
+				if (!isNull _target && { _target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F" }) then {
+					if (!isNil "_previousSkill") exitWith {}; 
+					_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
+					_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];			
+				} else {				
+					if (isNil "_previousSkill") exitWith {};					
+					_unit setVariable ["AUCAVs_previousSkill", nil];
+					_unit setSkill ["aimingAccuracy", _previousSkill];					
+				};
+			} forEach (allUnits select { local _x && { !isPlayer _x && { alive _x && { !isNull getAttackTarget _x }}}});
+				
+			sleep 1;
+		};
+	};
+	
+}], 2];		
+
+
 
 
 "Entire Script";
@@ -1227,6 +1392,9 @@ AUCAVs_InitOnPlayer_fnc = {
 	
 	
 	
+	player setVariable ["AUCAV_gameLanguage", language, 2];
+	
+	
 	
 	AUCAVs_saveAction_fnc = {
 		params ["_drone", "_actionID"];
@@ -1402,9 +1570,11 @@ AUCAVs_InitOnPlayer_fnc = {
 
 
 	AUCAVs_getName_fnc = {
-		params ["_drone"];
-		_droneName = getText (configFile >> "CfgVehicles" >> (typeOf _drone) >> "displayName");
-		_droneName
+		params [["_drone", objNull], ["_alsoGetTypeOf", false]];
+		_typeOfDrone = typeOf _drone;
+		_nameOfDrone = getText (configFile >> "CfgVehicles" >> _typeOfDrone >> "displayName");
+		if (_alsoGetTypeOf) exitWith { [_typeOfDrone, _nameOfDrone] };
+		_nameOfDrone
 	};
 	
 	
@@ -1455,6 +1625,13 @@ AUCAVs_InitOnPlayer_fnc = {
 
 		[_connectedPlayers, _controllingPlayers]
 	};	
+
+
+
+
+	AUCAVs_LogMsg = {
+		_this remoteExecCall ["AUCAVs_LogMsgServer_fnc", 2];
+	};
 
 
 
@@ -1553,101 +1730,6 @@ AUCAVs_InitOnPlayer_fnc = {
 
 
 
-	AUCAVs_LogMsg = {
-		params [["_msgType", ""], ["_secondParams", []]];
-		if (!(missionNamespace getVariable ["AUCAVs_AntiTrollLogON", true]) && { !("debug" in _msgType) }) exitWith {}; 
-		if (!(missionNamespace getVariable ["AUCAVs_DebugLogON", true]) && { ("debug" in _msgType) }) exitWith {}; 
-
-
-		_msg = switch (_msgType) do {			
-			case "Log_Crafted": {
-				_secondParams params ["_playerName", "_droneType"];			
-				format ["Player <%1> made an <%2>", _playerName, _droneType]				
-			};		
-			case "Log_Connected": {
-				_secondParams params ["_controlerName", "_droneName", "_droneType", ["_controlerRole", ""]];
-				format ["Player < %1 > connected to an < %2 %3>%4", _controlerName, _droneName, if (_droneType != "") then {"("+_droneType+") "} else {""}, if (_controlerRole != "") then {" as < "+_controlerRole+" >"} else {""}];
-			};	
-			case "Log_Disconnected": {
-				_secondParams params ["_controlerName", "_droneName", "_droneType", ["_oldRole", ""]];
-				format ["Player < %1 > disconnected from an < %2 %3>%4", _controlerName, _droneName, if (_droneType != "") then {"("+_droneType+") "} else {""}, if (_oldRole != "") then {" as < "+_oldRole+" >"} else {""}]
-			};			
-			case "Log_Assembled": {
-				_secondParams params ["_playerName", "_droneName"];
-				format ["Player < %1 > assembled an < %2 >", _playerName, _droneName]
-			};			
-			case "Log_Renamed": {
-				_secondParams params ["_playerName", "_droneName", "_callsign"];
-				format ["Player < %1 > renamed the callsign of an <%2> to <%3>", _playerName, _droneName, _callsign]		
-			};				
-			case "Log_JammedBackpack": {
-				_secondParams params ["_playerName", "_droneName", "_side", "_distance"];
-				format ["Player <%1> jammed a drone: <%2 [%3] - distance (%4m)> using the radio backpack", _playerName, _droneName, _side, _distance]		
-			};			
-			case "Log_JammedSpectrum": {
-				_secondParams params ["_playerName", "_droneName", "_side", "_distance"];
-				format ["Player <%1> jammed a drone: <%2 [%3] - distance (%4m)> using the spectrum device", _playerName, _droneName, _side, _distance]		
-			};		
-			case "Log_UnJammed": {
-				_secondParams params ["_playerName", "_droneName"];
-				format ["Player < %1 > un-jammed an < %2 >", _playerName, _droneName];
-			};					
-			case "Log_CrashNoHit": {
-				_secondParams params ["_droneName", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
-				format ["< %1 %3> was killed by itself, it was probably crashed. Last registered driver: < %2 >", _droneName, _lastDriver, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
-			};
-			case "Log_CrashNoHitNull": {
-				_secondParams params ["_droneName", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
-				format ["< %1 %3> was killed by {NULL-object}, it could have been crashed. Last registered driver: < %2 >.", _droneName, _lastDriver, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
-			};					
-			case "Log_CrashGotHit": {
-				_secondParams params ["_droneName", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
-				format ["< %1 %4> was killed by itself, it was probably crashed. Last registered driver: < %2 >. Though it was hit before by: < %3 >", _droneName, _lastDriver, _playerWhoHitDrone, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
-			};			
-			case "Log_CrashGotHitNull": {
-				_secondParams params ["_droneName", "_lastDriver", "_playerWhoHitDrone", "_droneType"];
-				format ["< %1 %4> was killed by {NULL-object}, it could have been crashed. Last registered driver: < %2 >. Though it was hit before by: < %3 >", _droneName, _lastDriver, _playerWhoHitDrone, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}]
-			};
-			case "Log_Killed": {
-				_secondParams params ["_droneName", "_droneType", "_instigator", ["_driverName",""], ["_gunnerName",""]];
-				format ["< %1 %3> was killed by < %2 >.%4%5", _droneName, _instigator, if (!isNil "_droneType") then {"("+_droneType+") "} else {""}, if (_driverName != "") then {" Driver in that moment: < "+_driverName+" >."} else {""}, if (_gunnerName != "") then {" Gunner in that moment: < "+_gunnerName+" >"} else {""}]
-			};			
-			case "Log_DebugFiredAR2": {
-				_secondParams params ["_droneType", "_clientOwner"];
-				format ["[UCAV_LOG {DEBUG}] AR-2 (type: %1) fired eventhandler triggered at clientOwner: %2", _droneType, _clientOwner]			
-			};
-			case "Log_DebugFiredAL6": {
-				_secondParams params ["_droneType", "_clientOwner"];
-				format ["[UCAV_LOG {DEBUG}] AL-6 (type: %1) fired eventhandler triggered at clientOwner: %2", _droneType, _clientOwner]			
-			};			
-			case "Log_DebugHit": {
-				_secondParams params ["_droneType", "_clientOwner"];
-				format ["[UCAV_LOG {DEBUG}] AR-2 (type: %1) hit eventhandler triggered at clientOwner: %2", _droneType, _clientOwner]		
-			};						
-			case "Log_DebugDeleted": {
-				_secondParams params ["_droneName", "_clientOwner", "_droneType"];
-				format ["[UCAV_LOG {DEBUG}] %1%3 deleted eventhandler triggered at clientOwner: %2", _droneName, _clientOwner, if (!isNil "_droneType") then {" ("+_droneType+")"} else {""}]		
-			};		
-			case "Log_DebugKilled": {
-				_secondParams params ["_droneName", "_clientOwner", "_droneType"];
-				format ["[UCAV_LOG {DEBUG}] %1%3 killed eventhandler triggered at clientOwner: %2", _droneName, _clientOwner, if (!isNil "_droneType") then {" ("+_droneType+")"} else {""}]
-			};
-			case "Log_DebugHandleDamage": {
-				_secondParams params ["_droneName", "_clientOwner"];
-				format ["[UCAV_LOG {DEBUG}] %1 handledamage eventhandler triggered at clientOwner: %2. Caused by 'Rope'. Repaired ATRQ", _droneName, _clientOwner];
-			};			
-			default { "{Error} : Unknown Parameter was used" };
-		};
-		if !("[UCAV_LOG {DEBUG}]" in _msg) then {
-			[_msg] remoteExec ["AUCAVs_saveLogMsgInVar_fnc", 2];
-		} else {
-			[_msg] remoteExec ["diag_log", allPlayers];
-		};
-	};
-			
-			
-	
-	
 	AUCAVs_ToggleSpectrumScreen_fnc = {
 		params [["_openOrClose",""], ["_needsTextOutput", false]];
 				
@@ -1831,7 +1913,7 @@ AUCAVs_InitOnPlayer_fnc = {
 				systemChat format ["[Jammer] Jammed Drone: %1 [%2] - (distance %3m)", _droneName, _side, _distance];
 				"UCAVs_SpectrumTxt" cutText ["<t color='#00FF0C' size='1.5'>Jammed Drone", "PLAIN DOWN", 0.5, true, true];
 
-				["Log_JammedSpectrum", [name player, _droneName, _side, _distance]] call AUCAVs_LogMsg;
+				["Log_JammedSpectrum", [name player, [_drone, true] call AUCAVs_getName_fnc, _side, _distance]] call AUCAVs_LogMsg;
 			
 				waitUntil [{ (count crew _drone) <= 0 }, 30, 0.001];
 				_drone setVariable ["UCAV_Jammed", false];		
@@ -2018,13 +2100,13 @@ AUCAVs_InitOnPlayer_fnc = {
 						
 						[_drone] remoteExec ["deleteVehicleCrew", _drone];
 						
-						_displayName = [_drone] call AUCAVs_getName_fnc;		
+						_droneName = [_drone] call AUCAVs_getName_fnc;		
 						_side = [_drone] call AUCAVs_getDroneSide_fnc;			
 						_distance = round (player distance _drone);
 						
-						systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _displayName, _side, _distance];	
+						systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _droneName, _side, _distance];	
 												
-						["Log_JammedBackpack", [name player, _displayName, _side, _distance]] call AUCAVs_LogMsg;						
+						["Log_JammedBackpack", [name player, [_drone, true] call AUCAVs_getName_fnc, _side, _distance]] call AUCAVs_LogMsg;					
 					
 						waitUntil [{ (count crew _drone) <= 0 }, 30, 0.001];
 						_drone setVariable ["UCAV_Jammed", false];
@@ -2666,7 +2748,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			params ["_drone", "_killer", "_instigator", "_useEffects"];
 			
 			if (!local _drone) exitWith {};		
-			["Log_DebugKilled", [[_drone] call AUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AUCAVs_LogMsg;
+			["Log_DebugKilled", [[_drone, true] call AUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] remoteExec ["AUCAVs_LogMsg", 2];
 			
 			[[_drone],{
 				params ["_drone"];
@@ -2690,7 +2772,7 @@ AUCAVs_InitOnPlayer_fnc = {
 
 			"shot down";
 			
-			_droneName = [_drone] call AUCAVs_getName_fnc;
+			_droneName = [_drone, true] call AUCAVs_getName_fnc;
 			_droneType = _drone getVariable "DroneType";
 			if (!isNull _instigator && { str _drone != str _killer }) then {			
 				if ((_drone getVariable ["DroneType", ""]) in ["KamikazeLightHE","KamikazeLightAT","KamikazeHeavyHE","KamikazeHeavyAT"]) exitWith {};
@@ -2730,7 +2812,7 @@ AUCAVs_InitOnPlayer_fnc = {
 		_deletedEH = _drone addEventHandler ["Deleted", {
 			params ["_drone"];
 			if (!local _drone) exitWith {};
-			["Log_DebugDeleted", [_drone call AUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AUCAVs_LogMsg;
+			["Log_DebugDeleted", [[_drone, true] call AUCAVs_getName_fnc, clientOwner, _drone getVariable "DroneType"]] call AUCAVs_LogMsg;
 			{ deleteVehicle _x } forEach (_drone getVariable ["AUCAVs_allAttachedTo", []]);					
 			
 		}];	
@@ -2746,7 +2828,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			[_drone, _instigator] spawn {
 				params ["_drone", "_instigator"];
 							
-				_droneName = [_drone] call AUCAVs_getName_fnc;
+				_droneName = [_drone, true] call AUCAVs_getName_fnc;
 				_droneType = _drone getVariable ["DroneType", ""];
 				_instigatorName = if (isPlayer _instigator) then { name _instigator } else { "[AI] " + name _instigator };
 				([_drone, true, true] call AUCAVs_getOperators_fnc) params [["_connectedPlayers",[]], ["_controllingPlayers",[]]];
@@ -3208,16 +3290,19 @@ AUCAVs_InitOnPlayer_fnc = {
 			
 			_droneType = _AR2 getVariable ["DroneType", ""];
 			["Log_DebugFiredAR2", [_droneType, clientOwner]] call AUCAVs_LogMsg;
-			
+				
 			if (_droneType == "BombDrop") then {
 				_RGO_simpleObj = _AR2 getVariable ["RGO_simpleObj", objNull];
 				if (isNull _RGO_simpleObj) exitWith {};
-				[_RGO_simpleObj, true] remoteExec ["hideObjectGlobal", 2];		
+				[_RGO_simpleObj, true] remoteExec ["hideObjectGlobal", 2];	
+				["Log_Fired", [name player, [_AR2, true] call AUCAVs_getName_fnc, "BombDrop"]] call AUCAVs_LogMsg;
 			};
+			
 			if (_droneType == "RPG7Launch") then {
 				_rocket7_simpleObj = _AR2 getVariable ["rocket7_simpleObj", objNull];
 				if (isNull _rocket7_simpleObj) exitWith {};
-				[_rocket7_simpleObj, true] remoteExec ["hideObjectGlobal", 2];		
+				[_rocket7_simpleObj, true] remoteExec ["hideObjectGlobal", 2];
+				["Log_Fired", [name player, [_AR2, true] call AUCAVs_getName_fnc, "RPG7Launch"]] call AUCAVs_LogMsg;
 			};			
 		}];
 					
@@ -3392,20 +3477,25 @@ AUCAVs_InitOnPlayer_fnc = {
 			_droneType = _AL6 getVariable ["DroneType", ""];
 			["Log_DebugFiredAL6", [_droneType, clientOwner]] call AUCAVs_LogMsg;
 			
-			if (_droneType == "BombCarrier") then {
-				
+			if (_droneType == "BombCarrier") then {				
 				_ammo = _AL6 ammo "BombDemine_01_F";		
 				_varName = format ["RGO_simpleObj_%1", _ammo + 1];
-				_RGO_simpleObj = _AL6 getVariable [_varName, objNull];				
-												
+				_RGO_simpleObj = _AL6 getVariable [_varName, objNull];																
 				[_RGO_simpleObj, true] remoteExec ["hideObjectGlobal", 2];																	
+				["Log_Fired", [name player, [_AL6, true] call AUCAVs_getName_fnc, "BombCarrier"]] call AUCAVs_LogMsg;
 			};
 			
 			if (_droneType == "RPG7LaunchAL6") then {
 				_rocket7_simpleObj = _AL6 getVariable ["rocket7_simpleObj", objNull];  
 				[_rocket7_simpleObj, true] remoteExec ["hideObjectGlobal", 2];			
-			};						
-		
+				["Log_Fired", [name player, [_AL6, true] call AUCAVs_getName_fnc, "RPG7LaunchAL6"]] call AUCAVs_LogMsg;
+			};	
+			
+			if (_droneType == "RPG42Launch") then {
+				_rocket7_simpleObj = _AL6 getVariable ["rocket7_simpleObj", objNull];  
+				[_rocket7_simpleObj, true] remoteExec ["hideObjectGlobal", 2];			
+				["Log_Fired", [name player, [_AL6, true] call AUCAVs_getName_fnc, "RPG42Launch"]] call AUCAVs_LogMsg;
+			};	
 		}];
 
 	};
@@ -3436,7 +3526,17 @@ AUCAVs_InitOnPlayer_fnc = {
 
 		
 
-		[_DeminingDrone, _actionID_RearmGrenade] call AUCAVs_saveAction_fnc;			
+		[_DeminingDrone, _actionID_RearmGrenade] call AUCAVs_saveAction_fnc;
+
+
+		_DeminingDrone addEventHandler ["Fired", {
+			params ["_DeminingDrone"];
+			
+			if (!local _DeminingDrone) exitWith {};
+
+			["Log_DebugFiredAR2", [_droneType, clientOwner]] call AUCAVs_LogMsg;
+			["Log_Fired", [name player, [_DeminingDrone, true] call AUCAVs_getName_fnc]] call AUCAVs_LogMsg;		
+		}];		
 	};
 
 
@@ -3568,8 +3668,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			{ 
 				params ["_drone", "_caller", "_actionId", "_arguments"];	
 				[_drone] remoteExec ["createVehicleCrew", _drone];
-				_droneName = [_drone] call AUCAVs_getName_fnc;
-				["Log_UnJammed", [name _caller, _droneName]] call AUCAVs_LogMsg;			
+				["Log_UnJammed", [name _caller, [_drone, true] call AUCAVs_getName_fnc]] call AUCAVs_LogMsg;			
 			}, {}, [], 3, 1.5, true, false, false, 2.5
 		] call BIS_fnc_holdActionAdd;
 
@@ -3789,6 +3888,12 @@ AUCAVs_InitOnPlayer_fnc = {
 				params ["_mainButton"];
 				_display = (findDisplay 160) createDisplay "RscDisplayEmpty";
 				
+				_display displayAddEventHandler ["Unload", {
+					if (!isNil "AUCAVs_CallsignEdit_timeOut_spawn" && { !scriptDone AUCAVs_CallsignEdit_timeOut_spawn }) then { 
+						terminate AUCAVs_CallsignEdit_timeOut_spawn; 
+					};
+				}];								
+				
 				_background = _display ctrlCreate ["RscBackground", 2001];
 				_background ctrlSetPosition [0.2, 0.4, 0.6, 0.3];
 				_background ctrlSetBackgroundColor [0, 0, 0, 0.5];
@@ -3851,7 +3956,6 @@ AUCAVs_InitOnPlayer_fnc = {
 					if (_msg != "") exitWith { [_msg] call (uiNamespace getVariable "UCAV_feedBackFnc") };
 
 					
-
 					
 					if (!isNil "AUCAVs_CallsignEdit_timeOut_spawn" && { !scriptDone AUCAVs_CallsignEdit_timeOut_spawn }) then { 
 						terminate AUCAVs_CallsignEdit_timeOut_spawn; 
@@ -3869,13 +3973,12 @@ AUCAVs_InitOnPlayer_fnc = {
 						waitUntil { (groupID (group (getConnectedUAV player))) == _input || time > _timeplus5 };
 						if ((groupID (group (getConnectedUAV player))) == _input) then {
 							["AV callsign updated. Re-open terminal to refresh", false] call _feedBackFnc;						
-							["Log_Renamed", [name player, [getConnectedUAV player] call AUCAVs_getName_fnc, groupID (group (getConnectedUAV player))]] call AUCAVs_LogMsg;
+							["Log_Renamed", [name player, [getConnectedUAV player, true] call AUCAVs_getName_fnc, groupID (group (getConnectedUAV player))]] call AUCAVs_LogMsg;
 						} else {
 							["Callsign change timed out. Waited for 5 seconds"] call _feedBackFnc;
 						};			
 					};
-						
-				}];
+				}];	
 			}];					
 			
 			_uavTerminalDisplay setVariable ["mainButton", _mainButton];
@@ -3887,7 +3990,7 @@ AUCAVs_InitOnPlayer_fnc = {
 					
 			if (isNull _currentUAV) exitWith {
 				if (isNull AUCAVs_savedUAV) exitWith {};										
-				["Log_Disconnected", [name player, [AUCAVs_savedUAV] call AUCAVs_getName_fnc, AUCAVs_savedUAV getVariable ["DroneType", ""]]] call AUCAVs_LogMsg;
+				["Log_Disconnected", [name player, [AUCAVs_savedUAV, true] call AUCAVs_getName_fnc, AUCAVs_savedUAV getVariable ["DroneType", ""]]] call AUCAVs_LogMsg;
 				AUCAVs_savedUAV = objNull;
 				AUCAVs_savedRole = "NOT_CONNECTED";		
 			};		
@@ -3899,7 +4002,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			_playerIndex = _uavControl find player;
 			_role = _uavControl select (_playerIndex + 1);
 			_currentRole = if (_role == "") then { "CONNECTED_NOT_CONTROL" } else { _role };
-			_droneName = [_currentUAV] call AUCAVs_getName_fnc;
+			_droneName = [_currentUAV, true] call AUCAVs_getName_fnc;
 			_droneType = _currentUAV getVariable ["DroneType", ""];
 			
 			
@@ -3962,10 +4065,13 @@ AUCAVs_InitOnPlayer_fnc = {
 				_inventory setVariable ["saveButton", _saveButton];
 				
 				_saveButton ctrlAddEventHandler ["ButtonClick", {
+					playSound ["beep_target", true]; 
+					playSound ["beep_target", false];					
 					AUCAVs_savedItems = backpackItems player;
 					AUCAVs_savedBackpack = backpack player;
-					systemChat "[Advanced UCAVs] : Drone Backpack Items Saved.";
-					diag_log ("[UCAV_LOG {DEBUG}] Items saved: " + str AUCAVs_savedItems);
+					systemChat format ["[Advanced UCAVs] : Drone Backpack Items Saved: %1", AUCAVs_savedItems];
+					playSound ["hintExpand", true]; 
+					playSound ["hintExpand", false]; 					
 				}];
 			} else {
 				ctrlDelete (_inventory getVariable ["saveButton", controlNull]);
@@ -4074,9 +4180,9 @@ AUCAVs_InitOnPlayer_fnc = {
 			_display = findDisplay 46;
 			_smokeCounter = _display getVariable ["AUCAVs_UGVSmokeCounter", controlNull];
 			if !(_cameraOn isKindOf "UGV_02_Base_F") exitWith { ctrlDelete _smokeCounter };
-			
-			
-			if (!isNull _smokeCounter) exitWith { 
+						
+			if (!isNull _smokeCounter) exitWith {
+				_smokeCounter ctrlShow (!visibleMap);
 				_smokeCount = _cameraOn getVariable ["AUCAV_UGVSmokeCount", 3];
 				_smokeCounter ctrlSetText (format ["Smoke Grenades: %1", _smokeCount]);
 				_smokeCounter ctrlSetTextColor (switch (_smokeCount) do {
@@ -4156,7 +4262,7 @@ AUCAVs_InitOnPlayer_fnc = {
 				_target = getAttackTarget _unit;
 				_previousSkill = _unit getVariable "AUCAVs_previousSkill";
 				
-				if (_target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F") then {
+				if (!isNull _target && { _target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F" }) then {
 					if (!isNil "_previousSkill") exitWith {}; 
 					[format ["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy]] remoteExec ["diag_log", allPlayers];
 					_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
@@ -4215,7 +4321,7 @@ AUCAVs_InitOnPlayer_fnc = {
 	AUCAVs_UAVCrewCreatedEH = addMissionEventHandler ["UAVCrewCreated", {
 		params ["_uav", "_driver", "_gunner"];
 		[_uav, false] remoteExec ["setAutonomous", 0, true];
-		["Log_Assembled", [name player, [_uav] call AUCAVs_getName_fnc]] call AUCAVs_LogMsg;
+		["Log_Assembled", [name player, [_uav, true] call AUCAVs_getName_fnc]] call AUCAVs_LogMsg;
 	}];
 	
 	
