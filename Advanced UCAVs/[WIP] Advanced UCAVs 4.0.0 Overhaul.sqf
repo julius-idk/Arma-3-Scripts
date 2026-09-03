@@ -1,4 +1,4 @@
-"INCOMPATIBLE WITH v3.0.8";
+"INCOMPATIBLE WITH v3.0.8"; 
 
 if (!isNil "this") then { deleteVehicle this };
 
