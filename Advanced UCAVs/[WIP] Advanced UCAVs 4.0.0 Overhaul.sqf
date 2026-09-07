@@ -1,4 +1,4 @@
-"INCOMPATIBLE WITH v3.0.8"; 
+"INCOMPATIBLE WITH v3.0.8";
 
 if (!isNil "this") then { deleteVehicle this };
 
@@ -51,11 +51,11 @@ _MainToggleScreen = {
 			params ["_enableButton"];			
 			_disableButton = _enableButton getVariable "disableButton";
 			{_x ctrlEnable false} forEach [_disableButton, _enableButton];
-			{_x ctrlSetToolTip "Please don't spamm this"} forEach [_disableButton, _enableButton];
+			{_x ctrlSetTooltip "Please don't spamm this"} forEach [_disableButton, _enableButton];
 			sleep 2;
 			{_x ctrlEnable true} forEach [_disableButton, _enableButton];
-			_disableButton ctrlSetToolTip "Disable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
-			_enableButton ctrlSetToolTip "Enable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
+			_disableButton ctrlSetTooltip "Disable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
+			_enableButton ctrlSetTooltip "Enable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
 		};
 	}];	
 	
@@ -71,11 +71,11 @@ _MainToggleScreen = {
 			params ["_disableButton"];		
 			_enableButton = _disableButton getVariable "enableButton";
 			{_x ctrlEnable false} forEach [_disableButton, _enableButton];
-			{_x ctrlSetToolTip "Please don't spamm this"} forEach [_disableButton, _enableButton];
+			{_x ctrlSetTooltip "Please don't spamm this"} forEach [_disableButton, _enableButton];
 			sleep 2;
 			{_x ctrlEnable true} forEach [_disableButton, _enableButton];
-			_disableButton ctrlSetToolTip "Disable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
-			_enableButton ctrlSetToolTip "Enable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
+			_disableButton ctrlSetTooltip "Disable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
+			_enableButton ctrlSetTooltip "Enable Advanced UCAVs.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
 		};	
 	}];
 	
@@ -584,7 +584,7 @@ _ConfigureScript = {
 ["TOGGLE", ["Spectrum Device Jamming", "AUCAVs_SpectrumJammingON", "Allows players to jam AL-6, AR-2, ED-1E and ED-1D drones by leftclicking with a spectrum device while looking at one"]],
 ["TOGGLE", ["Spectrum Device Drone Radar", "AUCAVs_SpectrumRadarON" ,"Allows players to see all drones in a 1km radius when aiming with a spectrum device"]],
 ["TITLE", ["Log Message Options"]],	
-["TOGGLE", ["Allow Anti-Troll Log Messages", "AUCAVs_AntiTrollLogON", "Why would you disable this? Saves a log message when:\n- Someone crashes a drone\n- Someone connects to a drone\n- Someone disconnects from a drone\n- Someone arms a drone\n- Someone jamms a drone\n- Someone un-jamms a drone\n- Someone renames a drone\n- Someone assembles a drone"]],	
+["TOGGLE", ["Allow Anti-Troll Log Messages", "AUCAVs_AntiTrollLogON", "Why would you disable this? Saves a log message when:\n-Someone crafts a drone\n- Someones connectes/disconnectes to/from a drone\n- Someone renames a drone\n- Someones jamms/un-jamms a drone\n- Someone crashes a drone\n- Someone shoots/kills a drone\n- Someone fires with a drone"]],
 ["TOGGLE", ["Allow Debug Log Messages", "AUCAVs_DebugLogON", "Sends a log message, marked with a [UCAV_LOG {DEBUG}] prefix, into the .rtp arma file when:\n- A Killed EventHandler triggers on a drone\n- A Deleted EventHandler triggers on a drone\n- A Hit EventHandler triggers on a drone\n- A Fired EventHandler triggers on a drone"]],
 ["TITLE", ["Drone Renaming Options"]],	
 ["TOGGLE", ["Allow Drone Renaming", "AUCAVs_DroneRenamingON", "Allows players to give any drone they can connect to a custom group name/callsign"]],
@@ -685,10 +685,10 @@ _OpenLog = {
 		[_refreshButton] spawn {
 			params ["_refreshButton"];
 			_refreshButton ctrlEnable false;
-			_refreshButton ctrlSetToolTip "You can only refresh once per second";				
+			_refreshButton ctrlSetTooltip "You can only refresh once per second";				
 			sleep 1;
 			_refreshButton ctrlEnable true;
-			_refreshButton ctrlSetToolTip "";					
+			_refreshButton ctrlSetTooltip "";					
 		};
 	}];
 	_refreshButton ctrlCommit 0;
@@ -768,6 +768,44 @@ _OpenLog = {
 
 
 missionNamespace setVariable ["AUCAVs_ZeusOptions", [_MainToggleScreen, _EnableScript, _DisableScript, _ConfigureScript, _OpenLog], true];
+
+
+
+
+"Auto load chat commands, should always be available, doesnt matter if script is enabled or not";
+[[],{
+	if !(hasInterface) exitWith {};
+	waitUntil { sleep 0.5; !isNull (findDisplay 46) };
+	sleep 0.5;
+	
+	if (!isNil "AUCAVs_ChatCommandMissionEH") then { removeMissionEventHandler ["HandleChatMessage", AUCAVs_ChatCommandMissionEH] };
+	AUCAVs_ChatCommandMissionEH = addMissionEventHandler ["HandleChatMessage", {
+		params ["_channel", "_owner", "_from", "_message", "_person", "_name", "_strID", "_forcedDisplay", "_isPlayerMessage", "_sentenceType", "_chatMessageType", "_params"];
+		if (player != _person) exitWith {};
+		
+		if (((toLower _message) find "!ucav_config") == 0) then {
+			if (isNull (getAssignedCuratorLogic player)) exitWith { 
+				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Only zeus can do this! If you want to see wich features are enabled: 'Map > Advanced UCAVs > Features > Click Orange Text'" }; 
+			};
+			if ((str getAssignedCuratorLogic player) == "bis_curator_1" && { ["IsSpectating"] call BIS_fnc_EGSpectator }) exitWith { 
+				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Sorry, but it would apear that the game moderator slot is disabled." }; 
+			};			
+			[] call (AUCAVs_ZeusOptions select 0);		
+		};
+		
+		if (((toLower _message) find "!ucav_log") == 0) then {	
+			[] call (AUCAVs_ZeusOptions select 4);		
+		};		
+
+	}];
+}] remoteExec ["spawn", 0, "AUCAVs_addChatCommands_JIPID"];
+
+
+if (!isNil "someChatCommands_allCmds" && { (["!ucav_config","!ucav_log"] findIf { (someChatCommands_allCmds getOrDefault [_x, "NONE"]) == "NONE" }) != -1 }) then {
+	someChatCommands_allCmds set ["!ucav_config", ["!UCAV_config", "Zeus can config Advanced UCAVs without needing comp", {}, true, "default"]];
+	someChatCommands_allCmds set ["!ucav_log", ["!UCAV_log", "Open the Advanced UCAVs Anti-Troll log", {}, true, "default"]];	
+	missionNamespace setVariable ["someChatCommands_allCmds", someChatCommands_allCmds, true];
+};
 
 
 
@@ -2077,8 +2115,23 @@ AUCAVs_InitOnPlayer_fnc = {
 					player setVariable ["UCAV_JammingOn", false, true];
 				};
 				
-				if (vehicle player != player && { AUCAVs_BPJam_Radius > 50 }) then {
-					AUCAVs_BPJam_Radius = 50;
+				if (vehicle player != player) then {									
+					if (AUCAVs_BPJam_Radius <= 50) exitWith {}; 											
+					
+					if (isNil "AUCAVs_BPJam_Radius_BeforeEnteringVehicle") then {
+						AUCAVs_BPJam_Radius_BeforeEnteringVehicle = AUCAVs_BPJam_Radius;
+					};
+					"UCAVs_InventoryTxt" cutText ["<br/><t color='#FF0000' size='1.5'>Radius limited to 50m inside vehicles", "PLAIN DOWN", 0.5, true, true, true];						
+					AUCAVs_BPJam_Radius = 50;		
+
+				} else {
+					if (isNil "AUCAVs_BPJam_Radius_BeforeEnteringVehicle") exitWith {};
+					
+					if (AUCAVs_BPJam_Radius_BeforeEnteringVehicle > 50 && { AUCAVs_BPJam_Radius == 50 }) then { 
+						AUCAVs_BPJam_Radius = AUCAVs_BPJam_Radius_BeforeEnteringVehicle;		
+						"UCAVs_InventoryTxt" cutText [format["<br/><t color='#00FF0C' size='1.5'>Restored Previous Jamming Radius: %1m", AUCAVs_BPJam_Radius_BeforeEnteringVehicle], "PLAIN DOWN", 0.5, true, true, true];
+					};					
+					AUCAVs_BPJam_Radius_BeforeEnteringVehicle = nil;
 				};
 					
 					
@@ -2094,7 +2147,6 @@ AUCAVs_InitOnPlayer_fnc = {
 						
 						_intersects = lineIntersectsSurfaces [eyePos player, (_drone modelToWorldWorld [0,0,0.1]), _drone, player];									
 						if ((count _intersects) > 3) exitWith {};			
-						diag_log _intersects;
 						
 						_drone setVariable ["UCAV_Jammed", true];						 
 						
@@ -2104,7 +2156,7 @@ AUCAVs_InitOnPlayer_fnc = {
 						_side = [_drone] call AUCAVs_getDroneSide_fnc;			
 						_distance = round (player distance _drone);
 						
-						systemChat format ["[Jammer] Jammed UAV: %1 [%2] - (distance %3m)", _droneName, _side, _distance];	
+						systemChat format ["[Jammer] Jammed Drone: %1 [%2] - (distance %3m)", _droneName, _side, _distance];	
 												
 						["Log_JammedBackpack", [name player, [_drone, true] call AUCAVs_getName_fnc, _side, _distance]] call AUCAVs_LogMsg;					
 					
@@ -3565,7 +3617,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			
 			_UGV setVariable ["AUCAV_UGVSmokeCount", (_UGV getVariable ["AUCAV_UGVSmokeCount", 3]) - 1, true];
 			
-		}, nil, 1.5, false, true, "", "cameraOn == _target && { (missionNamespace getVariable ['AUCAVs_ED1SmokeON', true]) && { ((getPos _target) select 2) < 2 }}"];
+		}, nil, 1.5, false, true, "", "cameraOn == _target && { (missionNamespace getVariable ['AUCAVs_ED1SmokeON', true])}"];
 		
 		_UGV setUserActionText [_actionID_DeploySmoke, "-> Deploy Smoke", "<img size='1.9' image='a3\ui_f\data\igui\cfg\actions\ico_cpt_start_on_ca.paa'/><br/>Deploy Smoke"];			
 
@@ -3810,7 +3862,7 @@ AUCAVs_InitOnPlayer_fnc = {
 					AUCAVs_SpectrumRadar_TextSize, 
 					"EtelkaMonospacePro", 
 					"right", 
-					true,
+					false,
 					0.003, 
 					-0.025
 				];			
@@ -3865,16 +3917,42 @@ AUCAVs_InitOnPlayer_fnc = {
 		AUCAVs_timePlusTime = time + 0.01;
 		
 		
-		["Drone Callsign Renaming"] call {	
-			if !(missionNamespace getVariable ["AUCAVs_DroneRenamingON", true]) exitWith {};
+		["Drone Callsign Renaming + Cant use autonomous warning"] call {			
 			_uavTerminalDisplay = findDisplay 160;
 			if (isNull _uavTerminalDisplay) exitWith {};
-			if (isNull getConnectedUAV player) exitWith { 
-				ctrlDelete (_uavTerminalDisplay getVariable ["mainButton", controlNull]);
+			_drone = getConnectedUAV player;		
+					
+					
+			 call {	
+				_autonomousCheckBox = _uavTerminalDisplay displayCtrl 116;
+				_objCount = count ((attachedObjects _drone) select { typeOf _x != "Camera" }); 
+				_currentToolTipSameAsUCAVWarnTip = ctrlToolTip _autonomousCheckBox == (_autonomousCheckBox getVariable ["UCAV_warnTooltip_txt", str time]);
+				if (_objCount > 0 && { _drone isKindOf "UAV_01_base_F" || _drone isKindOf "UAV_06_base_F" }) then {					
+					if (_currentToolTipSameAsUCAVWarnTip && { _objCount == (_autonomousCheckBox getVariable ["UCAV_warnTooltip_count", -1]) }) exitWith {};
+					diag_log "[UCAV] tooltip created";
+					_autonomousCheckBox ctrlSetTooltip format ["! WARNING !\nIt was detected that this drone has %1 object(s) attached to it.\nDue to an arma bug this means that if given a waypoint, the AI will NOT follow it and instead just fly straight up.", _objCount];
+					_autonomousCheckBox ctrlSetTooltipColorBox [1, 0, 0, 1];
+					_autonomousCheckBox ctrlSetTooltipColorText [1, 0, 0, 1];
+					_autonomousCheckBox setVariable ["UCAV_warnTooltip_txt", ctrlToolTip _autonomousCheckBox];
+					_autonomousCheckBox setVariable ["UCAV_warnTooltip_count", _objCount];
+				} else {
+					if !(_currentToolTipSameAsUCAVWarnTip) exitWith {};
+					diag_log "[UCAV] tooltip reset";
+					_autonomousCheckBox ctrlSetTooltip "";
+					_autonomousCheckBox ctrlSetTooltipColorBox [1, 1, 1, 1];
+					_autonomousCheckBox ctrlSetTooltipColorText [1, 1, 1, 1];					
+					_autonomousCheckBox setVariable ["UCAV_warnTooltip_txt", nil];					
+				};					
 			};
+			
+
+			if (isNull _drone || !(missionNamespace getVariable ["AUCAVs_DroneRenamingON", true])) exitWith { 
+				ctrlDelete (_uavTerminalDisplay getVariable ["mainButton", controlNull]);
+			};	
 			if (!isNull (_uavTerminalDisplay getVariable ["mainButton", controlNull])) exitWith {};
 			
-			
+
+
 			_uavList = _uavTerminalDisplay displayCtrl 117;
 			_uavListPos = ctrlPosition _uavList;
 			_mainButton = _uavTerminalDisplay ctrlCreate ["RscButton", 2000];
@@ -3984,7 +4062,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			_uavTerminalDisplay setVariable ["mainButton", _mainButton];
 		};
 		
-		
+			
 		["Detect Drone Connections"] call {
 			_currentUAV = getConnectedUAV player;
 					
@@ -4059,7 +4137,7 @@ AUCAVs_InitOnPlayer_fnc = {
 				_saveButton ctrlSetPosition [(_cPos select 0) - 0.00655, (_cPos select 1) - 0.06, (_cPos select 2) + 0.014, 0.05];
 				_saveButton ctrlSetBackgroundColor [1,0,0,0.5];
 				_saveButton ctrlSetText "Save Items";
-				_saveButton ctrlSetToolTip "Save items in drone backpack.\nDue to arma/scripting reasons, you can't save items within a drone backpack as respawn loadout using an AIO arsenal option.\nThis script will attempt to give you these items manually whenever you respawn and you have this drone backpack";
+				_saveButton ctrlSetTooltip "Save items in drone backpack.\nDue to arma/scripting reasons, you can't save items within a drone backpack as respawn loadout using an AIO arsenal option.\nThis script will attempt to give you these items manually whenever you respawn and you have this drone backpack";
 				_saveButton ctrlCommit 0;
 
 				_inventory setVariable ["saveButton", _saveButton];
@@ -4080,7 +4158,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			if ("_radiobag_" in _backpackLow) then {					
 				_refillButton = _inventory getVariable ["refillButton", controlNull];
 				if (!isNull _refillButton) exitWith {
-					_refillButton ctrlSetToolTip ((_refillButton getVariable "defaultToolTip") + (format ["\n\nRadius: %1m\nBattery: %2\nEmpty ETA: %3m %4s", str AUCAVs_BPJam_Radius, ((ACUAVs_BPJam_Battery) toFixed 1) + "%", floor (ACUAVs_BPJam_TimeLeft / 60), floor (ACUAVs_BPJam_TimeLeft mod 60)]));
+					_refillButton ctrlSetTooltip ((_refillButton getVariable "defaultToolTip") + (format ["\n\nRadius: %1m\nBattery: %2\nEmpty ETA: %3m %4s", str AUCAVs_BPJam_Radius, ((ACUAVs_BPJam_Battery) toFixed 1) + "%", floor (ACUAVs_BPJam_TimeLeft / 60), floor (ACUAVs_BPJam_TimeLeft mod 60)]));
 					_refillButton ctrlShow (missionNamespace getVariable ["AUCAVs_BackpackJammingON", true]);
 					getMousePosition params ["_mousePosX", "_mousePosY"];
 					([0.57895, 0.68295, 0.04, 0.09]) params ["_leftEdge", "_rightEdge", "_topEdge", "_bottomEdge"];
@@ -4094,7 +4172,7 @@ AUCAVs_InitOnPlayer_fnc = {
 				_refillButton ctrlSetPosition [(_cPos select 0) - 0.00655, (_cPos select 1) - 0.06, (_cPos select 2) + 0.014, 0.05];
 				_refillButton ctrlSetBackgroundColor [1,0,0,0.5];
 				_refillButton ctrlSetText "Refill Battery";
-				_refillButton ctrlSetToolTip _defaultToolTip;
+				_refillButton ctrlSetTooltip _defaultToolTip;
 				_refillButton ctrlCommit 0;			
 	
 				_refillButton setVariable ["defaultToolTip", _defaultToolTip];		
@@ -4117,15 +4195,18 @@ AUCAVs_InitOnPlayer_fnc = {
 					_scrolledEH = _inventory displayAddEventHandler ["MouseZChanged", {
 						params ["_inventory", "_scroll"];
 
-						if !(AUCAVs_isMouseOverButton) exitWith {};							
+						if !(AUCAVs_isMouseOverButton) exitWith {};					
 
 						_value = AUCAVs_BPJam_Radius;
 						_newValue = if (_scroll > 0) then { if (_value + 10 > 300) then { 300 } else { _value + 10 } } else { if (_value - 10 < 10) then { 10 } else { _value - 10 } };	
+						if (vehicle player != player && { _newValue > 50 }) exitWith {
+							"UCAVs_InventoryTxt" cutText ["<br/><t color='#FF0000' size='1.5'>Radius limited to 50m inside vehicles", "PLAIN DOWN", 0.5, true, true, true];
+						};
 						
 						AUCAVs_BPJam_Radius = _newValue;	
 						_defaultTxt = if (str _newValue == "100") then { " (Default)" } else { "" };
 						
-						"UCAVs_InventoryTxt" cutText [format["<br/><t color='#00FF0C' size='1.5'>Set Jamming Radius to %1m", _newValue], "PLAIN DOWN", 0.5, true, true, true]
+						"UCAVs_InventoryTxt" cutText [format["<br/><t color='#00FF0C' size='1.5'>Set Jamming Radius to %1m", _newValue], "PLAIN DOWN", 0.5, true, true, true];
 												
 					}];		
 					_inventory setVariable ["AUCAVs_ScrolledEH", _scrolledEH];
@@ -4209,35 +4290,6 @@ AUCAVs_InitOnPlayer_fnc = {
 
 
 
-	if (!isNil "AUCAVs_ChatCommandMissionEH") then { removeMissionEventHandler ["HandleChatMessage", AUCAVs_ChatCommandMissionEH] };
-	AUCAVs_ChatCommandMissionEH = addMissionEventHandler ["HandleChatMessage", {
-		params ["_channel", "_owner", "_from", "_message", "_person", "_name", "_strID", "_forcedDisplay", "_isPlayerMessage", "_sentenceType", "_chatMessageType", "_params"];
-		if (player != _person) exitWith {};
-		
-		if (((toLower _message) find "!ucav_config") == 0) then {
-			if (isNull (getAssignedCuratorLogic player)) exitWith { 
-				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Only zeus can do this! If you want to see wich features are enabled: 'Map > Advanced UCAVs > Features > Click Orange Text'" }; 
-			};
-			if ((str getAssignedCuratorLogic player) == "bis_curator_1" && { ["IsSpectating"] call BIS_fnc_EGSpectator }) exitWith { 
-				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Sorry, but it would apear that the game moderator slot is disabled." }; 
-			};			
-			[] call (AUCAVs_ZeusOptions select 0);		
-		};
-		
-		if (((toLower _message) find "!ucav_log") == 0) then {	
-			[] call (AUCAVs_ZeusOptions select 4);		
-		};		
-
-	}];
-
-	if (!isNil "someChatCommands_allCmds") then {
-		someChatCommands_allCmds set ["!ucav_config", ["!UCAV_config", "Zeus can config Advanced UCAVs without needing comp", {}, true, "default"]];
-		someChatCommands_allCmds set ["!ucav_log", ["!UCAV_log", "Open the Advanced UCAVs Anti-Troll log", {}, true, "default"]];	
-	};
-
-
-
-
 	if (!isNil "AUCAVs_ResetBombDropAmmoEH") then { removeMissionEventHandler ["Service", AUCAVs_ResetBombDropAmmoEH] };
 	AUCAVs_ResetBombDropAmmoEH = addMissionEventHandler ["Service", {
 		params ["_serviceVehicle", "_servicedVehicle", "_serviceType", "_needsService", "_autoSupply"];
@@ -4264,12 +4316,10 @@ AUCAVs_InitOnPlayer_fnc = {
 				
 				if (!isNull _target && { _target isKindOf "UAV_01_base_F" || _target isKindOf "UAV_06_base_F" }) then {
 					if (!isNil "_previousSkill") exitWith {}; 
-					[format ["[UCAV_LOG {DEBUG}] Saved Skill Variable: %1. Reduced Skill to %2", _unit skill "aimingAccuracy", AUCAVs_aimingAccuracy]] remoteExec ["diag_log", allPlayers];
 					_unit setVariable ["AUCAVs_previousSkill", _unit skill "aimingAccuracy"];
 					_unit setSkill ["aimingAccuracy", AUCAVs_aimingAccuracy];			
 				} else {				
 					if (isNil "_previousSkill") exitWith {};					
-					[format ["[UCAV_LOG {DEBUG}] Reset Skill and Variable of %1 to saved value: %2", _unit, _previousSkill]] remoteExec ["diag_log", allPlayers];
 					_unit setVariable ["AUCAVs_previousSkill", nil];
 					_unit setSkill ["aimingAccuracy", _previousSkill];					
 				};
