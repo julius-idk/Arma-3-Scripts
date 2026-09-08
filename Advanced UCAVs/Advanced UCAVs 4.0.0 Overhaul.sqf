@@ -1,5 +1,3 @@
-"INCOMPATIBLE WITH v3.0.8";
-
 if (!isNil "this") then { deleteVehicle this };
 
 if (!isStreamFriendlyUIEnabled) then { showChat true };
@@ -85,7 +83,7 @@ _MainToggleScreen = {
 	_editButton = _display ctrlCreate ["RscButton", -1];
 	_editButton ctrlSetPosition [0.425, 0.55, 0.15, 0.06];
 	_editButton ctrlSetText "Configure";
-	_editButton ctrlSetTooltip "Configure wich features can be used.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
+	_editButton ctrlSetTooltip "Configure which features can be used.\n\nTip: You can also type '!UCAV_config' in the chat to open this dialog";
 	_editButton ctrlSetBackgroundColor [0.55, 0.4, 0, 1];
 	_editButton ctrlCommit 0;
 	_editButton ctrlAddEventHandler ["ButtonClick", {
@@ -121,7 +119,6 @@ _EnableScript = {
 		_msg = "		
 		<t size='1.5'>Advanced UCAVs v4.0.0</t><br/>
 		<t size='1.3' color='#00C80C'>Script has been enabled</t>
-		<br/><br/><t color='#FF0000'>This version is currently still being worked on. Bugs may occur!</t>
 		<br/><br/>For more info, open your map and click on <t color='#0094FF'>Advanced UCAVs</t> in the menu on the left side.	
 		"; 
 		
@@ -785,10 +782,10 @@ missionNamespace setVariable ["AUCAVs_ZeusOptions", [_MainToggleScreen, _EnableS
 		
 		if (((toLower _message) find "!ucav_config") == 0) then {
 			if (isNull (getAssignedCuratorLogic player)) exitWith { 
-				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Only zeus can do this! If you want to see wich features are enabled: 'Map > Advanced UCAVs > Features > Click Orange Text'" }; 
+				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Only zeus can do this! If you want to see which features are enabled: 'Map > Advanced UCAVs > Features > Click Orange Text'" }; 
 			};
 			if ((str getAssignedCuratorLogic player) == "bis_curator_1" && { ["IsSpectating"] call BIS_fnc_EGSpectator }) exitWith { 
-				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Sorry, but it would apear that the game moderator slot is disabled." }; 
+				[] spawn { sleep 0.01; systemChat "[Advanced UCAVs] Sorry, but it would appear that the game moderator slot is disabled." }; 
 			};			
 			[] call (AUCAVs_ZeusOptions select 0);		
 		};
@@ -1088,7 +1085,7 @@ AUCAVs_InitOnPlayer_fnc = {
 		if (_createButton) then {
 			_openCfgBtn = _display ctrlCreate ["RscButtonTextOnly", -1, _ctrlGroup];
 			_openCfgBtn ctrlSetPosition [-0.125, 0.31, 0.8, 0.055];
-			_openCfgBtn ctrlSetText "[ Click Here to see wich features are currently enabled ]";
+			_openCfgBtn ctrlSetText "[ Click Here to see which features are currently enabled ]";
 			_openCfgBtn ctrlSetTextColor [1, 0.8, 0, 1];
 			_openCfgBtn ctrlSetFontHeight 0.043;
 			_openCfgBtn ctrlCommit 0;
@@ -1118,32 +1115,36 @@ AUCAVs_InitOnPlayer_fnc = {
 		"<t size='1.5'>Advanced UCAVs</t><br/>" +
 		"<t size='1.3'>Current version: 4.0.0</t><br/><br/><br/>" +
 			
-		"<t color='#FF0000' size='1.2'>! Keep in mind that the following information might not be accurate since zeus can toggle all features at any time !</t><br/><br/><br/>" +
+		"<t color='#FF0000' size='1.2'>! Keep in mind that the following information might not be accurate since Zeus can toggle all features at any time !</t><br/><br/><br/>" +
 
 		"<br/><br/><br/><br/>" +
 
 		"<t size='1.5' color='#0094FF'>Feature Overview</t><br/><br/>" +			
 		"- Adds an anti-troll log so drone crashers are easily detectable.<br/>" +
 
-		"- Adds 'Full Repair' option to small drones to 100% repair them.(Toolkit needed)<br/>" +
-		"- Adds 'Quick Repair' option to small drones to 40% repair them.(Noting needed)<br/>" +		
+		"- Gives all AR-2 and AL-6 drones (except medic and civ) the options to arm them, making them usable in combat.<br/>" +
+		"- Adds a custom log which will log nearly anything drone related to easily find drone trolls.<br/>" +
+		"- Adds 'Full Repair' option to small drones to repair them to 100% HP. (Toolkit required)<br/>" +
+		"- Adds 'Quick Repair' option to small drones to repair them to 40% HP. (No item requirements)<br/>" +		
 		"- Adds 'Swap Drone Battery' option to all AR-2s and AL-6s, to refuel them.<br/>" +		
-		"- Reduces the battery lifetime of all AR-2 and AL-6 drones.<br/>" +
+		"- Reduces the battery lifetime of all AR-2 and AL-6 drones; Also depends on how heavy the drone is armed.<br/>" +
 		"- Destroyed drones auto despawn after 5 minutes.<br/>" +			
-		"- Adds 'Check Cargo' option to AL-6 to check their cargo mid flight.<br/>" +												
-		"- Adds jamming non-static drones with a radio backpack and spectrum device.<br/>" +
+		"- Adds 'Check Cargo' option to AL-6 to check their cargo mid-flight.<br/>" +												
+		"- Adds jamming drones using a radio backpack and spectrum device.<br/>" +
 		"- Adds a drone radar when using the spectrum device.<br/>" +
 		"- Adds option to rename any drone.<br/>" +
 		"- Adds the ability for unarmed AL-6s to slingload ED-1s.<br/>" +
 		"- Makes AR-2s, AL-6s and ED-1s harder to spot and hit for AI.<br/>" +
 		"- Adds chat commands: '!ucav_config' and '!ucav_log'.<br/>" +
 		"- Adds the ability to store items in drone backpacks.<br/>" +
-		"- Gives all AR-2 and AL-6 drones (exept medic and civ) the options to arm them, making them usable in combat.<br/><br/><br/><br/>" +
-				
+		"- Enables drone hacking, which is a vanilla Arma feature but usually disabled." +
+		
+		"<br/><br/><br/><br/>" +
+		
 		"<t size='1.5' color='#0094FF'>Drone Variants</t><br/><br/>" +	
 		"<t size='1.2'>-> AR-2 Variants:</t><br/>" +
 		"- Bomb Drop<br/>" +
-		"- RPG-7<br/>" +
+		"- RPG-7 Launch<br/>" +
 		"- Kamikaze FPV [Light HE]<br/>" + 
 		"- Kamikaze FPV [Heavy HE]<br/>" + 
 		"- Kamikaze FPV [Light AT]<br/>" + 
@@ -1151,57 +1152,84 @@ AUCAVs_InitOnPlayer_fnc = {
 
 		"<t size='1.2'>-> AL-6 Variants:</t><br/>" +
 		"- Bomb Carrier<br/>" +
-		"- RPG-7<br/>" +
-		"- RPG-42 (AT and HE)<br/><br/>" +
+		"- RPG-7 Launch<br/>" +
+		"- RPG-42 Launch (AT and HE)<br/><br/>" +
 
-		"<t size='1.2'>-> How to arm a drone:</t><br/>" +
-		"1. Grab one of the named drones from the arsenal and assemble it.<br/>" +
-		"2. Make sure you have the required crafting items in your inventory.<br/>" +
-		"3. Then stand right next to the drone and click one of the options.<br/>" +
-		"4. The drone is then armed after the progress bar is completed.<br/>" +
-		"-> All versions exept the FPV drones can be rearmed by the player.<br/><br/><br/><br/>" +
+		"-> All versions except the FPV drones can be rearmed by the player." +
+
+		"<br/><br/><br/><br/>" +
+
+		"<t size='1.5' color='#0094FF'>Arming Drones</t><br/><br/>" +		
+		"<t size='1.2'>-> Using normal options:</t><br/>" +
+		"1. Grab an armable drone from and assemble it.<br/>" +
+		"2. Make sure you have the items required for crafting in your inventory.<br/>" +
+		"3. Then stand right next to the drone and click one of the '-> Make ... Drone' options.<br/>" +
+		"4. The drone is then armed after the progress bar is completed.<br/><br/>" +			
+		
+		"<t size='1.2'>-> Using special 'Assemble and Craft' options:</t><br/>" +
+		"(Since a Titan AT doesn't fit in the UAV backpack, this will work on any drone except the Kamikaze Heavy AT<br/>" + 
+		"1. Grab an UAV Backpack (of a drone that can be armed).<br/>" + 
+		"2. Put items required for crafting a drone in that backpack - Or - Grab an RPG (-7 / -42).<br/>" + 
+		"3. You will see a custom '-> Assemble and Craft ...' option which will make you place the drone and immediately start crafting. (This was added since when placing a drone the items from the backpack are gone, meaning placing and crafting a drone with items from backpack would otherwise not be possible)" +
+
+		"<br/><br/><br/><br/>" +
 
 		"<t size='1.5' color='#0094FF'>Jamming</t><br/><br/>" +	
 
-		"<t size='1.2'>-> How to use jamming (Radio Backpack):</t><br/>" +
-		"1. Grab any Radio Backpack from an arsenal.<br/>" +
+		"<t size='1.2'>-> How to use Radio Backpack Jamming:</t><br/>" +
+		"1. Grab any Radio Backpack.<br/>" +
 		"2. Press 'J' to toggle jamming on and off.<br/>" +			
-		"AR-2s, AL-6s and ED-1s visible to the player will be jammed in a 100m radius.<br/>" +
-		"3. Change jamming radius or refill battery by opening your inventory and read what the 'Refill Battery' button says.<br/><br/>" +
-						
-		"<t size='1.2'>-> How to use jamming (Spectrum Device):</t><br/>" +
+		"All AR-2, AL-6 and ED-1 drones that have 3 walls or less between them and the player will be jammed immediately within a given radius.<br/>" +
+		"3. Change the Jamming Radius or Refill Battery by opening your inventory and read what the 'Refill Battery' button says by hovering over it.<br/>" +
+		"In a vehicle, jamming is limited to a maximum of 50m.<br/>" +
+		"Be aware: While the jamming is active, players using an Experimental Antenna on a Spectrum Device who are within a 2km radius will be able to see you in the drone radar.<br/><br/>" +
+		
+		"<t size='1.2'>-> How to use Spectrum Device Jamming:</t><br/>" +
 		"1. Grab a Spectrum Device from an arsenal.<br/>" +
 		"2. Make sure you have the 'SD Jammer Antenna' attachment.<br/>" +				
 		"3. Aim at a drone and hold Left Click.<br/>" +
-		"4. An 'X' will apear as crosshair in the middle of your screen 5.<br/>" + 
-		"5. If the drone is jammable a box with an 'X' will apear on it.<br/>" + 
-		"6. Allign both X's (crosshair and drone) while holding Left Click.<br/>" + 
-		"7. A progress bar will show up. Drone is jammed once that finishes.<br/>" + 
+		"4. An 'X' will appear as crosshair in the middle of your screen. And if the drone is jammable a box with an 'X' will appear on it.<br/>" + 
+		"5. Align both X's (crosshair and drone) while holding Left Click.<br/>" + 
+		"6. A progress bar will show up. Drone is jammed once that finishes. Its crew will be deleted and it will crash.<br/>" + 
 		"The maximum range is 1000m<br/><br/>" +
 									
-		"<t color='#FF0000'>! Keep in mind that this will also jam friendly drones. Be especially careful with the backpack !</t><br/><br/><br/><br/>" +
+		"<t color='#FF0000'>! Keep in mind that you can/will jam both friendly and enemy drones !</t>" +
+
+		"<br/><br/><br/><br/>" +
 
 		"<t size='1.5' color='#0094FF'>Additional Features</t><br/><br/>" +
 
-		"<t size='1.2'>-> Using Spectrum Device Radar</t><br/>" +
-		"1. Grab a Spectrum Device from an arsenal.<br/>" +
+		"<t size='1.2'>-> Spectrum Device Radar</t><br/>" +
+		"1. Grab a Spectrum Device (No attachment needed).<br/>" +
 		"2. Aim with the Spectrum Device (right click).<br/>" +
-		"3. All drones within a 1000m radius visible to the player will be shown on your screen.<br/>" +
-		"4. Additionaly: Switching to an Experimental Antenna increases the Radar range to 2000m.<br/>" +
-		"5. Additionaly: Experimental Antenna allows to see players using a jamming backpack.<br/>" +		
+		"- All drones within a 1000m radius visible to the player will be displayed on your screen.<br/>" +
+		"- Additionally: Switching to an Experimental Antenna increases the Radar range to 2000m.<br/>" +
+		"- Additionally: Experimental Antenna allows to see players using a jamming backpack. (Also within 2000m)<br/>" +		
 		"(Tip: You can quick switch between 2 Antennas by pressing 'R' while not aiming.)<br/>" +
-		"6. All controls are shown at the bottom of the screen right after aiming.<br/><br/>" +
+		"- All keybindings are shown at the bottom of the screen right after aiming.<br/><br/>" +
 				
-		"<t size='1.2'>-> Using Drone Renaming</t><br/>" +	
+		"<t size='1.2'>-> Drone Renaming</t><br/>" +	
 		"1. Open your UAV Terminal.<br/>" +
 		"2. Connect to any drone.<br/>" +
 		"3. In the top left you can see a 'Rename AV Callsign' button pop up.<br/>" +
-		"4. From there is self explantitory, type in a name, click apply, and re-open terminal to refresh.<br/><br/>" +
+		"4. From there is self explanatory, type in a name, click apply, and re-open terminal to refresh.<br/><br/>" +
 
-		"<t size='1.2'>-> Using Chat Commands</t><br/>" +	
-		"- There are only two chat commands: '!ucav_config' and '!ucav_log'.<br/>" +
-		"- !ucav_config is only available for zeuses and allows them to toggle features.<br/>" +
-		"- !ucav_log is available for all players, it will open the anti-troll drone log.<br/><br/>"
+		"<t size='1.2'>-> Chat Commands</t><br/>" +	
+		"- There are two chat commands: '!ucav_config' and '!ucav_log'.<br/>" +
+		"- !ucav_config is only available for Zeuses and allows them to toggle features aswell as enabling/disabling the script.<br/>" +
+		"- !ucav_log is available for all players, it will open the anti-troll drone log.<br/><br/>" +
+		
+		"<t size='1.2'>->ED-1 Slingloading</t><br/>" +	
+		"1. Fly an unarmed AL-6 within a 5m radius of an ED-1<br/>" +
+		"2. You will see a 'Slingload nearest UGV' option.<br/>" +
+		"3. To drop it again, fly below 10m and below 10km/h and you will see a 'Drop Slingloaded UGV' option.<br/><br/>" +
+		
+		"<t size='1.2'>->Saving Items in a drone backpack to keep after respawn:</t><br/>" +	
+		"1. Equip a drone backpack.<br/>" +	
+		"2. Open your inventory and you will see a 'Save Items' option above the backpack.<br/>" +
+		"- Combined with the custom 'Assemble and Craft' option, this allows to craft heavier armed drones right after respawning.<br/>" +
+		"- Be aware that if you assemble the drone, items you had in the backpack will be lost till you respawn again.<br/>"
+		
 		)] call AUCAVs_createDescriptionWindow;	
 	};
 	
@@ -1216,7 +1244,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			"<br/></t><t color='#0094FF'>" +
 			"- Fixed a bug where drone crashes would sometimes not show up in log.<br/>" +
 			"- Fixed a bug where drone connections would sometimes not show up in log.<br/>" +
-			"- Fixed a bug where the log showed zeuses remote controlling any vehicle. It is now only limited to drones.<br/>" + 		
+			"- Fixed a bug where the drone connection log showed zeuses remote controlling a vehicle.<br/>" + 		
 			"- Fixed wrong amount of grenades showing under an AL-6 Bomb Carrier when spamming the rearm button.<br/>" +
 			"- Fixed AL-6 ATRQ getting randomly damaged when slingloading a pelter.<br/>" +
 			"- Fixed a bug on the AL-6 Bomb Carrier and regular Demining Drone that allowed them to carry 12 Charges when rearming at a bobcat.<br/>" +
@@ -1229,7 +1257,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- Added 'Kamikaze FPV [Light AT]' AR-2 variant.<br/>" +
 			"- Added 'Kamikaze FPV [Heavy HE]' AR-2 variant. (Replaced Anti-Structure FPV)<br/>" +
 			"- Added 'Kamikaze FPV [Heavy AT]' AR-2 variant.<br/>" +	
-			"- Added: Reduced Battery Lifetime of all AR-2 and AL-6 drones. Also depends on wich weapons they carry.<br/>" +
+			"- Added: Reduced Battery Lifetime of all AR-2 and AL-6 drones which depends on the weapons they are armed with.<br/>" +
 			"- Added a 'Swap Drone Battery' option to all drones to refuel them.<br/>" +
 			"- Added a 'Rearm Smoke' option to all ED-1s.<br/>" +		
 			"- Added an 'Un-Jamm' drone option to all jammed drones. It will show when the player doesn't have a UAV terminal or drone hacking is disabled.<br/>" +
@@ -1240,26 +1268,29 @@ AUCAVs_InitOnPlayer_fnc = {
 			"<t size='1.1'>Spectrum Device, Radio Backpacks, and Jamming</t><br/>" + 
 			"- Added Battery Lifetime to the Radio Backpack Jamming. It can be recharged using Laser Designator Batteries.<br/>" + 
 			"- Added the ability to change Backpack Jamming Radius by scrolling while hovering over the 'Refill Battery' button in inventory. Range 10-300m<br/>" + 		
-			"- Added jammer radius marker on map for Radio Backpack Jamming.<br/>" +
+			"- Added a jammer radius marker on map for Radio Backpack Jamming.<br/>" +
 			"- Added a drone radar to the Spectrum Device: While aming with the spectrum device, players can see all drones in a 1km radius.<br/>" + 		
 			"- Added: Spectrum Device Antennas can be changed by pressing 'R'.<br/>" +		
 			"- Added functionallity for the Experimental Antenna (Spectrum Device), using it increases Radar range by 1000m. (2000m total)<br/>" + 	
+			"- Added the ability to hide the arma spectrum device screen, allowing for better visiblity.<br/>" + 			
 			"<t size='1.1'>Functionallity and UI</t><br/>" +
 			"- Added: Its now possible to store items in a drone backpack.<br/>" +
-			"- Added an option 'Assemble and Craft Drone' wich is shown when carrying a drone backpack with items required for crafting a drone in it.<br/>" +
+			"- Added an option 'Assemble and Craft Drone' which is shown when carrying a drone backpack with items required for crafting a drone in it.<br/>" +
 			"- Added a 'Save Items' button in inventory when carrying a drone backpack to save items stored in it to keep them after respawn.<br/>" +
 			"- Added a 'Refill Battery' button in inventory when carrying a radio backpack.<br/>" +	
 			"- Added a 'Configure' button for zeus to toggle all features.<br/>" +
-			"- Added a button to the 'Description' tab on the map that allows players so wich see options are enabled/disabled.<br/>" +		
-			"- Added a dialog for the anti-troll log wich can be opened via chat command mentioned below or in the enable/disable window.<br/>" +
+			"- Added a button to the 'Description' tab on the map that allows players so which see options are enabled/disabled.<br/>" +		
+			"- Added a dialog for the anti-troll log which can be opened via chat command mentioned below or in the enable/disable window.<br/>" +
 			"- Added a chat command '!ucav_config' so any zeus, even ones without the comp, can enable/disable and configure the script.<br/>" +
 			"- Added a chat command '!ucav_log' so any player can look at the Anti-Troll log.<br/>" +			
 			"- Added a 'Rename AV Callsign' button in the UAV terminal so players can rename the drone they are currently connected to.<br/>" + 		
-			"- Added drone hacking: This is a default arma 3 feature wich is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
-			"- Added item icons to the cargo list when using the 'Check Cargo' option in an AL-6.<br/>" + 	
+			"- Added drone hacking: This is a default arma 3 feature which is usually disabled. However this script now enables it and allows zeus to disable it anytime.<br/>" +		
+			"- Added item icons next to the items in the item list when pressing 'Check Cargo' in an AL-6.<br/>" + 	
 			"- Added: the UCAV log now also shows when a player just connects to a drone, not only when he connects to driver/gunner.<br/>" +
+			"- Added: the UCAV log now additionally logs when a drone gets killed, un-jammed or when a drone fires (eg. RPG-7 drone).<br/>" +			
 			"- Added this custom changelog window.<br/>" +
-			"- Added a custom ED-1 smoke counter in the top right wich is shown when connected to one.<br/>" +
+			"- Added a custom ED-1 smoke counter in the top right which is shown when connected to one.<br/>" +
+			"- Added a small warning to the Autonomous Button in UAV Terminal, displayed when the drone has stuff attached to it, meaning it won't follow waypoints.<br/>" +
 			
 			
 			"<br/></t><t color='#FFD800'>" +	
@@ -1270,14 +1301,16 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- Change: Also fully overworked Spectrum Device Jamming. Instead of a point and click adventure, players now have to hold leftclick.<br/>" +
 			"- Change: The Spectrum Device can now jam any UAV (excluding statics). Depending on the UAV the jamming proccess takes longer or shorter.<br/>" +			
 			"- Changed it so Backpack Jamming can only jam drones that have 3 walls or less between the player and the drone.<br/>" +		
+			"- Changed it so Radio Backpack Jamming gets limited to 50m when inside a vehicle<br/>" +
 			"<t size='1.1'>Functionallity and UI</t><br/>" + 
 			"- Change: Also fully overworked the drone making. The option no longer has to be held manually, and a custom progress bar will pop up.<br/>" +
 			"- Change: Since options don't have to be held anymore, all drone crafting durations have been increased.<br/>" +		
 			"- Change: Optimized addAction by adding 'Lazy Evaluation' to the condition check.<br/>" + 
-			"- Changed it so the script now gets applied to all drones. Enabling/Disabling it now gets updated immidetly on all drones.<br/>" + 		
+			"- Changed it so the script now gets applied to all drones. Enabling/Disabling it now gets updated immediately on all drones.<br/>" + 		
 			"- Change: Also fully overworked where and how every action and eventhandler is added and executed, getting rid of remoteExec duplication.<br/>" + 	
 			"- Change: Edited a lot in the diary Features and Description info text to make it more readable and visually better.<br/>" +
 			"- Changed it so the option toggling is no longer global, meaning if one player makes them shown, only that player will see the sub-options.<br/>" +
+			"- Change: Made the Bomb Drop and Bomb Carrier tips (Fly above ...m when dropping), wich appear right after crafting them, look better.<br/>" +
 			
 			"<br/></t><t color='#FF0000'>" +	
 			"- Removed AI slop code.<br/>" +
@@ -1296,7 +1329,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- Made 'Jamming: On' message smaller so it's no as anoying.<br/>" +			
 			"- If you disable script without it running, it won't disable it but instead say 'Script isn't even runnning'.<br/><br/>" +
 			"<t size='1.5'>-> ver 3.0.6</t><br/>" + 
-			"- Added yet another log message wich says who connected to a drone to avoid trolling.<br/><br/>" +
+			"- Added yet another log message which says who connected to a drone to avoid trolling.<br/><br/>" +
 			"<t size='1.5'>-> ver 3.0.5</t><br/>" + 
 			"- Its now easier to jam a drone using the spectrum device. The crosshair doesn't have to be exactly on the drone anymore.<br/>" +
 			"- Added more log messages for when a drone gets crashed, to avoid trolling.<br/>" +
@@ -1306,7 +1339,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- If a player arms an UAV, its now also being saved in the .rtp file also to avoid trolling.<br/>" +
 			"- If an AL-6 UAV is armed, it can no longer slingload ED-1 UGVs<br/>" +			
 			"- Fixed a bug where multiple AL-6 drones were able to slingload one UGV.<br/>" +
-			"- Fixed a bug that caused UGVs to not be slingloadable after the AL-6 wich got it slingloaded died.<br/>" +
+			"- Fixed a bug that caused UGVs to not be slingloadable after the AL-6 which got it slingloaded died.<br/>" +
 			"- Fixed a bug where if one player would slingload an ED-1, other players werent able to detach it.<br/>" + 
 			"- Fixed a bug that caused the jamming keybinds to not work properly sometimes.<br/><br/>" + 
 			"<t size='1.5'>-> ver 3.0.3</t><br/>" + 
@@ -1317,7 +1350,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			"<t size='1.5'>-> ver 3.0.1</t><br/>" + 
 			"- Added Jamming: Small drones can now also get jammed by aiming a spectrum device with a jammer antenna at a drone and pressing left click.<br/><br/>" +
 			"<t size='1.5'>-> ver 3.0.0</t><br/>" + 
-			"- Added Jamming: All small UAVs and UGVs (AR-2, AL-6, ED-1) can now be jammed if the player presses 'J' while wearing a Radio Backack.<br/><br/>" +										
+			"- Added Jamming: All small UAVs and UGVs (AR-2, AL-6, ED-1) can now be jammed if the player presses 'J' while wearing a Radio Backpack.<br/><br/>" +										
 			"<t size='1.5'>-> ver 2.1.9</t><br/>" + 
 			"- If a drone is placed, 'Autonomous' is disabled. Can be manually re-enabled by the player in the UAV terminal.<br/><br/>" +		
 			"<t size='1.5'>-> ver 2.1.8</t><br/>" + 
@@ -1338,31 +1371,31 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- Changed the texts that are being shown (e.g. 'You need a RGO Grenade') from 'hint' to 'titleText' message to make them look better visually.<br/>" +
 			"- Changed the options so they need to be held for arming a drone. Doesnt affect rearm or repair options.<br/><br/>" +
 			"<t size='1.5'>-> ver 2.1.3</t><br/>" + 
-			"- Fixed a bug wich caused an option to not be removed properly when AL-6 gets armed.<br/><br/>" +						
+			"- Fixed a bug which caused an option to not be removed properly when AL-6 gets armed.<br/><br/>" +						
 			"<t size='1.5'>-> ver 2.1.2</t><br/>" + 
-			"- All AL-6 drones get a 'Check Cargo' option to check cargo mid flight.<br/>" + 
+			"- All AL-6 drones get a 'Check Cargo' option to check cargo mid-flight.<br/>" + 
 			"- AL-6 storage gets not only locked but also cleared when armed.<br/>" + 				
-			"- Added repair option all AL-6 drones (civ, medic) wich didnt had them before.<br/><br/>" + 
+			"- Added repair option all AL-6 drones (civ, medic) which didnt had them before.<br/><br/>" + 
 			"<t size='1.5'>-> ver 2.1.1</t><br/>" + 			
-			"- Changed range from wich the arming options can be seen from 2m to 2.5m<br/><br/>" + 
+			"- Changed range from which the arming options can be seen from 2m to 2.5m<br/><br/>" + 
 			"<t size='1.5'>-> ver 2.1</t><br/>" +
-			"- (Finally) fixed the bug wich caused the script to turn off if zeus left his slot.<br/>" +
-			"- Added 'Anti-Personnel FPV' so players can use them with just their respawn loadout(wich was not possible until now since you cant carry a AR-2 backpack and items to make larger FPVs in the same loadout) <br/>" +
+			"- (Finally) fixed the bug which caused the script to turn off if zeus left his slot.<br/>" +
+			"- Added 'Anti-Personnel FPV' so players can use them with just their respawn loadout(which was not possible until now since you cant carry a AR-2 backpack and items to make larger FPVs in the same loadout) <br/>" +
 			"- Added a few animations. Depending on if the player is standing, crouched or prone, diffrent animations play.<br/>" +
 			"- Instead of just locking the turrets of drones when they are armed, the gunner gets completely removed.<br/>" +
-			"- Changed the order in wich the options are listed.<br/><br/>" +	
+			"- Changed the order in which the options are listed.<br/><br/>" +	
 			"<t size='1.5'>-> ver 2.0</t><br/>" +
 			"- Improved both 'Bomb Drop Drone' and 'Bomb Carrier Drone' by adding visual grenades.<br/>" +
-			"- The grenades will visually apear under the drone when rearming, disapear when they are dropped.<br/>" +
+			"- The grenades will visually appear under the drone when rearming, disappear when they are dropped.<br/>" +
 			"- The storage space of AL-6 drones now gets locked when players arm them.<br/><br/>" +				
 			"<t size='1.5'>-> ver 1.9</t><br/>" +
 			"- Renamed the versions tab to changelog and added all the changes from previous version.<br/>" +
-			"- Improved all repair and rearm animtions, so depending on wich weapon type the player is using, diffrent animations play.<br/><br/>" +					
+			"- Improved all repair and rearm animtions, so depending on which weapon type the player is using, diffrent animations play.<br/><br/>" +					
 			"<t size='1.5'>-> ver 1.8</t><br/>" +
 			"- Added rearm and repair options to the civlian demining drone.<br/>" +	
 			"- Fixed a small bug where options would duplicate for new joining players.<br/><br/>" +				
 			"<t size='1.5'>-> ver 1.7</t><br/>" +
-			"- All AL-6 and AR-2 drones from all nations now have the special options, exept the medic AL-6.<br/>" +	
+			"- All AL-6 and AR-2 drones from all nations now have the special options, except the medic AL-6.<br/>" +	
 			"- Added a small version tab with changes shown there.<br/>" +	
 			"- Edited the features list.<br/><br/>" +					
 			"<t size='1.5'>-> ver 1.6</t><br/>" +
@@ -1371,7 +1404,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- 'Toggle Options' button now works without any issues.<br/><br/>" +						
 			"<t size='1.5'>-> ver 1.5</t><br/>" +
 			"- Fixed a bug with the toggle option.<br/>" +				
-			"- When drone is placed, only toggle option is visible, only after clicking it all options will apear.<br/><br/>" +
+			"- When drone is placed, only toggle option is visible, only after clicking it all options will appear.<br/><br/>" +
 			"<t size='1.5'>-> ver 1.4</t><br/>" +
 			"- Added the option so script can be disabled.<br/>" +
 			"- Added the 'Toggle Options' option to the drones.<br/><br/>" +	
@@ -1383,14 +1416,14 @@ AUCAVs_InitOnPlayer_fnc = {
 	
 	
 	
-	AUCAVs_openGithub = {
+	AUCAVs_openWorkshop = {
 		_IDD = if (visibleMap) then {12} else { if (!isNull findDisplay -1) then {-1} else { if (!isNull findDisplay 312) then {312} else {46}} };
 		_display = (findDisplay _IDD) createDisplay "RscDisplayEmpty";
-		_linkToCopy = _display ctrlCreate ["RscEditMulti", -1];
-		_linkToCopy ctrlSetPosition [0, 0.87, 1, 0.10];
+		_linkToCopy = _display ctrlCreate ["RscEdit", -1];
+		_linkToCopy ctrlSetPosition [0.1, 0.6, 0.8, 0.08];
 		_linkToCopy ctrlSetBackgroundColor [0.2, 0.2, 0.2, 1];
 		_linkToCopy ctrlSetFontHeight 0.048;
-		_linkToCopy ctrlSetText "https://github.com/julius-idk/Arma-3-Scripts/blob/main/Advanced%20UCAVs/%5BWIP%5D%20Advanced%20UCAVs%204.0.0%20Overhaul.sqf";
+		_linkToCopy ctrlSetText "https://steamcommunity.com/sharedfiles/filedetails/?id=3424963440";
 		_linkToCopy ctrlCommit 0;	
 	};	
 	
@@ -1405,13 +1438,10 @@ AUCAVs_InitOnPlayer_fnc = {
 	AUCAVs_Diary_ScriptInfo = player createDiaryRecord ["AUCAVs_DiarySubject", 
 	[
 		"Script Info",
-		"<br/>" +
-		"<font size='20'>Script Info</font><br/><br/>" +
-		"<font size='17'>On Workshop: n/a</font><br/>" +
-		"v4.0.0 is currently still being worked on, thus only available on github.<br/><br/>" +
-		"If you want to use this script, either copy paste the github code into a console and LOCAL EXEC it, or get an older, less optimized version with less features on the workshop: 'Advanced UCAVs 3.0.8'<br/><br/><br/>" +
+		"<br/><font size='20'>Script Info</font><br/><br/><br/>" +
+		"<font size='17'>On Workshop: Advanced UCAVs 4.0.0</font><br/>" +
 		
-		"[<execute expression='[] call AUCAVs_openGithub'>Click here to open Advanced UCAVs 4.0.0 Github</execute>]<br/><br/><br/><br/>" +
+		"[<execute expression='[] call AUCAVs_openWorkshop'>Click here to open the workshop page</execute>]<br/><br/><br/><br/>" +
 		"- script by julius"	
 	]];	
 		
@@ -1426,6 +1456,26 @@ AUCAVs_InitOnPlayer_fnc = {
 		"Features And Description",
 		"<br/><font size='22'>[<execute expression='[] call AUCAVs_openFeatures'>Click here to open the Features And Description</execute>]</font>"
 	]];			
+	
+	
+	_recordsCtrl = (findDisplay 12) displayCtrl 1002;
+	if (!isNil "AUCAVs_mapLBSelChangedEH") then { _recordsCtrl ctrlRemoveEventHandler ["LBSelChanged", AUCAVs_mapLBSelChangedEH] };
+	AUCAVs_mapLBSelChangedEH = _recordsCtrl ctrlAddEventHandler ["LBSelChanged", {
+		params ["_recordsCtrl", "_lbCurSel", "_lbSelection"];
+		_subjectsCtrl = (findDisplay 12) displayCtrl 1001;
+		
+		_subjectsCtrlData = _subjectsCtrl lnbData [(lbCurSel _subjectsCtrl), 0];
+		_recordsCtrlTxt = _recordsCtrl lnbText [_lbCurSel, 0];
+		if (_subjectsCtrlData == "AUCAVs_DiarySubject") then {
+			if (_recordsCtrlTxt == "Features And Description") then {
+				[] call AUCAVs_openFeatures;
+			};
+			if (_recordsCtrlTxt == "Changelog") then {
+				[] call AUCAVs_openChangelog;
+			};		
+		};
+	}];	
+		
 	if (_onlyAddDiary) exitWith {};
 	
 	
@@ -3133,7 +3183,7 @@ AUCAVs_InitOnPlayer_fnc = {
 
 		_AL6 setUserActionText [_actionID_CheckCargo, "-> Check Cargo", "<img size='2.6' image='a3\ui_f\data\igui\cfg\actions\gear_ca.paa'/><br/>Check Cargo"];
 						
-		_actionID_Slingload = _AL6 addAction ["Slingload nearest UGV", {
+		_actionID_Slingload = _AL6 addAction ["-> Slingload nearest UGV", {
 			params ["_AL6", "_caller", "_actionId", "_arguments"];
 			
 				
@@ -3171,7 +3221,7 @@ AUCAVs_InitOnPlayer_fnc = {
 		}, nil, 1.5, true, true, "", "cameraOn == _target && { missionNamespace getVariable ['AUCAVs_AL6SlingloadON', true] && { (_target getVariable ['DroneType', '']) == '' && { isNull (_target getVariable ['slingload_slingloadedUGV', objNull]) && (count nearestObjects [_target, ['UGV_02_Base_F'], 5]) > 0 && (speed _target) < 10 }}}"];
 		
 							
-		_actionID_DropSling = _AL6 addAction ["Drop Slingloaded UGV", {
+		_actionID_DropSling = _AL6 addAction ["-> Drop Slingloaded UGV", {
 			params ["_AL6", "_caller", "_actionId", "_arguments"];
 			[_AL6] call AUCAVs_DestroyRope_fnc;
 		}, nil, 1.5, true, true, "", "cameraOn == _target && { missionNamespace getVariable ['AUCAVs_AL6SlingloadON', true] && { (_target getVariable ['DroneType', '']) == '' && { !isNull (_target getVariable ['slingload_slingloadedUGV', objNull]) && (speed _target) < 10 && ((getPos _target) select 2) < 10 }}}"];
@@ -3929,7 +3979,7 @@ AUCAVs_InitOnPlayer_fnc = {
 				_currentToolTipSameAsUCAVWarnTip = ctrlToolTip _autonomousCheckBox == (_autonomousCheckBox getVariable ["UCAV_warnTooltip_txt", str time]);
 				if (_objCount > 0 && { _drone isKindOf "UAV_01_base_F" || _drone isKindOf "UAV_06_base_F" }) then {					
 					if (_currentToolTipSameAsUCAVWarnTip && { _objCount == (_autonomousCheckBox getVariable ["UCAV_warnTooltip_count", -1]) }) exitWith {};
-					diag_log "[UCAV] tooltip created";
+					
 					_autonomousCheckBox ctrlSetTooltip format ["! WARNING !\nIt was detected that this drone has %1 object(s) attached to it.\nDue to an arma bug this means that if given a waypoint, the AI will NOT follow it and instead just fly straight up.", _objCount];
 					_autonomousCheckBox ctrlSetTooltipColorBox [1, 0, 0, 1];
 					_autonomousCheckBox ctrlSetTooltipColorText [1, 0, 0, 1];
@@ -3937,7 +3987,7 @@ AUCAVs_InitOnPlayer_fnc = {
 					_autonomousCheckBox setVariable ["UCAV_warnTooltip_count", _objCount];
 				} else {
 					if !(_currentToolTipSameAsUCAVWarnTip) exitWith {};
-					diag_log "[UCAV] tooltip reset";
+					
 					_autonomousCheckBox ctrlSetTooltip "";
 					_autonomousCheckBox ctrlSetTooltipColorBox [1, 1, 1, 1];
 					_autonomousCheckBox ctrlSetTooltipColorText [1, 1, 1, 1];					
