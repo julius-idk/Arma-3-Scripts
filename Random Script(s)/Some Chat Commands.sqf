@@ -419,6 +419,17 @@ _grass_fnc = {
 		["Set terrain quality to 50. Grass is now hidden"] call sendChatMsg;
 	};			
 };
+
+
+_lawnmower_fnc = {
+	[] spawn {
+		["Grass has been hidden locally in a 5m radius"] call sendChatMsg;	
+		_cutterObj = createVehicleLocal ["Land_ClutterCutter_large_F", getPosATL player, [], 0, "CAN_COLLIDE"];
+		_cutterObj setDir (getDir player);
+		sleep 0.1;
+		deleteVehicle _cutterObj;
+	};
+};
 		
 		
 _fullscreen_nvg_fnc = {	
@@ -926,6 +937,7 @@ someChatCommands_allCmds set ["!afk", ["!AFK", "Displays you as AFK.", _afk_fnc,
 someChatCommands_allCmds set ["!chatfix", ["!chatFix", "Toggles a loop wich fixes chat incase it breaks", _chatfix_fnc, true, "default"]];
 someChatCommands_allCmds set ["!doshowcmds", ["!doShowCMDs", "Toggle if command list is shown when typing '!'.", _doshowcmds_fnc, true, "default"]];
 someChatCommands_allCmds set ["!grass", ["!grass", "Toggles grass for you.", _grass_fnc, true, ""]];
+someChatCommands_allCmds set ["!lawnmower", ["!lawnmower", "Temporary hides grass in a radius around player", _lawnmower_fnc, true, ""]];
 someChatCommands_allCmds set ["!fullscreen_nvg", ["!fullscreen_NVG", "Gives you fullscreen NVGs.", _fullscreen_nvg_fnc, true, ""]];
 someChatCommands_allCmds set ["!serverinfo", ["!serverInfo", "Shows server information (Uptime,FPS,Players,Scripts,Speed).", _server_info, true, ""]];
 someChatCommands_allCmds set ["!averagefps", ["!averageFPS", "Gets FPS of all clients and calculates average.", _averagefps_fnc, true, ""]];
@@ -948,9 +960,9 @@ if (missionNamespace getVariable ["PCMLOneTimeUse_Running", false]) then {
 
 
 "Advanced UCAVs";
-if (!isNil "AdvancedUCAVs_ZeusOptions") then {
+if (!isNil "AdvancedUCAVs_ZeusOptions" && { (["!ucav_config","!ucav_log"] findIf { (someChatCommands_allCmds getOrDefault [_x, "NONE"]) == "NONE" }) != -1 }) then {
 	someChatCommands_allCmds set ["!ucav_config", ["!UCAV_config", "Zeus can config Advanced UCAVs without needing comp", {}, true, "default"]];
-	someChatCommands_allCmds set ["!ucav_log", ["!UCAV_log", "Open the Advanced UCAVs Anti-Troll log", {}, true, "default"]];
+	someChatCommands_allCmds set ["!ucav_log", ["!UCAV_log", "Open the Advanced UCAVs Anti-Troll log", {}, true, "default"]];	
 };
 
 
@@ -972,11 +984,11 @@ someChatCommands_addCommands_fnc = {
 	
 	if (count _description < 2) exitWith { ["{ERROR} description is empty"] call sendChatMsg; false };
 	
-	_type = typeName _doAnnounceMsg;
-	if (!(_type in ["BOOL", "STRING"]) || { _type != "BOOL" && { _type == "STRING" && { !((toLower _doAnnounceMsg) in ["true","false"]) }}}) exitWith { ["{ERROR} doAnnounceMsg can only be 'true' or 'false'"] call sendChatMsg; false };
+	_typeN = typeName _doAnnounceMsg;
+	if (!(_typeN in ["BOOL", "STRING"]) || { _typeN != "BOOL" && { _typeN == "STRING" && { !((toLower _doAnnounceMsg) in ["true","false"]) }}}) exitWith { ["{ERROR} doAnnounceMsg can only be 'true' or 'false'"] call sendChatMsg; false };
 	
-	_type2 = typeName _enabled;
-	if (!(_type2 in ["BOOL", "STRING"]) || { _type2 != "BOOL" && { _type2 == "STRING" && { !((toLower _enabled) in ["true","false"]) }}}) exitWith { ["{ERROR} enabled can only be 'true' or 'false'"] call sendChatMsg; false };
+	_typeN2 = typeName _enabled;
+	if (!(_typeN2 in ["BOOL", "STRING"]) || { _typeN2 != "BOOL" && { _typeN2 == "STRING" && { !((toLower _enabled) in ["true","false"]) }}}) exitWith { ["{ERROR} enabled can only be 'true' or 'false'"] call sendChatMsg; false };
 	
 	_fncToCallStr = if (typeName _functionToCall == "STRING") then { _functionToCall } else { str _functionToCall };
 	if (count _fncToCallStr < 2) exitWith { ["{ERROR} functionToCall is to short"] call sendChatMsg; false };
@@ -1148,8 +1160,8 @@ someChatCommands_InitOnPlayer_fnc = {
 	someChatCommands_onEachFrameEH = addMissionEventHandler ["EachFrame", {		
 		if (time < (missionNamespace getVariable ["someChatCommands_timeLimit", time - 1])) exitWith {};
 		missionNamespace setVariable ["someChatCommands_timeLimit", time + 0.5];
-		if (isNull findDisplay 24) exitWith {};	
 		_chatDisplay = findDisplay 24;
+		if (isNull _chatDisplay) exitWith {};	
 		
 		if (_chatDisplay getVariable "someChatCommands_hasKeyDownEH") exitWith {};
 
