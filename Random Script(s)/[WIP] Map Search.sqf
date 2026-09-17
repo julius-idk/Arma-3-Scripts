@@ -9,9 +9,7 @@ if (!isNil "this") then { deleteVehicle this };
 	waitUntil { sleep 0.5; !isNull (findDisplay 46) };
 	sleep 0.5;
 	
-	
-	
-	
+		
 	_hasDiarySubject = player diarySubjectExists "randomScriptsDiary_Subject";
 	if !(_hasDiarySubject) then {
 		player createDiarySubject ["randomScriptsDiary_Subject", "Random Script(s)"];
@@ -29,8 +27,7 @@ if (!isNil "this") then { deleteVehicle this };
 		"- Search for a Location on the map<br/>" +
 		
 		"<br/><br/><br/>- script by julius<br/>" +
-		"(on workshop: n/a )"
-		
+		"(on workshop: n/a )"		
 	]];
 	
 	
@@ -70,6 +67,42 @@ if (!isNil "this") then { deleteVehicle this };
 		{ 
 			ctrlDelete (_mapDisplay displayCtrl _x);
 		} forEach [123451, 123452, 123453, 123454, 123455];	
+	};
+
+
+
+
+	mapSearch_createMainButton_fnc = {
+		[] call mapSearch_destroyAllCtrls_fnc;
+	
+		_mapDisplay = findDisplay 12;
+		
+		_0_07W = safeZoneW * 0.028875;
+		_0_07H = safeZoneH * 0.0385;
+				
+		_topRight = [safeZoneX + (safeZoneW * 0.96), safeZoneY + (safeZoneH * 0.05), _0_07W, _0_07H];
+		_mainSearchIcon = _mapDisplay ctrlCreate ["ctrlButtonPictureKeepAspect", 123450];		
+		_mainSearchIcon ctrlSetPosition _topRight;
+		_mainSearchIcon ctrlSetText "a3\3den\data\displays\display3den\search_start_ca";
+		_mainSearchIcon ctrlCommit 0;
+		
+		_mainSearchIcon ctrlAddEventHandler ["ButtonClick", {
+			 params ["_mainSearchIcon"];
+			 
+			 if (isNull ((findDisplay 12) displayCtrl 123451)) then {
+				"subCtrls are hidden, create em and change button colour and icon";			
+				_mainSearchIcon ctrlSetText "a3\3den\data\controlsgroups\tutorial\close_ca.paa";				
+				[] call mapSearch_createSubSearchUI_fnc;			 
+			 } else {
+				
+				_mainSearchIcon ctrlSetBackgroundColor [0,0,0,1];
+				_mainSearchIcon ctrlSetText "a3\3den\data\displays\display3den\search_start_ca";			
+				[] call mapSearch_destroySubCtrls_fnc;
+			};
+		}];
+	};
+	if (visibleMap) then {
+		[] call mapSearch_createMainButton_fnc;
 	};
 
 
@@ -268,33 +301,10 @@ if (!isNil "this") then { deleteVehicle this };
 
 	if (!isNil "mapSearch_MapOpenedEH") then { removeMissionEventHandler ["Map", mapSearch_MapOpenedEH] };
 	mapSearch_MapOpenedEH = addMissionEventHandler ["Map", {
-		params ["_mapIsOpened", "_mapIsForced"];
-		_mapDisplay = findDisplay 12;
+		params ["_mapIsOpened", "_mapIsForced"];		
 		
 		if (_mapIsOpened) then {
-			_0_07W = safeZoneW * 0.028875;
-			_0_07H = safeZoneH * 0.0385;
-					
-			_topRight = [safeZoneX + (safeZoneW * 0.96), safeZoneY + (safeZoneH * 0.05), _0_07W, _0_07H];
-			_mainSearchIcon = _mapDisplay ctrlCreate ["ctrlButtonPictureKeepAspect", 123450];		
-			_mainSearchIcon ctrlSetPosition _topRight;
-			_mainSearchIcon ctrlSetText "a3\3den\data\displays\display3den\search_start_ca";
-			_mainSearchIcon ctrlCommit 0;
-			
-			_mainSearchIcon ctrlAddEventHandler ["ButtonClick", {
-				 params ["_mainSearchIcon"];
-				 
-				 if (isNull ((findDisplay 12) displayCtrl 123451)) then {
-					"subCtrls are hidden, create em and change button colour and icon";			
-					_mainSearchIcon ctrlSetText "a3\3den\data\controlsgroups\tutorial\close_ca.paa";				
-					[] call mapSearch_createSubSearchUI_fnc;			 
-				 } else {
-					
-					_mainSearchIcon ctrlSetBackgroundColor [0,0,0,1];
-					_mainSearchIcon ctrlSetText "a3\3den\data\displays\display3den\search_start_ca";			
-					[] call mapSearch_destroySubCtrls_fnc;
-				};
-			}];
+			[] call mapSearch_createMainButton_fnc;
 		} else {		
 			[] call mapSearch_destroyAllCtrls_fnc;
 		};
