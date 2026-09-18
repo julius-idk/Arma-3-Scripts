@@ -77,20 +77,24 @@ if (!isNil "this") then { deleteVehicle this };
 	
 		_mapDisplay = findDisplay 12;
 		
-		_0_07W = safeZoneW * 0.028875;
-		_0_07H = safeZoneH * 0.0385;
-				
-		_topRight = [safeZoneX + (safeZoneW * 0.96), safeZoneY + (safeZoneH * 0.05), _0_07W, _0_07H];
+		_0_06W = safeZoneW * 0.02475;
+		_0_06H = safeZoneH * 0.033;
+		
+		_topRight = [safeZoneX + (safeZoneW * 0.96), safeZoneY + (safeZoneH * 0.05), _0_06W, _0_06H];
 		_mainSearchIcon = _mapDisplay ctrlCreate ["ctrlButtonPictureKeepAspect", 123450];		
 		_mainSearchIcon ctrlSetPosition _topRight;
 		_mainSearchIcon ctrlSetText "a3\3den\data\displays\display3den\search_start_ca";
+		_mainSearchIcon ctrlSetTooltip "Map Search. Location/Grid -finder";
+		_mainSearchIcon ctrlSetTooltipColorShade [0, 0, 0, 0.2];		
+		_mainSearchIcon ctrlSetTooltipColorBox [0, 0, 0, 0];
 		_mainSearchIcon ctrlCommit 0;
 		
 		_mainSearchIcon ctrlAddEventHandler ["ButtonClick", {
 			 params ["_mainSearchIcon"];
 			 
-			 if (isNull ((findDisplay 12) displayCtrl 123451)) then {
-				"subCtrls are hidden, create em and change button colour and icon";			
+			 if (isNull ((findDisplay 12) displayCtrl 123451)) then {				
+				"subCtrls are hidden, create em and change button colour and icon";	
+				hintSilent "";
 				_mainSearchIcon ctrlSetText "a3\3den\data\controlsgroups\tutorial\close_ca.paa";				
 				[] call mapSearch_createSubSearchUI_fnc;			 
 			 } else {
@@ -103,6 +107,53 @@ if (!isNil "this") then { deleteVehicle this };
 	};
 	if (visibleMap) then {
 		[] call mapSearch_createMainButton_fnc;
+	};
+
+
+
+
+	mapSearch_startGridSearch_fnc = {
+		if (!isNil "mapSearch_createMarker_spawn" && { !scriptDone mapSearch_createMarker_spawn }) then {
+			terminate mapSearch_createMarker_spawn;
+		};
+		mapSearch_createMarker_spawn = [] spawn {
+			_searchInput = ctrlText ((findDisplay 12) displayCtrl 123453);
+
+			_searchArray = _searchInput splitString "-";
+			if (count _searchArray != 2) exitWith {};
+			_pos = _searchArray apply { (parseNumber _x) * 100 };
+
+			_map = findDisplay 12 displayCtrl 51;
+			ctrlMapAnimClear _map;
+			_map ctrlMapAnimAdd [2, 0.05, _pos];
+			ctrlMapAnimCommit _map;
+
+			_posInMidOfGrid = _pos apply { _x + 50 };
+
+			_posInMidOfGrid append [0];
+			createMarkerLocal ["mapSearch_gridMark", _posInMidOfGrid];
+			"mapSearch_gridMark" setMarkerTypeLocal "selector_selectedMission";		
+			"mapSearch_gridMark" setMarkerAlphaLocal 1;
+			"mapSearch_gridMark" setMarkerTextLocal _searchInput;
+			sleep 5;
+			deleteMarkerLocal "mapSearch_gridMark";
+		};
+	};
+
+
+
+
+	mapSearch_startLocationSearch_fnc = {
+		_listbox = (findDisplay 12) displayCtrl 123455;
+		if (isNull _listbox) exitWith {};
+		_curSel = lbCurSel _listbox;
+		if (_curSel == -1) exitWith {};
+		_pos = parseSimpleArray (_listbox lbData _curSel);
+
+		_map = (findDisplay 12) displayCtrl 51;
+		ctrlMapAnimClear _map;
+		_map ctrlMapAnimAdd [2, 0.05, _pos];
+		ctrlMapAnimCommit _map;			
 	};
 
 
@@ -138,6 +189,9 @@ if (!isNil "this") then { deleteVehicle this };
 		_searchBar_grid ctrlSetBackgroundColor [0,0,0,1];
 		_searchBar_grid ctrlSetText "Search Grid...";
 		_searchBar_grid ctrlSetFontHeight _0_043H;
+		_searchBar_grid ctrlSetTooltip "Enter grid in format 'number-number' (eg. 123-135)";
+		_searchBar_grid ctrlSetTooltipColorShade [0, 0, 0, 0.2];
+		_searchBar_grid ctrlSetTooltipColorBox [0, 0, 0, 0];
 		_searchBar_grid ctrlCommit 0;	
 
 		_searchBar_location = _mapDisplay ctrlCreate ["RscEdit", 123454];
@@ -145,64 +199,61 @@ if (!isNil "this") then { deleteVehicle this };
 		_searchBar_location ctrlSetBackgroundColor [0,0,0,1];
 		_searchBar_location ctrlSetText "Search Locations...";
 		_searchBar_location ctrlSetFontHeight _0_043H;
-		_searchBar_location ctrlCommit 0;	
+		_searchBar_location ctrlSetTooltip "Search for a location found on the map";
+		_searchBar_location ctrlSetTooltipColorShade [0, 0, 0, 0.2];
+		_searchBar_location ctrlSetTooltipColorBox [0, 0, 0, 0];
+		_searchBar_location ctrlCommit 0;
 
 
 		_searchIcon_grid ctrlAddEventHandler ["ButtonClick", {
-			
-			if (!isNil "mapSearch_createMarker_spawn" && { !scriptDone mapSearch_createMarker_spawn }) then {
-				terminate mapSearch_createMarker_spawn;
-			};
-			mapSearch_createMarker_spawn = _this spawn {
-				params ["_searchBar_grid"];
-				_searchInput = ctrlText ((findDisplay 12) displayCtrl 123453);
-
-				_searchArray = _searchInput splitString "-";
-				if (count _searchArray != 2) exitWith {};
-				_pos = _searchArray apply { (parseNumber _x) * 100 };
-
-				_map = findDisplay 12 displayCtrl 51;
-				_map ctrlMapAnimAdd [2, 0.05, _pos];
-				ctrlMapAnimCommit _map;
-
-				_pos append [0];
-				createMarkerLocal ["mapSearch_gridMark", _pos];
-				"mapSearch_gridMark" setMarkerTypeLocal "selector_selectedMission";		
-				"mapSearch_gridMark" setMarkerAlphaLocal 1;
-				"mapSearch_gridMark" setMarkerTextLocal _searchInput;
-				sleep 5;
-				deleteMarkerLocal "mapSearch_gridMark";
-			};
-			
+			[] call mapSearch_startGridSearch_fnc;
 		}];
-
 
 		_searchIcon_location ctrlAddEventHandler ["ButtonClick", {
-			params ["_searchIcon_location"];
-			_listbox = (findDisplay 12) displayCtrl 123455;
-			if (isNull _listbox) exitWith {};
-			_curSel = lbCurSel _listbox;
-			if (_curSel == -1) exitWith {};
-			_pos = parseSimpleArray (_listbox lbData _curSel);
-
-			_map = (findDisplay 12) displayCtrl 51;
-			_map ctrlMapAnimAdd [2, 0.05, _pos];
-			ctrlMapAnimCommit _map;		
+			[] call mapSearch_startLocationSearch_fnc;
 		}];
 
+		_searchBar_grid ctrlAddEventHandler ["KeyDown", {
+			if (_this select 1 == 28) then {
+				[] call mapSearch_startGridSearch_fnc;
+			};
+		}];		
+		
+		_searchBar_location ctrlAddEventHandler ["KeyDown", {
+			if (_this select 1 == 28) then {
+				[] call mapSearch_startLocationSearch_fnc;
+			};
+		}];	
+
+		"if icon loses focus and focused control is neither listbox nor searchbar then kill listbox";
+		_searchIcon_location ctrlAddEventHandler ["KillFocus", {
+			_this spawn {
+				params ["_searchIcon_location"];
+				_mapDisplay = findDisplay 12;
+				_searchBar_location = _mapDisplay displayCtrl 123454;
+				_listbox = _mapDisplay displayCtrl 123455;
+				
+				if (focusedCtrl _mapDisplay == _listbox || focusedCtrl _mapDisplay == _searchBar_location) exitWith {};
+				_searchBar_location ctrlSetText "Search Locations...";
+				_cPos = ctrlPosition _listbox;
+				_listbox ctrlSetPosition [_cPos select 0, _cPos select 1, _cPos select 2, 0];
+				_listbox ctrlCommit 0.1;
+				waitUntil { ctrlCommitted _listbox };
+				ctrlDelete _listbox;
+			};		
+		}]; 
 
 		_searchBar_grid ctrlAddEventHandler ["SetFocus", { 
 			if (ctrlText (_this select 0) == "Search Grid...") then {
 				(_this select 0) ctrlSetText "";
 			};
 		}];
+		
 		_searchBar_grid ctrlAddEventHandler ["KillFocus", {
 			if (ctrlText (_this select 0) == "") then {
 				(_this select 0) ctrlSetText "Search Grid...";
 			};
 		}]; 
-
-
 
 		_searchBar_location ctrlAddEventHandler ["SetFocus", { 
 			_this spawn {	
@@ -224,11 +275,19 @@ if (!isNil "this") then { deleteVehicle this };
 				_listbox ctrlSetFontHeight 0.038;
 				_listbox ctrlCommit 0;
 				
+				_listbox ctrlAddEventHandler ["KeyDown", {
+					if (_this select 1 == 28) then {
+						[] call mapSearch_startLocationSearch_fnc;
+					};
+				}];				
+				
 				_listbox ctrlAddEventHandler ["KillFocus", {
 					_this spawn {
 						params ["_listbox"];
 						_searchBar_location = (findDisplay 12) displayCtrl 123454;
-						if (focusedCtrl findDisplay 12 == _searchBar_location) exitWith {};
+						_searchIcon_location = (findDisplay 12) displayCtrl 123452;
+						
+						if (focusedCtrl findDisplay 12 == _searchBar_location || focusedCtrl findDisplay 12 == _searchIcon_location) exitWith {};
 						_searchBar_location ctrlSetText "Search Locations...";
 						_cPos = ctrlPosition _listbox;
 						_listbox ctrlSetPosition [_cPos select 0, _cPos select 1, _cPos select 2, 0];
@@ -241,18 +300,28 @@ if (!isNil "this") then { deleteVehicle this };
 				_listbox ctrlSetPosition [_cPos select 0, _posY, _cPos select 2, 1];
 				_listbox ctrlCommit 0.1;
 				
+				_listbox = findDisplay 12 displayCtrl 123455;
+				if (isNull _listbox) exitWith {};
+				_search = toLower (ctrlText _searchBar_location);		
+				
+				lbClear _listbox;
+				
 				{		
 					_x params ["_displayName", "_displayNameLow", "_position"];
-					if (_forEachIndex < 30) then { 
-						sleep 0.001;
-						_index = _listbox lbAdd _displayName;
-						_listbox lbSetData [_index, str _position];					
-					} else {
-						_index = _listbox lbAdd _displayName;
-						_listbox lbSetData [_index, str _position];		
-					};		
-				} forEach mapSearch_locations;
+					if (_search in ["", "Search Locations..."] || (_displayNameLow find _search) != -1) then {
+						if (_forEachIndex < 30) then { 
+							_frame = diag_frameno;
+							waitUntil { diag_frameno > _frame };
+							_index = _listbox lbAdd _displayName;
+							_listbox lbSetData [_index, str _position];					
+						} else {
+							_index = _listbox lbAdd _displayName;
+							_listbox lbSetData [_index, str _position];		
+						};	
+					};					
+				} forEach mapSearch_locations;					
 				
+				lbSort [_listbox, "ASC"];
 			};
 
 		}];
@@ -290,8 +359,7 @@ if (!isNil "this") then { deleteVehicle this };
 					_index = _listbox lbAdd _displayName;
 					_listbox lbSetData [_index, str _position];
 				};					
-			} forEach mapSearch_locations;
-		
+			} forEach mapSearch_locations;		
 		}];
 
 	};
