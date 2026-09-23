@@ -27,7 +27,7 @@ if (!isNil "this") then { deleteVehicle this };
 		"- Search for a Location on the map<br/>" +
 		
 		"<br/><br/><br/>- script by julius<br/>" +
-		"(on workshop: n/a )"		
+		"(on workshop: Map Search Script)"		
 	]];
 	
 	
