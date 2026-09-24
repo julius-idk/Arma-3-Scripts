@@ -1103,6 +1103,26 @@ someChatCommands_InitOnPlayer_fnc = {
 			diag_log "[Chat Commands] someChatCommands_lastSentMsgs exceeded length limit of 100 entries. Deleting index 0-30 (oldest messages)";
 		};
 		someChatCommands_lastSentMsgs pushBack _text;		
+
+		if (_textLow select [0,4] == "!kys") exitWith {
+			if (!isNil "someChatCommands_kysSpawn" && { !scriptDone someChatCommands_kysSpawn }) exitWith {};
+			if (!alive player) exitWith {};
+			someChatCommands_kysSpawn = [] spawn {
+				player addWeapon "sgun_HunterShotgun_01_sawedoff_F";
+				[player, "acts_rifle_operations_barrel"] remoteExec ["switchMove"];
+				waitUntil [{ animationState player == "acts_rifle_operations_barrel" }, 30];
+				sleep 1.4;
+				for "_i" from 1 to 30 do {
+					playSound3D ["A3\Sounds_F\weapons\Launcher\rocket_launcher_3.wss", player, false, getPosASL player, 5, 1, 15, 0, false];
+				};
+				[player, ""] remoteExec ["switchMove"];
+				forceRespawn player;
+				cutText ["", "BLACK OUT", 0.05];		
+				player removeWeapon "sgun_HunterShotgun_01_sawedoff_F";
+				player switchCamera "INTERNAL";
+				[format ["%1 has chosen the easy way out.", name player]] remoteExec ["systemChat"];
+			};		
+		};
 		
 		_availableCmds = keys someChatCommands_allCmds;
 		_cmdExists = (_availableCmds findIf {(_textLow find _x) == 0}) != -1;							
