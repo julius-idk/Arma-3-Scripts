@@ -15,7 +15,7 @@ _MainToggleScreen = {
 
 	_title = _display ctrlCreate ["RscText", -1];
 	_title ctrlSetPosition [0.25, 0.4, 0.5, 0.05];
-	_title ctrlSetText "Advanced UCAVs   [v4.0.0]";
+	_title ctrlSetText "Advanced UCAVs   [v4.0.1]";
 	_title ctrlSetBackgroundColor [0, 0, 0, 1];
 	_title ctrlSetFontHeight 0.049;
 	_title ctrlCommit 0;
@@ -116,17 +116,18 @@ _EnableScript = {
 
 
 	{
-		_msg = "		
-		<t size='1.5'>Advanced UCAVs v4.0.0</t><br/>
-		<t size='1.3' color='#00C80C'>Script has been enabled</t>
-		<br/><br/>For more info, open your map and click on <t color='#0094FF'>Advanced UCAVs</t> in the menu on the left side.	
-		"; 
+		_msg = (		
+		"<t size='1.5'>Advanced UCAVs v4.0.1</t><br/>" + 
+		"<t size='1.3' color='#00C80C'>Script has been enabled<br/><br/></t>" +
+		"For more info, open your map and click on <t color='#0094FF'>Advanced UCAVs</t> in the menu on the left side.<br/><br/>" +
+		"If a zeus doesn't have this comp, they can type <t color='#FFE600'>!UCAV_config</t> in chat to configure the script."
+		); 
 		
-		call (compile ("hintSilent " + "parse" + "Text " + "_msg"));
+		call (compile ("hintSilent " + "parse" + "Text " + "_msg"));	
+		systemChat "[Advanced UCAVs] Script enabled. 'Map -> Advanced UCAVs' for more info.";		
+		diag_log "[UCAV_LOG] Advanced UCAVs has been enabled";	
 	} remoteExec ["call"];
 	
-	["[UCAV_LOG] Advanced UCAVs has been enabled"] remoteExec ["diag_log"];
-
 	if (isNil "AUCAVs_FuelValues") then {
 		AUCAVs_FuelValues = createHashMap;
 		AUCAVs_FuelValues set ["DroneTypeName", ["CurrentValue(can change)", "HardcodedValue(cannot change)"]];
@@ -185,18 +186,20 @@ _DisableScript = {
 		playSoundUI ["addItemFailed"];
 	};		
 	
-		
+
 	{
-		_msg = "		
-		<t size='1.5'>Advanced UCAVs v4.0.0</t><br/>
-		<t size='1.3' color='#DC0000'>Script has been disabled</t>	
-		"; 
+		_msg = (		
+		"<t size='1.5'>Advanced UCAVs v4.0.1</t><br/>" + 
+		"<t size='1.3' color='#DC0000'>Script has been disabled</t><br/><br/>" +
+		"If a zeus doesn't have this comp, they can type <t color='#FFE600'>!UCAV_config</t> in chat to configure the script."
+		); 
 		
-		call (compile ("hintSilent " + "parse" + "Text " + "_msg"));
-	} remoteExec ["call"];
+		call (compile ("hintSilent " + "parse" + "Text " + "_msg"));	
+		systemChat "[Advanced UCAVs] Script disabled.";		
+		diag_log "[UCAV_LOG] Advanced UCAVs has been disabled";	
+	} remoteExec ["call"];	
 	
-	["[UCAV_LOG] Advanced UCAVs has been disabled"] remoteExec ["diag_log"];
-			
+	
 	missionNamespace setVariable ["AUCAVs_ScriptEnabled", false, true];
 
 	remoteExec ["", "AUCAVs_InitOnPlayer_JIPID"]; 
@@ -1113,15 +1116,13 @@ AUCAVs_InitOnPlayer_fnc = {
 	AUCAVs_openFeatures = {
 		[true, "Features and Description", (
 		"<t size='1.5'>Advanced UCAVs</t><br/>" +
-		"<t size='1.3'>Current version: 4.0.0</t><br/><br/><br/>" +
+		"<t size='1.3'>Current version: 4.0.1</t><br/><br/><br/>" +
 			
 		"<t color='#FF0000' size='1.2'>! Keep in mind that the following information might not be accurate since Zeus can toggle all features at any time !</t><br/><br/><br/>" +
 
 		"<br/><br/><br/><br/>" +
 
 		"<t size='1.5' color='#0094FF'>Feature Overview</t><br/><br/>" +			
-		"- Adds an anti-troll log so drone crashers are easily detectable.<br/>" +
-
 		"- Gives all AR-2 and AL-6 drones (except medic and civ) the options to arm them, making them usable in combat.<br/>" +
 		"- Adds a custom log which will log nearly anything drone related to easily find drone trolls.<br/>" +
 		"- Adds 'Full Repair' option to small drones to repair them to 100% HP. (Toolkit required)<br/>" +
@@ -1161,16 +1162,17 @@ AUCAVs_InitOnPlayer_fnc = {
 
 		"<t size='1.5' color='#0094FF'>Arming Drones</t><br/><br/>" +		
 		"<t size='1.2'>-> Using normal options:</t><br/>" +
-		"1. Grab an armable drone from and assemble it.<br/>" +
+		"1. Grab an armable drone and assemble it.<br/>" +
 		"2. Make sure you have the items required for crafting in your inventory.<br/>" +
 		"3. Then stand right next to the drone and click one of the '-> Make ... Drone' options.<br/>" +
 		"4. The drone is then armed after the progress bar is completed.<br/><br/>" +			
 		
 		"<t size='1.2'>-> Using special 'Assemble and Craft' options:</t><br/>" +
-		"(Since a Titan AT doesn't fit in the UAV backpack, this will work on any drone except the Kamikaze Heavy AT<br/>" + 
+		"(Since a Titan AT doesn't fit in the UAV backpack, this will work on any drone except the Kamikaze Heavy AT)<br/>" + 
 		"1. Grab an UAV Backpack (of a drone that can be armed).<br/>" + 
 		"2. Put items required for crafting a drone in that backpack - Or - Grab an RPG (-7 / -42).<br/>" + 
-		"3. You will see a custom '-> Assemble and Craft ...' option which will make you place the drone and immediately start crafting. (This was added since when placing a drone the items from the backpack are gone, meaning placing and crafting a drone with items from backpack would otherwise not be possible)" +
+		"3. You will see a custom '-> Assemble and Craft ...' option which will make you place the drone and immediately start crafting.<br/>" +
+		"(This was added since when placing a drone, the items from the backpack are gone, meaning placing and crafting a drone with items from backpack would otherwise not be possible)" +
 
 		"<br/><br/><br/><br/>" +
 
@@ -1181,17 +1183,17 @@ AUCAVs_InitOnPlayer_fnc = {
 		"2. Press 'J' to toggle jamming on and off.<br/>" +			
 		"All AR-2, AL-6 and ED-1 drones that have 3 walls or less between them and the player will be jammed immediately within a given radius.<br/>" +
 		"3. Change the Jamming Radius or Refill Battery by opening your inventory and read what the 'Refill Battery' button says by hovering over it.<br/>" +
-		"In a vehicle, jamming is limited to a maximum of 50m.<br/>" +
-		"Be aware: While the jamming is active, players using an Experimental Antenna on a Spectrum Device who are within a 2km radius will be able to see you in the drone radar.<br/><br/>" +
+		"- In a vehicle, jamming is limited to a maximum of 50m.<br/>" +
+		"- Be aware: While the jamming is active, players using an Experimental Antenna on a Spectrum Device who are within a 2km radius will be able to see you in the drone radar.<br/><br/>" +
 		
 		"<t size='1.2'>-> How to use Spectrum Device Jamming:</t><br/>" +
-		"1. Grab a Spectrum Device from an arsenal.<br/>" +
+		"1. Grab a Spectrum Device.<br/>" +
 		"2. Make sure you have the 'SD Jammer Antenna' attachment.<br/>" +				
 		"3. Aim at a drone and hold Left Click.<br/>" +
 		"4. An 'X' will appear as crosshair in the middle of your screen. And if the drone is jammable a box with an 'X' will appear on it.<br/>" + 
 		"5. Align both X's (crosshair and drone) while holding Left Click.<br/>" + 
 		"6. A progress bar will show up. Drone is jammed once that finishes. Its crew will be deleted and it will crash.<br/>" + 
-		"The maximum range is 1000m<br/><br/>" +
+		"- The maximum range is 1000m<br/><br/>" +
 									
 		"<t color='#FF0000'>! Keep in mind that you can/will jam both friendly and enemy drones !</t>" +
 
@@ -1212,7 +1214,7 @@ AUCAVs_InitOnPlayer_fnc = {
 		"1. Open your UAV Terminal.<br/>" +
 		"2. Connect to any drone.<br/>" +
 		"3. In the top left you can see a 'Rename AV Callsign' button pop up.<br/>" +
-		"4. From there is self explanatory, type in a name, click apply, and re-open terminal to refresh.<br/><br/>" +
+		"4. From there it's self explanatory, type in a name, click apply, and re-open terminal to refresh.<br/><br/>" +
 
 		"<t size='1.2'>-> Chat Commands</t><br/>" +	
 		"- There are two chat commands: '!ucav_config' and '!ucav_log'.<br/>" +
@@ -1234,10 +1236,21 @@ AUCAVs_InitOnPlayer_fnc = {
 	};
 	
 	
-	
+
 	
 	AUCAVs_openChangelog = {
-		[false, "Changelog", (
+		[false, "Changelog", (	
+			"<t size='1.5'>-> ver 4.0.1</t><br/>" + 
+			"<t color='#0094FF'>" +
+			"- Fixed a handful of spelling mistakes in the description tab.<br/>" +
+			"- Fixed having to close the configure window multiple times when toggling 'Reduce Battery Time' option.<br/>" +
+			"- Fixed scrollwheel options randomly not being hidden while crafting a drone.<br/>" +		
+			
+			"<br/></t><t color='#38BC00'>" +		
+			"- Added chat message when enabling/disabling the script.<br/>" +
+			"- Added extra hint saying that zeus can type !UCAV_config if they don't have the script.<br/>" +
+			"</t><br/><br/><br/>" +
+			
 			"<t size='1.5'>-> ver 4.0.0</t><br/>" + 
 			"<t color='#AFAFAF'>" +
 			"+ Fully overhauled the script, basically writing it new. Removed a ton of AI slop code, useless remote execution and global functions. Optimizing it in many ways and adding lots of new features.<br/><br/>" +	
@@ -1317,9 +1330,9 @@ AUCAVs_InitOnPlayer_fnc = {
 			"- Removed 'Anti-Structure' FPV AR-2 variant (Replaced by Heavy HE).<br/>" + 
 			"- Removed 'rtp file tutorial' info tab on the map.<br/>" +
 			"- Removed a bunch of useless (JIP) remote execution.<br/>" +	
-			"</t>" +
+			"</t><br/><br/><br/>" +
 
-			"<br/><br/><t size='1.5'>-> ver 3.0.8</t><br/>" + 		
+			"<t size='1.5'>-> ver 3.0.8</t><br/>" + 		
 			"- Fixed a bug that caused the jamming keybinds to not work sometimes.<br/>" +
 			"- Improved Description and Changelog Tab's readability by adjusting text sizes.<br/>" +
 			"- The Enable/Disable window no longer forces you out of the Zeus interface.<br/>" +
@@ -1439,7 +1452,7 @@ AUCAVs_InitOnPlayer_fnc = {
 	[
 		"Script Info",
 		"<br/><font size='20'>Script Info</font><br/><br/><br/>" +
-		"<font size='17'>On Workshop: Advanced UCAVs 4.0.0</font><br/>" +
+		"<font size='17'>On Workshop: Advanced UCAVs 4.0.1</font><br/>" +
 		
 		"[<execute expression='[] call AUCAVs_openWorkshop'>Click here to open the workshop page</execute>]<br/><br/><br/><br/>" +
 		"- script by julius"	
@@ -1809,7 +1822,7 @@ AUCAVs_InitOnPlayer_fnc = {
 					missionNamespace setVariable ["AUCAVs_FuelValues", AUCAVs_FuelValues, true];									
 
 				};				
-				[] call (AUCAVs_ZeusOptions select 3);
+				[true] call (AUCAVs_ZeusOptions select 3);
 			};	
 		};
 	};
@@ -2443,6 +2456,7 @@ AUCAVs_InitOnPlayer_fnc = {
 			_failed = !alive player || vehicle player != player || lifeState player == "INCAPACITATED" || !alive _drone || (_drone getVariable ["DroneType", ""]) != "" || (getPosATL _drone distance _dronePos) >= 5;		
 			_unloaded = isNull _progressBar;
 			if (_playerPos select 2 < (getUnitFreefallInfo player) select 2) then { player setPosATL _playerPos };
+			if (str (hiddenActions []) == "[]") then { hideActions ["HideAllButSelected", []] };
 			_infoText ctrlSetText (format ["Crafting %1, %2 seconds remaining...", _droneTypeName, (_endTime - uiTime) toFixed 0]);			
 			ctrlCommitted _progressBar || _failed || _unloaded	
 		};
