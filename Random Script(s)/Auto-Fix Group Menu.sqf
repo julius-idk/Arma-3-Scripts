@@ -13,20 +13,12 @@ missionNamespace setVariable ["AutoFixGroupMenu_ScriptRunning", true, true];
 	waitUntil { sleep 0.5; !isNull findDisplay 46 };
 	sleep 0.5;
 	
-	AutoFixGroupMenu_Keybind_fnc = { 
-		if(!isNil "AutoFixGroupMenu_DEH_KeyDown") then { (findDisplay 46) displayRemoveEventHandler ["KeyDown", AutoFixGroupMenu_DEH_KeyDown] };	
-		AutoFixGroupMenu_DEH_KeyDown = (findDisplay 46) displayAddEventHandler ["KeyDown", {
-			if ((_this select 1) != 22) exitWith {};
-			["InitializePlayer", [player]] call BIS_fnc_dynamicGroups;
-		}];	
-	};
-	[] call AutoFixGroupMenu_Keybind_fnc;
-	
-	if(!isNil "AutoFixGroupMenu_RespawnEH") then { player removeEventHandler ["Respawn", AutoFixGroupMenu_RespawnEH] };
-	AutoFixGroupMenu_RespawnEH = player addEventHandler ["Respawn", {
-		[] call AutoFixGroupMenu_Keybind_fnc;
+
+	if (!isNil "AutoFixGroupMenu_actionActivateEH") then { removeUserActionEventHandler ["teamSwitch", "Activate", AutoFixGroupMenu_actionActivateEH] };
+	AutoFixGroupMenu_actionActivateEH = addUserActionEventHandler ["teamSwitch", "Activate", { 
+		["InitializePlayer", [player]] call BIS_fnc_dynamicGroups;
 	}];
-	
+
 	
 	if !(player diarySubjectExists "randomScriptsDiary_Subject") then { 
 		player createDiarySubject ["randomScriptsDiary_Subject", "Random Script(s)"] 
