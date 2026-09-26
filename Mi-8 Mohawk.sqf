@@ -161,5 +161,3 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 	
 }] remoteExec ["call", 0, ("Mi8Mohawk_JIPID_" + netId _mi8)];
 
-  
-_mi8 setVariable ["Mi8_JIPIDs", _jipIDs, true];
