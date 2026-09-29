@@ -23,19 +23,221 @@ HeliExtras_InitOnPlayer_fnc = {
 		
 		"- Gives all helicopters an 'Eject' option for pilot and co-pilot. If the ejected person has no parachute, one will automatically open at 100m altitude.<br/><br/>" +
 		
-		"- When the pilot dies, and the co-pilot is alive, he gets an option to take controls regardless if they are locked. Also works the other way arround." +
+		"(Alternatively, the pilot/co-pilot can hold the key mapped on 'Get Out' or 'V' depending on input method, to eject.<br/>" +
+		
+		"[<execute expression='[] call HeliExtras_Eject_ToggleInputMethod_fnc'>Click here to change input method</execute>]<br/><br/>" +
+		
+		"- When the pilot dies, but the co-pilot is alive, they get an option to take controls regardless if the controls are locked. Also works the other way arround." +
 
 		"<br/><br/><br/>- script by julius<br/>" +
 		"(on workshop: Extra Heli Features)"
 	]];
+		
+		
+	HeliExtras_doEject_fnc = {
+		player setUnitFreefallHeight 5;
+		_heli = vehicle player;
+		_wasEngineOn = isEngineOn _heli;
+		player moveOut _heli;
+		waitUntil { vehicle player == player };
+		if (_wasEngineOn && { !isEngineOn _heli && { ((getPos _heli) select 2) > 0.5 }}) then { 
+			[_heli, true] remoteExec ["engineOn", _heli];
+		};
+		
+		sleep 0.5;								
+		player setUnitFreefallHeight 100;
+		if (backpack player == "B_Parachute") exitWith {};
+		
+		waitUntil { sleep 0.1; ((getPos player) select 2) <= 100 || !alive player };			
+		if (!alive player) exitWith {};
+		if (((getPos player) select 2) <= 5) exitWith {};
+		if (vehicle player != player) exitWith {};
+		
+		_parachute = "Steerable_Parachute_F" createVehicle position player;	
+		[_heli, _parachute] remoteExec ["disableCollisionWith", [_heli, _parachute]];
+		_parachute setPosATL (getPosATL player);
+		_parachute setDir (getDir player);
+		[_parachute, false] remoteExec ["allowDamage", _parachute];
+		player moveInDriver _parachute;
+		
+		[_parachute] spawn {
+			params ["_parachute"];
+			while { vehicle player == _parachute } do {						
+				{ 
+					if ((collisionDisabledWith _x) select 0 != _parachute) then {
+						[_parachute, _x] remoteExec ["disableCollisionWith", [_parachute, _x]];				
+					};					
+				} forEach ((vehicles + allUnits) select { (_parachute distance _x) < 30 });					
+				
+				sleep 1;
+			};
+			sleep 1;
+			deleteVehicle _parachute;
+		};
+	};					
+
+
+
+
+	HeliExtras_KillEjectBar_fnc = {
+		if (!isNil "HeliExtras_EjectBar_spawn" && { !scriptDone HeliExtras_EjectBar_spawn }) then { terminate HeliExtras_EjectBar_spawn };
+		(uiNamespace getVariable ["HeliExtras_ProgressBarCtrls", []]) apply { ctrlDelete _x };
+	};
+
+
+
+
+	HeliExtras_InitEjectBar_fnc = {
+		[] call HeliExtras_KillEjectBar_fnc;
+
+		HeliExtras_EjectBar_spawn = [] spawn {
+			_timePlus05 = uiTime + 0.5;
+			waitUntil { uiTime > _timePlus05 };
+
+			_holdDuration = 2;
+
+			_display = (findDisplay 46);				
+						
+			_posX = safeZoneX + (safeZoneW * 0.4175);
+			_posY = safeZoneY + (safeZoneH * 0.775);
+			_width = safeZoneW * 0.165;
+			_height = safeZoneH * 0.02475;
+			_txtHeight = safeZoneH * 0.02475;			
+			
+			_backgroundBar = _display ctrlCreate ["RscText", -1];
+			_backgroundBar ctrlSetPosition [_posX, _posY, _width, _height];
+			_backgroundBar ctrlSetBackgroundColor [0.1, 0.1, 0.1, 1];
+			_backgroundBar ctrlCommit 0;
+			
+			_progressBar = _display ctrlCreate ["RscText", -1];
+			_progressBar ctrlSetPosition [_posX, _posY, 0, _height];
+			_progressBar ctrlSetBackgroundColor [0.7, 0, 0, 1];
+			_progressBar ctrlCommit 0;	
+
+			_infoText = _display ctrlCreate ["RscText", -1];
+			_infoText ctrlSetPosition [_posX, _posY, _width, _height];
+			_infoText ctrlSetFontHeight _txtHeight;
+			_infoText ctrlSetFont "EtelkaMonospacePro";
+			_infoText ctrlSetText (format ["Ejecting...%1s", _holdDuration]);
+			_infoText ctrlCommit 0;		
+
+			uiNamespace setVariable ["HeliExtras_ProgressBarCtrls", [_backgroundBar, _progressBar, _infoText]];			
+
+			_controlPos = ctrlPosition _progressBar;
+			_controlPos set [2, _width];
+			_progressBar ctrlSetPosition _controlPos;
+			_progressBar ctrlCommit _holdDuration;
+			
+			_frame = diag_frameno;	
+			_startTime = uiTime;
+
+			while { !ctrlCommitted _progressBar } do {
+				_heli = vehicle player; 
+				if (!((_heli getVariable ["HeliExtras_Eject_holdActionID", -100]) in (actionIDs _heli)) || !((str (assignedVehicleRole player)) in (str [["driver"], ["turret",[0]]]))) exitWith {};
+			
+				_infoText ctrlSetText (format ["Ejecting...%1s", (_holdDuration - (uiTime - _startTime)) toFixed 1]);
+				waitUntil { diag_frameno > _frame };
+				_frame = diag_frameno;
+			};				
+			
+			[] call HeliExtras_KillEjectBar_fnc;
+			
+			[] spawn HeliExtras_doEject_fnc;
+		};
+	};	
+	
+	
+		
+	if (isNil "HeliExtras_VHeld") then { HeliExtras_VHeld = false };
+	if (isNil "HeliExtras_Eject_InputMethod") then { HeliExtras_Eject_InputMethod = "simpleKeyDown" };
+
+	HeliExtras_Eject_ToggleInputMethod_fnc = {
+		params [["_firstTimeINIT", false]];
+		
+		if (!_firstTimeINIT) then {
+			if (HeliExtras_Eject_InputMethod == "userAction") then { HeliExtras_Eject_InputMethod = "simpleKeyDown" } else {
+				if (HeliExtras_Eject_InputMethod == "simpleKeyDown") then { HeliExtras_Eject_InputMethod = "userAction" };	
+			};			
+		};
+		
+		_display = findDisplay 46;			
+		
+		if (!isNil "HeliExtras_Eject_actionActivateEH") then { removeUserActionEventHandler ["GetOut", "Activate", HeliExtras_Eject_actionActivateEH] };
+		if (!isNil "HeliExtras_Eject_actionDeactivateEH") then { removeUserActionEventHandler ["GetOut", "Deactivate", HeliExtras_Eject_actionDeactivateEH] };
+		
+		if (!isNil "HeliExtras_Eject_KeyDownEH") then { _display displayRemoveEventHandler ["KeyDown", HeliExtras_Eject_KeyDownEH] };
+		if (!isNil "HeliExtras_Eject_KeyUpEH") then { _display displayRemoveEventHandler ["KeyUp", HeliExtras_Eject_KeyUpEH] };
+		
+		
+		
+		if (HeliExtras_Eject_InputMethod == "userAction") then {	 		
+			HeliExtras_Eject_actionActivateEH = addUserActionEventHandler ["GetOut", "Activate", { 
+				_heli = vehicle player;
+				if (
+					!HeliExtras_VHeld
+					&& { alive _heli
+					&& { alive player
+					&& { lifeState player != "INCAPACITATED"
+					&& { (str (assignedVehicleRole player)) in (str [["driver"], ["turret",[0]]])
+					&& { (_heli getVariable ["HeliExtras_Eject_holdActionID", -100]) in (actionIDs _heli)				
+					&& { (getPos _heli select 2) > 0.5
+				}}}}}}) then {
+					HeliExtras_VHeld = true;
+					[] call HeliExtras_InitEjectBar_fnc;
+				};
+			}];
+			
+						
+			HeliExtras_Eject_actionDeactivateEH = addUserActionEventHandler ["GetOut", "Deactivate", { 
+				HeliExtras_VHeld = false;
+				[] call HeliExtras_KillEjectBar_fnc;	
+			}];	
+			
+			if (!_firstTimeINIT) then {
+				titleText ["<t color='#00FF0C' size='2'>Input method changed to User Action, script will use the key mapped to 'Get Out' to eject", "PLAIN DOWN", 1.0, true, true]; 
+			};
+		};
+
+
+
+		if (HeliExtras_Eject_InputMethod == "simpleKeyDown") then {			
+			HeliExtras_Eject_KeyDownEH = _display displayAddEventHandler ["KeyDown", {
+				params ["_display", "_key"];
+				if (
+					_key == 47
+					&& { !HeliExtras_VHeld
+					&& { _heli = vehicle player; (_heli getVariable ["HeliExtras_Eject_holdActionID", -100]) in (actionIDs _heli)
+					&& { (str (assignedVehicleRole player)) in (str [["driver"], ["turret",[0]]])
+				}}}) then {
+					HeliExtras_VHeld = true;
+					[] call HeliExtras_InitEjectBar_fnc;
+				};	
+			}];
 
 		
+			HeliExtras_Eject_KeyUpEH = _display displayAddEventHandler ["KeyUp", {
+				params ["_display", "_key"];
+				if (_key == 47) then {
+					HeliExtras_VHeld = false;
+					[] call HeliExtras_KillEjectBar_fnc;
+				};	
+			}];	 
+		
+			if (!_firstTimeINIT) then {
+				titleText ["<t color='#00FF0C' size='2'>Input method changed to Basic, script will use 'V' to eject", "PLAIN DOWN", 1.0, true, true];
+			};
+		};
+
+	};
+	[true] call HeliExtras_Eject_ToggleInputMethod_fnc;
+	
+	
+	
 	
 	HeliExtras_addCustomActions_fnc = {
 		params ["_heli"];	
 
-	
-			
+		
 		"eject";		
 		_heli_Eject_holdActionID = _heli getVariable ["HeliExtras_Eject_holdActionID", -100];
 		if !(_heli_Eject_holdActionID in (actionIDs _heli)) then {  
@@ -46,49 +248,9 @@ HeliExtras_InitOnPlayer_fnc = {
 				"(vehicle _this == _target) && { (str (assignedVehicleRole player)) in (str [['driver'], ['turret',[0]]])}",
 				{}, {},																
 				{
-
-					player setUnitFreefallHeight 5;
-					_heli = vehicle player;
-					_wasEngineOn = isEngineOn _heli;
-					player moveOut _heli;
-					waitUntil { vehicle player == player };
-					if (_wasEngineOn && { ((getPos _heli) select 2) > 0.5 && { !isEngineOn _heli }}) then { 
-						[_heli, true] remoteExec ["engineOn", _heli];
-					};
-					
-					sleep 0.5;								
-					player setUnitFreefallHeight 100;
-					if (backpack player == "B_Parachute") exitWith {};
-					
-					waitUntil { sleep 0.1; ((getPos player) select 2) <= 100 || !alive player };			
-					if (!alive player) exitWith {};
-					if (((getPos player) select 2) <= 5) exitWith {};
-					if (vehicle player != player) exitWith {};
-					
-					_parachute = "Steerable_Parachute_F" createVehicle position player;	
-					[_heli, _parachute] remoteExec ["disableCollisionWith", [_heli, _parachute]];
-					_parachute setPosATL (getPosATL player);
-					_parachute setDir (getDir player);
-					[_parachute, false] remoteExec ["allowDamage", _parachute];
-					player moveInDriver _parachute;
-					
-					[_parachute] spawn {
-						params ["_parachute"];
-						while { vehicle player == _parachute } do {						
-							{ 
-								if ((collisionDisabledWith _x) select 0 != _parachute) then {
-									[_parachute, _x] remoteExec ["disableCollisionWith", [_parachute, _x]];				
-								};					
-							} forEach ((vehicles + allUnits) select { (_parachute distance _x) < 30 });					
-							
-							sleep 1;
-						};
-						sleep 1;
-						deleteVehicle _parachute;
-					};					
-		
+					[] spawn HeliExtras_doEject_fnc;		
 				}, 
-				{}, [], 1, 6.1, false, false, false
+				{}, [], 2, 6.1, false, false, false
 			] call BIS_fnc_holdActionAdd;
 			_heli setVariable ["HeliExtras_Eject_holdActionID", _heli_Eject_holdActionID];
 			
