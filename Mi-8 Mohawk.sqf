@@ -90,14 +90,7 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 	{
 		_x setDir (getDir _mi8);
 		_x allowDamage false;
-		_x lock true;
-		_x addEventHandler ["Fired", {
-			params ["_Mi8_Pylon_AR2", "_weapon", "_muzzle", "_mode", "_ammo", "_magazine", "_projectile", "_gunner"];
-			if (!local _Mi8_Pylon_AR2) exitWith {};
-			
-			_Mi8_Pylon_AR2 setWeaponReloadingTime [driver _Mi8_Pylon_AR2, currentMuzzle (driver _Mi8_Pylon_AR2), 0.1]; 
-			_Mi8_Pylon_AR2 setVehicleAmmo 1;		
-		}];		
+		_x lock true;	
 	} forEach _pylonDrones;
 	
 	(_mi8 getVariable ["aimpistol", objNull]) setDir 90;
@@ -131,25 +124,34 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 		_Mi8_Pylon_AR2_L = _mi8 getVariable ["Mi8_Pylon_AR2_L", objNull];
 
 		if (_muzzle == "Rocket_03_AP_Plane_CAS_02_F") then {
-			(driver _Mi8_Pylon_AR2_R) forceWeaponFire ["Rocket_03_AP_Plane_CAS_02_F", "Burst"];
+			(driver _Mi8_Pylon_AR2_R) forceWeaponFire [_muzzle, "Burst"];
+			_Mi8_Pylon_AR2_R setWeaponReloadingTime [(driver _Mi8_Pylon_AR2_R), _muzzle, 0.1]; 
+			_Mi8_Pylon_AR2_R setVehicleAmmo 1;		
 		};
 		
 		if (_muzzle == "Rocket_03_HE_Plane_CAS_02_F") then {
-			(driver _Mi8_Pylon_AR2_L) forceWeaponFire ["Rocket_03_HE_Plane_CAS_02_F", "Burst"];
+			(driver _Mi8_Pylon_AR2_L) forceWeaponFire [_muzzle, "Burst"];
+			_Mi8_Pylon_AR2_L setWeaponReloadingTime [(driver _Mi8_Pylon_AR2_L), _muzzle, 0.1]; 
+			_Mi8_Pylon_AR2_L setVehicleAmmo 1;	
 		};		
 	}];
 	
 	
 	_mi8 addEventHandler ["Local", {
 		params ["_mi8", "_isLocal"];
-		if (_isLocal) then {
-			"exec on new owner";
-			_Mi8_Pylon_AR2_R = _mi8 getVariable ["Mi8_Pylon_AR2_R", objNull];
-			_Mi8_Pylon_AR2_L = _mi8 getVariable ["Mi8_Pylon_AR2_L", objNull];		
-			
-			[driver _Mi8_Pylon_AR2_R, clientOwner] remoteExec ["setOwner", 2];
-			[driver _Mi8_Pylon_AR2_L, clientOwner] remoteExec ["setOwner", 2];
-		};	
+		if (!_isLocal) exitWith {};
+		"exec on new owner";
+		_Mi8_Pylon_AR2_R = _mi8 getVariable ["Mi8_Pylon_AR2_R", objNull];
+		_Mi8_Pylon_AR2_L = _mi8 getVariable ["Mi8_Pylon_AR2_L", objNull];		
+		
+		[[clientOwner, [_Mi8_Pylon_AR2_R, _Mi8_Pylon_AR2_L]], {
+			params ["_clientID", "_drones"];
+			{
+				(driver _x) setOwner _clientID;
+				_x setOwner _clientID;
+			} forEach _drones;			
+		}] remoteExec ["call", 2];
+		[format ["[LOCALLITY] Changed to %1 (%2)", clientOwner, name player]]remoteExec ["diag_log"];
 	}];
 	
 	
@@ -160,4 +162,3 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 	}, nil, 1.5, false, true, "", "(_this == driver _target)"];
 	
 }] remoteExec ["call", 0, ("Mi8Mohawk_JIPID_" + netId _mi8)];
-
