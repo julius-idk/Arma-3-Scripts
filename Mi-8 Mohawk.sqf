@@ -1,4 +1,4 @@
-_mi8 = "I_Heli_Transport_02_F" createVehicle position player;
+_mi8 = "I_Heli_Transport_02_F" createVehicle position player; "replace this line with   _mi8 = this;   if ran inside a mohawk"; 
 
 _mi8 setObjectTextureGlobal [0, "a3\armor_f_tank\lt_01\data\lt_01_main_olive_co.paa"];
 _mi8 setObjectTextureGlobal [1, "a3\armor_f_tank\lt_01\data\lt_01_main_olive_co.paa"];
@@ -137,6 +137,7 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 	}];
 	
 	
+	"sync drone locality to heli locality";
 	_mi8 addEventHandler ["Local", {
 		params ["_mi8", "_isLocal"];
 		if (!_isLocal) exitWith {};
