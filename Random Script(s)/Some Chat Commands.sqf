@@ -758,54 +758,92 @@ _server_info = {
 };
 
 
-_averagefps_fnc = {
-	[] spawn {
-		if (missionNamespace getVariable ["someChatCommands_GettinFPSActive", false]) exitWith {
-			["Script is currently in progress, please try agian later"] call sendChatMsg;
-		};
-		missionNamespace setVariable ["someChatCommands_GettinFPSActive", true, true];
-		missionNamespace setVariable ["someChatCommands_ClientsFPSArray", [], true];
+_pingClient = {
+	params ["_textLow"];
+
+	_split = _textLow splitString " ";
+	
+	if (count _split < 2) exitWith {
+		["Sytax Error, Use: !pingClient playerName"] call sendChatMsg;
+	};
 		
-		"Put everyones FPS in the array and display chat msgs in the proccess";
-		{			
-			_playerNum = _forEachIndex + 1;
-			_fpsArrayCount = count someChatCommands_ClientsFPSArray;
-			_fpsArrayCountPlusOne = _fpsArrayCount + 1;
-			{	
-				someChatCommands_ClientsFPSArray pushBack (round diag_fps);
-				missionNamespace setVariable ["someChatCommands_ClientsFPSArray", someChatCommands_ClientsFPSArray, true];		
-			} remoteExec ["call", _x];
+	_split deleteAt 0;
+	
+	_playerName = _split joinString " ";
+
+	(allPlayers select { toLower (name _x) == toLower _playerName }) params [["_player", objNull]];
+	if (isNull _player) exitWith {
+		["Player not found"] call sendChatMsg;
+	};
+	
+	[format ["Pinging %1...", name _player]] call sendChatMsg;
+
+	[[clientOwner, serverTime],{
+		params ["_caller", "_callerServerTime"];
+
+		_timeOutgoing_callerToTarget = serverTime - _callerServerTime;
+		_timeOutgoing_callerToTarget_Ms = _timeOutgoing_callerToTarget * 1000;
+		_timeOutgoing_callerToTarget_Ms_Rounded = round (_timeOutgoing_callerToTarget_Ms * 10000) / 10000;		
+
+		[[_timeOutgoing_callerToTarget_Ms_Rounded, serverTime],{
+			params ["_timeOutgoing_callerToTarget_Ms_Rounded", "_targetServerTime"];
 			
-			_didTimeOut = false;
-			_timeOutLimit = time + 5;
-			waitUntil { 
-				sleep 0.1; 			
-				_didTimeOut = time > _timeOutLimit; 
-				(count someChatCommands_ClientsFPSArray >= _fpsArrayCountPlusOne) || _didTimeOut;		
+			_timeIncomming_targetToCaller = serverTime - _targetServerTime;
+			_timeIncomming_targetToCaller_MS = _timeIncomming_targetToCaller * 1000;
+			_timeIncomming_targetToCaller_MS_Rounded = round (_timeIncomming_targetToCaller_MS * 10000) / 10000;
+			_totalSpeed = _timeOutgoing_callerToTarget_Ms_Rounded + _timeIncomming_targetToCaller_MS_Rounded;
+				
+			[format ["Ping: %1ms (To Client: %2 | From Client: %3)",_totalSpeed,_timeOutgoing_callerToTarget_Ms_Rounded,_timeIncomming_targetToCaller_MS_Rounded]] call sendChatMsg;
+		}] remoteExec ["call", _caller];
+	
+	}] remoteExec ["call", _player];
+};		
+
+
+_averagefps_fnc = {
+	if (!isNil "someChatCommands_gettingFPSspawn" && { !scriptDone someChatCommands_gettingFPSspawn }) exitWith { 
+		["Getting FPS still in progress, please wait for it to finish."] call sendChatMsg; 
+	};
+	someChatCommands_gettingFPSspawn = [] spawn {	
+		_allFPSArray = [];
+		_requestID = format ["chatCommands_FpsRequest_%1", time];
+		
+		{				
+			[[_requestID],{
+				params ["_requestID"];
+				_varName = format ["%1_%2", _requestID, getPlayerUID player];
+				missionNamespace setVariable [_varName, diag_fps, remoteExecutedOwner];		
+			}] remoteExec ["call", _x];
+			
+			_varName = format ["%1_%2", _requestID, getPlayerUID _x];	
+			waitUntil [{ !isNil { missionNamespace getVariable _varName } }, 5, 0.1];
+			
+			_fps = missionNamespace getVariable _varName;		
+			if (isNil "_fps") then {
+				systemChat format ["[FAILED {%2/%3}] %1 Timed Out :/", name _x, (_forEachIndex + 1), count allPlayers];
+				continue
 			};
-			if !(_didTimeOut) then {
-				systemChat format ["[SUCCESS] Got FPS of %1 (%2/%3)", name _x, _playerNum, count allPlayers];
-			} else {
-				systemChat format ["[FAILED] Getting FPS of %1 timed out (%2/%3)", name _x, _playerNum, count allPlayers];
-			};
-						
+			
+			_fpsRounded = (round (_fps * 100)) / 100; "2 decimals";
+			
+			_allFPSArray pushBack _fpsRounded;
+			 
+			 systemChat format ["[SUCCESS {%3/%4}] %1 Data Received (%2 FPS)", name _x, _fpsRounded, (_forEachIndex + 1), count allPlayers]; 	 
 		} forEach allPlayers;
 		
-		
-		"Basicily: [45.23 + 37.32 + 129,90 ,...]";
-		_arrayEntryCount = 0;
+		_totalNum = 0;
 		{
-			_arrayEntryCount = _arrayEntryCount + _x;
-		} forEach someChatCommands_ClientsFPSArray;
-
-		"The total FPS all added together devided by the entries in FPS array";
-		_averageFPS = _arrayEntryCount / (count someChatCommands_ClientsFPSArray);
+			_totalNum = _totalNum + _x;
+		} forEach _allFPSArray;
+		
+		_averageFPS = _totalNum / (count _allFPSArray);
 		_averageFPSRounded = (round (_averageFPS * 100)) / 100;
-		systemChat format ["Gathered FPS of %1 Players", count someChatCommands_ClientsFPSArray];
-		systemChat format ["Average Player FPS: %1", _averageFPSRounded];
-		sleep 0.1;
-		missionNamespace setVariable ["someChatCommands_ClientsFPSArray", [], true];
-		missionNamespace setVariable ["someChatCommands_GettinFPSActive", false, true];		
+		
+		systemChat format ["[Chat Commands] : Average: %1 FPS", _averageFPSRounded]; 
+		
+		{
+			missionNamespace setVariable [_x, nil]; "clean-up";
+		} forEach ((allVariables missionNamespace) select { (toLower _requestID) in (toLower _x) });
 	};
 };
 _edithud_fnc = {
@@ -940,6 +978,7 @@ someChatCommands_allCmds set ["!grass", ["!grass", "Toggles grass for you.", _gr
 someChatCommands_allCmds set ["!lawnmower", ["!lawnmower", "Temporary hides grass in a radius around player", _lawnmower_fnc, true, ""]];
 someChatCommands_allCmds set ["!fullscreen_nvg", ["!fullscreen_NVG", "Gives you fullscreen NVGs.", _fullscreen_nvg_fnc, true, ""]];
 someChatCommands_allCmds set ["!serverinfo", ["!serverInfo", "Shows server information (Uptime,FPS,Players,Scripts,Speed).", _server_info, true, ""]];
+someChatCommands_allCmds set ["!pingclient", ["!pingClient", "Ping other clients (network speed)", _pingClient, true, ""]];
 someChatCommands_allCmds set ["!averagefps", ["!averageFPS", "Gets FPS of all clients and calculates average.", _averagefps_fnc, true, ""]];
 someChatCommands_allCmds set ["!edithud", ["!editHUD", "[WIP] Edit HUD", _edithud_fnc, true, ""]];
 
@@ -1073,8 +1112,8 @@ someChatCommands_InitOnPlayer_fnc = {
 		"<br/><br/><br/>- script by julius<br/>" +
 		"(on workshop: Some Chat Commands)"		
 	]];		
-		
-		
+	
+	
 	sendChatMsg = {
 		_this spawn {
 			_this params ["_msg"];
@@ -1254,6 +1293,7 @@ someChatCommands_InitOnPlayer_fnc = {
 			
 		_chatDisplay displayAddEventHandler ["KeyUp", {
 			params ["_chatDisplay", "_key", "_shift", "_ctrl", "_alt"];
+
 			_listbox = _chatDisplay displayCtrl 1069;
 			_chatInput = toLower (ctrlText (_chatDisplay displayCtrl 101));
 			lbClear _listbox;		
@@ -1262,7 +1302,7 @@ someChatCommands_InitOnPlayer_fnc = {
 			_matchingCmds = [];
 			_chatInputWithoutExMark = _chatInput select [1];
 			
-			
+
 			{
 				_cmdWithoutExMark = _x select [1];			
 				_cmdCapital = (someChatCommands_allCmds get _x) select 0;
@@ -1274,6 +1314,7 @@ someChatCommands_InitOnPlayer_fnc = {
 				};		
 			} forEach someChatCommands_allCmds;
 			
+			
 			{
 				_cmdWithoutExMark = toLower (_x select [1]);
 				
@@ -1282,13 +1323,14 @@ someChatCommands_InitOnPlayer_fnc = {
 				} else {
 					_otherCmds pushBack _x;
 				};		
-			} forEach (missionNamespace getVariable ["additional_CMDs", []]);			
+			} forEach (missionNamespace getVariable ["additional_CMDs", []]);	
+			
 			
 			{ 
 				_listbox lbAdd (format ["%1", _x]) 
 			} forEach _otherCmds;	
-		
-		
+
+
 			{ 
 				_index = _listbox lbAdd (format ["%1", _x]);		
 				
@@ -1298,7 +1340,6 @@ someChatCommands_InitOnPlayer_fnc = {
 			
 			_listbox ctrlSetScrollValues [1, -1];
 			_listbox ctrlShow (count _matchingCmds > 0 && _chatInput select [0,1] == "!" && player getVariable ["showCmdSuggestions", true]);
-		
 		}];		
 		
 		
@@ -1348,6 +1389,7 @@ someChatCommands_InitOnPlayer_fnc = {
 			[format ["Speed: %1ms (To Server: %2 | From Server: %3)",_totalSpeed,_roundedTimeToReceive_ClientToServer,_roundedTimeToReceive_ServerToClient]] call sendChatMsg;
 		};		
 	};
+
 
 
 	if (!isNil "someChatCommands_FixChat_loop" && {!scriptDone someChatCommands_FixChat_loop}) then { terminate someChatCommands_FixChat_loop };	
