@@ -52,8 +52,7 @@ BFahhParachutes_InitOnPlayer = {
 								[_parachute, _x] remoteExec ["disableCollisionWith", [_parachute, _x]];
 								diag_log format ["[Battlefield Ahh Parachutes {DEBUG}] Disabled Collision with %1 // Distance: %2", typeOf _x, _x distance _parachute];
 							};
-							
-						} forEach ((vehicles + allUnits) select { (_parachute distance _x) < 30 });					
+						} forEach ((vehicles + allUnits) select { (_parachute distance _x) < 30 && { typeOf _x != "WeaponHolderSimulated" }});					
 						
 						sleep 1;
 					};
