@@ -378,21 +378,23 @@ _help_fnc = {
 
 
 _fixGroup_fnc = {
-	["InitializePlayer", [player]] call BIS_fnc_dynamicGroups; 
-	["Your Group Menu has been fixed"] call sendChatMsg;	
+	[{ 
+		["InitializePlayer", [player]] call BIS_fnc_dynamicGroups; 
+	}] remoteExec ["call", allPlayers]; 
+	["Group Menu has been fixed for all players"] call sendChatMsg;	
 };
 
 
 _removeTk_fnc = {
-	[[],{
-		private _score = rating player; 
+	[{
+		_score = rating player; 
 		if (_score < 0) exitWith {
 			player addRating ((abs _score) + 2000);
 		};
 		if (_score < 2000) then {
 			player addRating (2000 - _score);
 		};
-	}] remoteExec ['spawn',-2];	
+	}] remoteExec ["call", allPlayers]; 
 	["Removed teamkiller status from all players"] call sendChatMsg;
 };
 	
@@ -801,51 +803,104 @@ _pingClient = {
 
 
 _averagefps_fnc = {
-	if (!isNil "someChatCommands_gettingFPSspawn" && { !scriptDone someChatCommands_gettingFPSspawn }) exitWith { 
-		["Getting FPS still in progress, please wait for it to finish."] call sendChatMsg; 
-	};
-	someChatCommands_gettingFPSspawn = [] spawn {	
-		_allFPSArray = [];
-		_requestID = format ["chatCommands_FpsRequest_%1", time];
+	params ["_textLow"];
+	_split = (_textLow splitString " ");
+	if (count _split < 2) then {
+		"just general average fps, no specific player";
 		
-		{				
-			[[_requestID],{
-				params ["_requestID"];
-				_varName = format ["%1_%2", _requestID, getPlayerUID player];
-				missionNamespace setVariable [_varName, diag_fps, remoteExecutedOwner];		
-			}] remoteExec ["call", _x];
+		if (!isNil "someChatCommands_gettingFPSspawn" && { !scriptDone someChatCommands_gettingFPSspawn }) exitWith { 
+			["Getting FPS still in progress, please wait for it to finish."] call sendChatMsg; 
+		};
+		someChatCommands_gettingFPSspawn = [] spawn {	
+			_allFPSArray = [];
+			_requestID = format ["chatCommands_FpsRequest_%1", time];
 			
-			_varName = format ["%1_%2", _requestID, getPlayerUID _x];	
-			waitUntil [{ !isNil { missionNamespace getVariable _varName } }, 5, 0.1];
+			{				
+				[[_requestID],{
+					params ["_requestID"];
+					_varName = format ["%1_%2", _requestID, getPlayerUID player];
+					missionNamespace setVariable [_varName, diag_fps, remoteExecutedOwner];		
+				}] remoteExec ["call", _x];
+				
+				_varName = format ["%1_%2", _requestID, getPlayerUID _x];	
+				waitUntil [{ !isNil { missionNamespace getVariable _varName } }, 5, 0.1];
+				
+				_fps = missionNamespace getVariable _varName;		
+				if (isNil "_fps") then {
+					systemChat format ["[FAILED {%2/%3}] %1 Timed Out :/", name _x, (_forEachIndex + 1), count allPlayers];
+					continue
+				};
+				
+				_fpsRounded = (round (_fps * 100)) / 100; "2 decimals";
+				
+				_allFPSArray pushBack _fpsRounded;
+				 
+				 systemChat format ["[SUCCESS {%3/%4}] %1 Data Received (%2 FPS)", name _x, _fpsRounded, (_forEachIndex + 1), count allPlayers]; 	 
+			} forEach allPlayers;
 			
-			_fps = missionNamespace getVariable _varName;		
-			if (isNil "_fps") then {
-				systemChat format ["[FAILED {%2/%3}] %1 Timed Out :/", name _x, (_forEachIndex + 1), count allPlayers];
-				continue
+			_totalNum = 0;
+			{
+				_totalNum = _totalNum + _x;
+			} forEach _allFPSArray;
+			
+			_averageFPS = _totalNum / (count _allFPSArray);
+			_averageFPSRounded = (round (_averageFPS * 100)) / 100;
+			
+			[format ["Average: %1 FPS", _averageFPSRounded]] call sendChatMsg; 
+			
+			{
+				missionNamespace setVariable [_x, nil]; "clean-up";
+			} forEach ((allVariables missionNamespace) select { (toLower _requestID) in (toLower _x) });
+		};
+	} else {
+		_split deleteAt 0;
+		_name = _split joinString " ";
+		_player = (allPlayers select { name _x == _name }) param [0, objNull];
+		_isServer = _name == "__SERVER__" && { isNull _player };		
+		if (isNull _player && { !_isServer }) exitWith { [format ["Player with name %1 not found", _name]] call sendChatMsg };
+		
+		if (!isNil "someChatCommands_gettingFPSspawn" && { !scriptDone someChatCommands_gettingFPSspawn }) exitWith { 
+			["Getting FPS still in progress, please wait for it to finish."] call sendChatMsg; 
+		};
+		someChatCommands_gettingFPSspawn = [_player, _isServer] spawn {
+			params ["_target", "_isServer"];
+			_name = if (!_isServer) then { name _target } else { "__SERVER__" };
+			
+			systemChat format ["[STARTED] Calculating %1's average fps...", _name];
+			
+			_requestID = format ["chatCommands_FpsRequest_%1", time];
+
+			[[_requestID, _isServer],{
+				params ["_requestID", "_isServer"];
+				_varName = format ["%1_%2", _requestID, (if (!_isServer) then { getPlayerUID player } else { "__SERVER__" })];
+				_fpsArray = [];
+				for "_i" from 1 to 50 do {
+					_fpsArray pushBack diag_fps;
+					sleep 0.1;
+				};
+				_totalNum = 0;
+				{ _totalNum = _totalNum + _x } forEach _fpsArray;
+				_averageFPS = _totalNum / (count _fpsArray);
+				_averageFPSRounded = ((round (_averageFPS * 100)) / 100);
+				
+				missionNamespace setVariable [_varName, _averageFPSRounded, remoteExecutedOwner];		
+			}] remoteExec ["spawn", (if (_isServer) then { 2 } else { _target })];
+			
+			_varName = format ["%1_%2", _requestID, (if (!_isServer) then { getPlayerUID _target } else { "__SERVER__" })];	
+			waitUntil [{ !isNil { missionNamespace getVariable _varName } }, 20, 0.1];
+			
+			_averageFPSRounded = missionNamespace getVariable _varName;		
+			if (isNil "_averageFPSRounded") exitWith {
+				systemChat format ["[FAILED] %1 Timed Out :/", _name];
 			};
 			
-			_fpsRounded = (round (_fps * 100)) / 100; "2 decimals";
-			
-			_allFPSArray pushBack _fpsRounded;
-			 
-			 systemChat format ["[SUCCESS {%3/%4}] %1 Data Received (%2 FPS)", name _x, _fpsRounded, (_forEachIndex + 1), count allPlayers]; 	 
-		} forEach allPlayers;
-		
-		_totalNum = 0;
-		{
-			_totalNum = _totalNum + _x;
-		} forEach _allFPSArray;
-		
-		_averageFPS = _totalNum / (count _allFPSArray);
-		_averageFPSRounded = (round (_averageFPS * 100)) / 100;
-		
-		systemChat format ["[Chat Commands] : Average: %1 FPS", _averageFPSRounded]; 
-		
-		{
-			missionNamespace setVariable [_x, nil]; "clean-up";
-		} forEach ((allVariables missionNamespace) select { (toLower _requestID) in (toLower _x) });
+			[format ["%1's Average: %2 FPS", _name, _averageFPSRounded]] call sendChatMsg; 		 
+		};
+	
 	};
 };
+
+
 _edithud_fnc = {
 	_excludedDisplays = [findDisplay 12,findDisplay 49,findDisplay 24,findDisplay 63];
 	_allDisplays = (allDisplays - _excludedDisplays);
@@ -999,7 +1054,7 @@ if (missionNamespace getVariable ["PCMLOneTimeUse_Running", false]) then {
 
 
 "Advanced UCAVs";
-if (!isNil "AdvancedUCAVs_ZeusOptions" && { (["!ucav_config","!ucav_log"] findIf { (someChatCommands_allCmds getOrDefault [_x, "NONE"]) == "NONE" }) != -1 }) then {
+if (!isNil "AUCAVs_ZeusOptions") then {
 	someChatCommands_allCmds set ["!ucav_config", ["!UCAV_config", "Zeus can config Advanced UCAVs without needing comp", {}, true, "default"]];
 	someChatCommands_allCmds set ["!ucav_log", ["!UCAV_log", "Open the Advanced UCAVs Anti-Troll log", {}, true, "default"]];	
 };
@@ -1147,9 +1202,10 @@ someChatCommands_InitOnPlayer_fnc = {
 			if (!isNil "someChatCommands_kysSpawn" && { !scriptDone someChatCommands_kysSpawn }) exitWith {};
 			if (!alive player) exitWith {};
 			someChatCommands_kysSpawn = [] spawn {
+				waitUntil [{ sleep 0.01; isAwake player }, 30];
 				player addWeapon "sgun_HunterShotgun_01_sawedoff_F";
 				[player, "acts_rifle_operations_barrel"] remoteExec ["switchMove"];
-				waitUntil [{ animationState player == "acts_rifle_operations_barrel" }, 30];
+				waitUntil [{ sleep 0.01; animationState player == "acts_rifle_operations_barrel" }, 30];
 				sleep 1.4;
 				for "_i" from 1 to 30 do {
 					playSound3D ["A3\Sounds_F\weapons\Launcher\rocket_launcher_3.wss", player, false, getPosASL player, 5, 1, 15, 0, false];
@@ -1178,7 +1234,7 @@ someChatCommands_InitOnPlayer_fnc = {
 		_enabled = (someChatCommands_allCmds get _onlyCommand) select 3;
 		if (!_enabled) exitWith { ["Sorry, but this command has been disabled"] call sendChatMsg; };
 		
-		[_textLow] call _function;
+		[_textLow, _text] call _function;
 
 		false	
 	}];
@@ -1442,6 +1498,6 @@ missionNamespace setVariable ["someChatCommands_InitOnPlayer_fnc", ["", someChat
 "Ideas:
 - Private MSG Window with command !msg, list all players with private chats
 - add parameters to some commands: !afk <reason> (!add lenght limit to reason)
-- Perhaps a !ping option allowing to ping server and other players for latency, not sure if thats necesarry tho.
 - when using tab/autocomplete, the editing thing jumps to the front instead of back, fixable?
+- add parameters for !serverinfo, allows
 ";
