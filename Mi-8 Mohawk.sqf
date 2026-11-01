@@ -1,4 +1,12 @@
-_mi8 = "I_Heli_Transport_02_F" createVehicle position player; "replace this line with   _mi8 = this;   if ran inside a mohawk"; 
+_mi8 = if !(isNil "this") then {
+	if (typeOf this == "I_Heli_Transport_02_F") then {
+		this
+	} else {
+		"I_Heli_Transport_02_F" createVehicle (getPosATL this);
+	};		
+} else {
+	"I_Heli_Transport_02_F" createVehicle (getPosATL player);
+};
 
 _mi8 setObjectTextureGlobal [0, "a3\armor_f_tank\lt_01\data\lt_01_main_olive_co.paa"];
 _mi8 setObjectTextureGlobal [1, "a3\armor_f_tank\lt_01\data\lt_01_main_olive_co.paa"];
@@ -67,7 +75,8 @@ _pylonDrones = [];
 
 
 _aimpistol = createVehicle ["Item_optic_Aco", [0,0,0], [], 0, "CAN_COLLIDE"];    
-_aimpistol attachTo [_mi8, [0.702, 6.82, -0.492]];  
+_aimpistol attachTo [_mi8, [0.702, 6.82, -0.492]];
+[_aimpistol, true] remoteExec ["hideObjectGlobal", 2];
 _mi8 setVariable ["aimpistol", _aimpistol, true];
 
 
@@ -140,7 +149,8 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 	"sync drone locality to heli locality";
 	_mi8 addEventHandler ["Local", {
 		params ["_mi8", "_isLocal"];
-		if (!_isLocal) exitWith {};
+		_clientName = if (!isNull player) then { name player } else { "__SERVER__" };
+		if (!_isLocal) exitWith { [format ["[Mi-8 Mohawk {DEBUG}] (%3) Locality OLD Owner %1 (%2)", clientOwner, _clientName, netID _mi8]] remoteExec ["diag_log"] };	
 		"exec on new owner";
 		_Mi8_Pylon_AR2_R = _mi8 getVariable ["Mi8_Pylon_AR2_R", objNull];
 		_Mi8_Pylon_AR2_L = _mi8 getVariable ["Mi8_Pylon_AR2_L", objNull];		
@@ -150,16 +160,17 @@ _mi8 setVariable ["aimpistol", _aimpistol, true];
 			{
 				(driver _x) setOwner _clientID;
 				_x setOwner _clientID;
-			} forEach _drones;			
+			} forEach _drones;
 		}] remoteExec ["call", 2];
-		[format ["[LOCALLITY] Changed to %1 (%2)", clientOwner, name player]]remoteExec ["diag_log"];
+		
+		[format ["[Mi-8 Mohawk {DEBUG}] (%3) Locality NEW Owner %1 (%2)", clientOwner, _clientName, netID _mi8]] remoteExec ["diag_log"];				
 	}];
 	
 	
 	_mi8 addAction ["<t color='#0094FF'>Toggle Scope</t>", {
 		params ["_mi8"];			   
 		_aimpistol = _mi8 getVariable ["aimpistol", objNull];					
-		[_aimpistol, !(isObjectHidden _aimpistol)] remoteExec ["hideObjectGlobal", 2];			
+		[_aimpistol, !(isObjectHidden _aimpistol)] remoteExec ["hideObjectGlobal", 2];
 	}, nil, 1.5, false, true, "", "(_this == driver _target)"];
 	
 }] remoteExec ["call", 0, ("Mi8Mohawk_JIPID_" + netId _mi8)];
