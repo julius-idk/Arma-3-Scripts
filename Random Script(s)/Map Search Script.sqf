@@ -1,8 +1,6 @@
 if (!isNil "this") then { deleteVehicle this };
 
-
 ["[Map Search] Script enabled. 'Map -> Random Script(s)' for more info."] remoteExec ["systemChat"];
-
 
 [[],{
 	if (!hasInterface) exitWith {};
@@ -117,24 +115,37 @@ if (!isNil "this") then { deleteVehicle this };
 			terminate mapSearch_createMarker_spawn;
 		};
 		mapSearch_createMarker_spawn = [] spawn {
-			_searchInput = ctrlText ((findDisplay 12) displayCtrl 123453);
+			_search = ctrlText ((findDisplay 12) displayCtrl 123453);
+			if ((["0","1","2","3","4","5","6","7","8","9"] findIf { _x in _search }) == -1) exitWith {};
 
-			_searchArray = _searchInput splitString "-";
-			if (count _searchArray != 2) exitWith {};
+			_letterForSplit = "";
+			if ("-" in _search) then { _letterForSplit = "-" };
+			if (" " in _search) then { _letterForSplit = " " };
+			
+			_searchArray = [];	
+			if (_letterForSplit != "") then {
+				(_search splitString _letterForSplit) params [["_num1", "0"], ["_num2", "0"]];
+				_searchArray = [_num1, _num2];
+			} else {
+				_searchArray = [_search select [0,3], _search select [3,3]];
+			};
+			
+			if ((str _searchArray) in ["[]", "[[],[]]"] || (count _searchArray) < 2) exitWith {};		
+			
 			_pos = _searchArray apply { (parseNumber _x) * 100 };
+			_posInGridMid = _pos apply { _x + 50 }; "Move pos from corner of grid, to middile of grid";
 
-			_map = findDisplay 12 displayCtrl 51;
+			_map = (findDisplay 12) displayCtrl 51;
 			ctrlMapAnimClear _map;
-			_map ctrlMapAnimAdd [2, 0.05, _pos];
+			_map ctrlMapAnimAdd [1, 0.08, _posInGridMid];
 			ctrlMapAnimCommit _map;
 
-			_posInMidOfGrid = _pos apply { _x + 50 };
-
-			_posInMidOfGrid append [0];
-			createMarkerLocal ["mapSearch_gridMark", _posInMidOfGrid];
+			deleteMarkerLocal "mapSearch_gridMark";
+			createMarkerLocal ["mapSearch_gridMark", (_posInGridMid + [0])];
 			"mapSearch_gridMark" setMarkerTypeLocal "selector_selectedMission";		
-			"mapSearch_gridMark" setMarkerAlphaLocal 1;
-			"mapSearch_gridMark" setMarkerTextLocal _searchInput;
+			"mapSearch_gridMark" setMarkerAlphaLocal 1;	
+			_gridPos = mapGridPosition _posInGridMid;;
+			"mapSearch_gridMark" setMarkerTextLocal ((_gridPos select [0, 3]) + "-" + (_gridPos select [3, 3]));
 			sleep 5;
 			deleteMarkerLocal "mapSearch_gridMark";
 		};
@@ -189,7 +200,10 @@ if (!isNil "this") then { deleteVehicle this };
 		_searchBar_grid ctrlSetBackgroundColor [0,0,0,1];
 		_searchBar_grid ctrlSetText "Search Grid...";
 		_searchBar_grid ctrlSetFontHeight _0_043H;
-		_searchBar_grid ctrlSetTooltip "Enter grid in format 'number-number' (eg. 123-135)";
+		_searchBar_grid ctrlSetTooltip 
+		("Search for a grid position\n\n" + 
+		"Possible Input Formats:\n" + 
+		"'123-456' or '123 456' or '123456'");
 		_searchBar_grid ctrlSetTooltipColorShade [0, 0, 0, 0.2];
 		_searchBar_grid ctrlSetTooltipColorBox [0, 0, 0, 0];
 		_searchBar_grid ctrlCommit 0;	
@@ -319,7 +333,7 @@ if (!isNil "this") then { deleteVehicle this };
 							_listbox lbSetData [_index, str _position];		
 						};	
 					};					
-				} forEach mapSearch_locations;					
+				} forEach (missionNamespace getVariable ["mapSearch_locations", []]);					
 				
 				lbSort [_listbox, "ASC"];
 			};
