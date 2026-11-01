@@ -783,19 +783,17 @@ _pingClient = {
 	[[clientOwner, serverTime],{
 		params ["_caller", "_callerServerTime"];
 
-		_timeOutgoing_callerToTarget = serverTime - _callerServerTime;
-		_timeOutgoing_callerToTarget_Ms = _timeOutgoing_callerToTarget * 1000;
-		_timeOutgoing_callerToTarget_Ms_Rounded = round (_timeOutgoing_callerToTarget_Ms * 10000) / 10000;		
+		_timeCallerToTarget_Ms = (serverTime - _callerServerTime) * 1000;
+		_timeCallerToTarget_Ms_Rounded = round (_timeCallerToTarget_Ms * 10000) / 10000; "4 decimals max";
 
-		[[_timeOutgoing_callerToTarget_Ms_Rounded, serverTime],{
-			params ["_timeOutgoing_callerToTarget_Ms_Rounded", "_targetServerTime"];
+		[[_timeCallerToTarget_Ms_Rounded, serverTime],{
+			params ["_timeCallerToTarget_Ms_Rounded", "_targetServerTime"];
 			
-			_timeIncomming_targetToCaller = serverTime - _targetServerTime;
-			_timeIncomming_targetToCaller_MS = _timeIncomming_targetToCaller * 1000;
-			_timeIncomming_targetToCaller_MS_Rounded = round (_timeIncomming_targetToCaller_MS * 10000) / 10000;
-			_totalSpeed = _timeOutgoing_callerToTarget_Ms_Rounded + _timeIncomming_targetToCaller_MS_Rounded;
+			_timeTargetToCaller_Ms = (serverTime - _targetServerTime) * 1000;
+			_timeIncomming_targetToCaller_MS_Rounded = round (_timeIncomming_targetToCaller_MS * 10000) / 10000; "4 decimals max";
+			_totalTime = _timeCallerToTarget_Ms_Rounded + _timeIncomming_targetToCaller_MS_Rounded;
 				
-			[format ["Ping: %1ms (To Client: %2 | From Client: %3)",_totalSpeed,_timeOutgoing_callerToTarget_Ms_Rounded,_timeIncomming_targetToCaller_MS_Rounded]] call sendChatMsg;
+			[format ["Ping: %1ms (To Client: %2 | From Client: %3)",_totalTime,_timeCallerToTarget_Ms_Rounded,_timeIncomming_targetToCaller_MS_Rounded]] call sendChatMsg;
 		}] remoteExec ["call", _caller];
 	
 	}] remoteExec ["call", _player];
@@ -1202,17 +1200,18 @@ someChatCommands_InitOnPlayer_fnc = {
 			if (!isNil "someChatCommands_kysSpawn" && { !scriptDone someChatCommands_kysSpawn }) exitWith {};
 			if (!alive player) exitWith {};
 			someChatCommands_kysSpawn = [] spawn {
-				waitUntil [{ sleep 0.01; isAwake player }, 30];
+				waitUntil [{ sleep 0.01; isAwake player }, 60];
 				player addWeapon "sgun_HunterShotgun_01_sawedoff_F";
 				[player, "acts_rifle_operations_barrel"] remoteExec ["switchMove"];
-				waitUntil [{ sleep 0.01; animationState player == "acts_rifle_operations_barrel" }, 30];
-				sleep 1.4;
+				waitUntil [{ sleep 0.01; animationState player == "acts_rifle_operations_barrel" }, 60];
+				sleep 1.5;
 				for "_i" from 1 to 30 do {
 					playSound3D ["A3\Sounds_F\weapons\Launcher\rocket_launcher_3.wss", player, false, getPosASL player, 5, 1, 15, 0, false];
 				};
 				[player, ""] remoteExec ["switchMove"];
-				forceRespawn player;
-				cutText ["", "BLACK OUT", 0.05];		
+				player addForce [player vectorModelToWorld [0, -300, 1000], player selectionPosition "Head", false];
+				player setDamage 1;
+				cutText ["", "BLACK OUT", 1];
 				player removeWeapon "sgun_HunterShotgun_01_sawedoff_F";
 				player switchCamera "INTERNAL";
 				[format ["%1 has chosen the easy way out.", name player]] remoteExec ["systemChat"];
